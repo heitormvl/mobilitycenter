@@ -1,202 +1,202 @@
 # MicroMobilityHub
 
-A crowdsourced map platform for micromobility infrastructure (bike racks, scooter stations, etc.). Users can discover, rate, and review bike parking facilities with granular filtering for services, access types, and supported vehicle types.
+Plataforma de mapa colaborativo para infraestrutura de micromobilidade (bicicletários, estações de scooter, etc). Usuários podem descobrir, avaliar e comentar sobre bicicletários com filtros granulares para serviços, tipos de acesso e veículos suportados.
 
-## 🎯 Features
+## Funcionalidades
 
-### MVP (Phase 1)
-- **Interactive map** with location-based filters (5-50km radius)
-- **CRUD operations** for bike racks (crowdsourced + moderation)
-- **Rating system** (1-5 stars + comments)
-- **Granular filters:**
-  - Services: power outlet, air pump, locker, storage, maintenance space, bike lock
-  - Access: free, paid, requires sign-up, monthly subscription
-  - Vehicles: bikes, scooters, monowheels, e-skates
+### MVP (Fase 1)
+- **Mapa interativo** com filtros de localização (raio 5-50km)
+- **Operações CRUD** de bicicletários (colaborativo + moderação)
+- **Sistema de avaliações** (1-5 estrelas + comentários)
+- **Filtros granulares:**
+  - Serviços: tomada, calibrador, armário, espaço de manutenção, cadeado próprio
+  - Acesso: livre, pago, requer cadastro, mensal
+  - Veículos: bicicleta, scooter, monociclo, patinete elétrico
 
-### Phase 2
-- Freemium monetization (operators pay for highlight/verification)
-- User reputation system
-- Real-time notifications for new facilities nearby
+### Fase 2
+- Monetização freemium (operadores pagam por destaque/verificação)
+- Sistema de reputação de usuários
+- Notificações em tempo real para novos bicicletários próximos
 
-## 🏗️ Architecture
+## Arquitetura
 
-**4-layer clean architecture:**
-- **API Layer** — Controllers, HTTP mappings, middleware
-- **Business Layer** — Services, business logic, validation
-- **Repository Layer** — EF Core DbContext, data access
-- **Shared Layer** — Domain models, DTOs, enums, exceptions
+**Arquitetura limpa em 4 camadas:**
+- **Camada API** — Controllers, mapeamentos HTTP, middleware
+- **Camada de Negócio** — Serviços, lógica de negócio, validações
+- **Camada de Repositório** — EF Core DbContext, acesso a dados
+- **Camada Compartilhada** — Modelos de domínio, DTOs, enums, exceções
 
-## 🛠️ Tech Stack
+## Stack Tecnológico
 
-| Component | Technology |
+| Componente | Tecnologia |
 |-----------|-----------|
 | Backend | .NET 10 + C# + ASP.NET Core + EF Core |
-| Database | PostgreSQL 17 + PostGIS 3.5 (geospatial) |
+| Banco de Dados | PostgreSQL 17 + PostGIS 3.5 (geoespacial) |
 | Frontend | Blazor WebAssembly / PWA |
-| Infrastructure | Docker, GitHub Actions |
+| Infraestrutura | Docker, GitHub Actions |
 | ORM | Entity Framework Core 10 |
 
-## 📦 Project Structure
+## Estrutura de Pastas
 
 ```
 MobilityCenter/
 ├── src/
-│   ├── MobilityCenter.API/              # ASP.NET Core API
-│   ├── MobilityCenter.Business/         # Services & business logic
-│   ├── MobilityCenter.Repositories/     # EF Core & data access
-│   └── MobilityCenter.Shared/           # Models, DTOs, enums
+│   ├── MobilityCenter.API/              # API ASP.NET Core
+│   ├── MobilityCenter.Business/         # Serviços e lógica de negócio
+│   ├── MobilityCenter.Repositories/     # EF Core e acesso a dados
+│   └── MobilityCenter.Shared/           # Modelos, DTOs, enums
 ├── docker-compose.yml                   # PostgreSQL + PostGIS
-├── MobilityCenter.slnx                  # Solution file
-└── CLAUDE.md                            # Development guide for Claude Code
+├── MobilityCenter.slnx                  # Arquivo de solução
+└── CLAUDE.md                            # Guia de desenvolvimento para Claude Code
 ```
 
-## 🚀 Getting Started
+## Começando
 
-### Prerequisites
+### Pré-requisitos
 - .NET 10 SDK
-- Docker & Docker Compose
+- Docker e Docker Compose
 - Git
 
-### Local Setup
+### Setup Local
 
-1. **Clone the repository**
+1. **Clone o repositório**
    ```bash
    git clone https://github.com/heitormvl/mobilitycenter.git
    cd mobilitycenter
    ```
 
-2. **Start PostgreSQL + PostGIS**
+2. **Inicie PostgreSQL + PostGIS**
    ```bash
    docker compose up -d
    ```
    
-   Database will be available at:
+   Banco estará disponível em:
    - Host: `localhost`
-   - Port: `5432`
-   - Database: `mobilitycenter`
-   - User: `mc_user`
-   - Password: `mc_dev_password`
+   - Porta: `5432`
+   - Banco: `mobilitycenter`
+   - Usuário: `mc_user`
+   - Senha: `mc_dev_password`
 
-3. **Restore dependencies**
+3. **Restaure as dependências**
    ```bash
    dotnet restore
    ```
 
-4. **Build solution**
+4. **Compile a solução**
    ```bash
    dotnet build
    ```
 
-5. **Run migrations** (when ready)
+5. **Execute as migrações** (quando necessário)
    ```bash
    dotnet ef migrations add InitialCreate -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
    dotnet ef database update -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
    ```
 
-6. **Start API**
+6. **Inicie a API**
    ```bash
    dotnet run --project ./src/MobilityCenter.API
    ```
    
-   API will be available at:
+   API estará disponível em:
    - HTTP: `http://localhost:5000`
    - HTTPS: `https://localhost:7000`
 
-## 🔧 Development
+## Desenvolvimento
 
-### Common Commands
+### Comandos Comuns
 
 ```bash
-# Build & run
+# Build e execução
 dotnet build
 dotnet build -c Release
 dotnet run --project ./src/MobilityCenter.API
 dotnet watch run --project ./src/MobilityCenter.API
 
-# Testing
+# Testes
 dotnet test
 dotnet test --filter "ClassName.MethodName"
 
-# Formatting
+# Formatação
 dotnet format
 
-# Database
+# Banco de dados
 dotnet ef migrations add MigrationName -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
 dotnet ef database update -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
 dotnet ef database drop -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
 ```
 
-### CORS Configuration
+### Configuração de CORS
 
-**Development** (`appsettings.Development.json`):
-- Allows requests from `http://localhost:3000`, `http://localhost:4200`, `http://localhost:5173`, `https://localhost:7001`
-- Allows any header and method
-- Credentials enabled
+**Desenvolvimento** (`appsettings.Development.json`):
+- Permite requisições de `http://localhost:3000`, `http://localhost:4200`, `http://localhost:5173`, `https://localhost:7001`
+- Permite qualquer header e método
+- Credenciais habilitadas
 
-**Production** (`appsettings.Production.json`):
-- Whitelist specific origins (configure via environment variables)
-- Restricted to necessary headers: `Content-Type`, `Authorization`
-- Allowed methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`
+**Produção** (`appsettings.Production.json`):
+- Whitelist de origens específicas (configurar via variáveis de ambiente)
+- Restrito aos headers necessários: `Content-Type`, `Authorization`
+- Métodos permitidos: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`
 
-### Environment Configuration
+### Configuração de Ambiente
 
-Settings are loaded in this order (later values override earlier):
+As configurações são carregadas nesta ordem (valores posteriores sobrescrevem anteriores):
 1. `appsettings.json` (base)
 2. `appsettings.{ASPNETCORE_ENVIRONMENT}.json` (dev/prod)
-3. Environment variables (CI/CD, Docker)
+3. Variáveis de ambiente (CI/CD, Docker)
 
-**Development:** Connection string and JWT secret are committed (safe defaults).
-**Production:** All sensitive values should come from environment variables or Azure Key Vault.
+**Desenvolvimento:** String de conexão e segredo JWT são commitados (valores padrão seguros).
+**Produção:** Todos os valores sensíveis devem vir de variáveis de ambiente ou Azure Key Vault.
 
-## 🗄️ Database Schema
+## Schema do Banco de Dados
 
-### Core Models
+### Modelos Principais
 
-**Bicicletario** (Bike Rack)
+**Bicicletario** (Bicicletário)
 - `Id` (Guid)
 - `Name` (string)
 - `Latitude`, `Longitude` (decimal)
 - `Location` (PostGIS Point, SRID 4326)
-- Service flags: `HasPowerOutlet`, `HasAirPump`, `HasLocker`, `HasStorage`, `HasMaintenanceSpace`, `HasBikeLock`
-- Access type: `IsFree`, `IsPaid`, `RequiresSignup`, `IsMonthlySubscription`
+- Flags de serviços: `HasPowerOutlet`, `HasAirPump`, `HasLocker`, `HasStorage`, `HasMaintenanceSpace`, `HasBikeLock`
+- Tipo de acesso: `IsFree`, `IsPaid`, `RequiresSignup`, `IsMonthlySubscription`
 - `VehicleTypes` (enum flags)
-- `OperatorId` (FK to Usuario)
-- `Ratings` (collection of Avaliacao)
+- `OperatorId` (FK para Usuario)
+- `Ratings` (coleção de Avaliacao)
 - `CreatedAt`, `UpdatedAt`, `IsDeleted`
 
-**Usuario** (User)
+**Usuario** (Usuário)
 - `Id` (Guid)
 - `Name` (string)
-- `Email` (string, unique)
+- `Email` (string, único)
 - `UserType` (enum: Usuario, Operador, Admin)
 - `CreatedAt`, `IsActive`
 
-**Avaliacao** (Rating)
+**Avaliacao** (Avaliação)
 - `Id` (Guid)
 - `BicicletarioId` (FK)
 - `UsuarioId` (FK)
 - `Rating` (1-5)
-- `Comment` (string, optional)
+- `Comment` (string, opcional)
 - `CreatedAt`
 
-## 🔐 Authentication
+## Autenticação
 
-JWT-based authentication (configured in `appsettings.{environment}.json`):
+Autenticação baseada em JWT (configurada em `appsettings.{environment}.json`):
 - Issuer: `MobilityCenter`
 - Audience: `MobilityCenter`
-- Secret: Set via environment variable in production
+- Secret: Deve ser definido via variável de ambiente em produção
 
-## 📝 Contributing
+## Contribuindo
 
-1. Create a feature branch: `git checkout -b feature/my-feature`
-2. Commit changes: `git commit -m "description"`
-3. Push to remote: `git push origin feature/my-feature`
-4. Create a pull request
+1. Crie uma branch de feature: `git checkout -b feature/minha-feature`
+2. Commit as mudanças: `git commit -m "descrição"`
+3. Push para o repositório remoto: `git push origin feature/minha-feature`
+4. Crie um pull request
 
-## 📄 License
+## Licença
 
-[Specify your license here]
+[Especifique sua licença aqui]
 
-## 👤 Author
+## Autor
 
-[Your name/contact]
+[Seu nome/contato]
