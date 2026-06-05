@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5-alpine
+    container_name: mobilitycenter_db
+    environment:
+      POSTGRES_DB: mobilitycenter
+      POSTGRES_USER: mc_user
+      POSTGRES_PASSWORD: mc_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mc_user -d mobilitycenter"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
