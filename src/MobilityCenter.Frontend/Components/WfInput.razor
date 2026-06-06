@@ -3,7 +3,9 @@
     {
         <i class="fa-solid @IconClass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-4); font-size:13px; pointer-events:none; z-index:1;"></i>
     }
-    <input type="text"
+    <input type="@Type"
+           value="@Value"
+           @oninput="OnInput"
            placeholder="@Placeholder"
            style="width:100%; border:1.5px solid var(--border); border-radius:var(--r); padding:@(string.IsNullOrEmpty(IconClass) ? "12px 14px" : "12px 14px 12px 40px"); background:var(--bg); color:var(--text); font-size:15px; font-family:var(--font); line-height:1.4; transition:border-color 0.15s, box-shadow 0.15s; -webkit-appearance:none;" />
 </div>
@@ -11,4 +13,10 @@
 @code {
     [Parameter] public string Placeholder { get; set; } = "";
     [Parameter] public string IconClass { get; set; } = "";
+    [Parameter] public string Type { get; set; } = "text";
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    private async Task OnInput(ChangeEventArgs e) =>
+        await ValueChanged.InvokeAsync(e.Value?.ToString() ?? "");
 }
