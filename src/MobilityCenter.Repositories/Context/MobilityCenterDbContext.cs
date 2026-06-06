@@ -46,6 +46,7 @@ public class MobilityCenterDbContext : IdentityDbContext<Usuario, IdentityRole<G
             e.HasKey(a => a.Id);
             e.Property(a => a.Nota).HasColumnType("smallint");
             e.ToTable(t => t.HasCheckConstraint("CK_Avaliacao_Nota", "\"Nota\" BETWEEN 1 AND 5"));
+            e.HasQueryFilter(a => a.Bicicletario == null || !a.Bicicletario.Deletado);
 
             e.HasOne(a => a.Usuario)
              .WithMany(u => u.Reviews)
