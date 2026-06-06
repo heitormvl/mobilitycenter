@@ -1,0 +1,200 @@
+using Microsoft.EntityFrameworkCore;
+using MobilityCenter.Business.Filters;
+using MobilityCenter.Business.Interfaces;
+using MobilityCenter.Repositories.Context;
+using MobilityCenter.Shared.DTOs.Avaliacao;
+using MobilityCenter.Shared.DTOs.Bicicletario;
+using MobilityCenter.Shared.Enums;
+using MobilityCenter.Shared.Exceptions;
+using MobilityCenter.Shared.Models;
+using NetTopologySuite.Geometries;
+
+namespace MobilityCenter.Business.Services;
+
+public class BicicletarioService : IBicicletarioService
+{
+    private readonly MobilityCenterDbContext _db;
+
+    public BicicletarioService(MobilityCenterDbContext db) => _db = db;
+
+    public async Task<IEnumerable<BicicletarioResumoDto>> ListarAsync(BicicletarioFiltros filtros)
+    {
+        var query = _db.Bicicletarios.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filtros.Q))
+            query = query.Where(b => b.Nome.Contains(filtros.Q));
+
+        if (filtros.AcessoLivre == true)
+            query = query.Where(b => b.AcessoLivre);
+
+        if (filtros.TemTomada == true)
+            query = query.Where(b => b.TemTomada);
+
+        if (filtros.TipoVeiculo.HasValue && filtros.TipoVeiculo != TipoVeiculo.Nenhum)
+        {
+            var tipo = filtros.TipoVeiculo.Value;
+            query = query.Where(b => (b.VeiculosSuportados & tipo) != TipoVeiculo.Nenhum);
+        }
+
+        Point? ponto = null;
+        if (filtros.Lat.HasValue && filtros.Lon.HasValue)
+        {
+            ponto = new Point(filtros.Lon.Value, filtros.Lat.Value) { SRID = 4326 };
+
+            if (filtros.RaioKm.HasValue)
+            {
+                // ST_DWithin com geometry SRID 4326 usa graus; ~1 grau = 111 km
+                var raioGraus = filtros.RaioKm.Value / 111.0;
+                query = query.Where(b => b.Location != null && b.Location.IsWithinDistance(ponto, raioGraus));
+            }
+        }
+
+        var pontoCapturado = ponto;
+        query = filtros.OrderBy switch
+        {
+            "nota" => query.OrderByDescending(b =>
+                b.Avaliacoes.Select(a => (double?)a.Nota).Average() ?? 0),
+            "avaliacoes" => query.OrderByDescending(b => b.Avaliacoes.Count),
+            _ when pontoCapturado != null => query.OrderBy(b =>
+                b.Location == null ? double.MaxValue : b.Location.Distance(pontoCapturado)),
+            _ => query.OrderBy(b => b.Nome)
+        };
+
+        return await query
+            .Skip((filtros.Page - 1) * filtros.PageSize)
+            .Take(filtros.PageSize)
+            .Select(b => new BicicletarioResumoDto
+            {
+                Id = b.Id,
+                Nome = b.Nome,
+                Latitude = b.Latitude,
+                Longitude = b.Longitude,
+                NotaMedia = b.Avaliacoes.Select(a => (double?)a.Nota).Average() ?? 0,
+                TotalAvaliacoes = b.Avaliacoes.Count,
+                VeiculosSuportados = b.VeiculosSuportados
+            })
+            .ToListAsync();
+    }
+
+    public async Task<BicicletarioDetalheDto> ObterPorIdAsync(Guid id)
+    {
+        var b = await _db.Bicicletarios
+            .Include(b => b.Avaliacoes).ThenInclude(a => a.Usuario)
+            .Include(b => b.Operador)
+            .FirstOrDefaultAsync(b => b.Id == id)
+            ?? throw new NotFoundException($"Bicicletário {id} não encontrado.");
+
+        return MapearDetalhe(b);
+    }
+
+    public async Task<BicicletarioDetalheDto> CriarAsync(CriarBicicletarioDto dto, Guid usuarioId)
+    {
+        var bicicletario = new Bicicletario
+        {
+            Id = Guid.NewGuid(),
+            Nome = dto.Nome,
+            Latitude = dto.Latitude,
+            Longitude = dto.Longitude,
+            Location = new Point(dto.Longitude, dto.Latitude) { SRID = 4326 },
+            TemTomada = dto.TemTomada,
+            TemCalibrador = dto.TemCalibrador,
+            TemVestiario = dto.TemVestiario,
+            TemArmario = dto.TemArmario,
+            TemEspacoManutencao = dto.TemEspacoManutencao,
+            TemCadeado = dto.TemCadeado,
+            AcessoLivre = dto.AcessoLivre,
+            AcessoPago = dto.AcessoPago,
+            AcessoCadastro = dto.AcessoCadastro,
+            AcessoMensal = dto.AcessoMensal,
+            VeiculosSuportados = dto.VeiculosSuportados,
+            OperadorId = usuarioId,
+            CriadoEm = DateTime.UtcNow,
+            AtualizadoEm = DateTime.UtcNow
+        };
+
+        _db.Bicicletarios.Add(bicicletario);
+        await _db.SaveChangesAsync();
+
+        return await ObterPorIdAsync(bicicletario.Id);
+    }
+
+    public async Task<BicicletarioDetalheDto> AtualizarAsync(Guid id, AtualizarBicicletarioDto dto, Guid usuarioId)
+    {
+        var bicicletario = await _db.Bicicletarios.FirstOrDefaultAsync(b => b.Id == id)
+            ?? throw new NotFoundException($"Bicicletário {id} não encontrado.");
+
+        if (bicicletario.OperadorId != usuarioId)
+            throw new UnauthorizedException("Sem permissão para atualizar este bicicletário.");
+
+        if (dto.Nome != null) bicicletario.Nome = dto.Nome;
+        if (dto.Latitude.HasValue) bicicletario.Latitude = dto.Latitude.Value;
+        if (dto.Longitude.HasValue) bicicletario.Longitude = dto.Longitude.Value;
+        if (dto.Latitude.HasValue || dto.Longitude.HasValue)
+            bicicletario.Location = new Point(bicicletario.Longitude, bicicletario.Latitude) { SRID = 4326 };
+
+        if (dto.TemTomada.HasValue) bicicletario.TemTomada = dto.TemTomada.Value;
+        if (dto.TemCalibrador.HasValue) bicicletario.TemCalibrador = dto.TemCalibrador.Value;
+        if (dto.TemVestiario.HasValue) bicicletario.TemVestiario = dto.TemVestiario.Value;
+        if (dto.TemArmario.HasValue) bicicletario.TemArmario = dto.TemArmario.Value;
+        if (dto.TemEspacoManutencao.HasValue) bicicletario.TemEspacoManutencao = dto.TemEspacoManutencao.Value;
+        if (dto.TemCadeado.HasValue) bicicletario.TemCadeado = dto.TemCadeado.Value;
+
+        if (dto.AcessoLivre.HasValue) bicicletario.AcessoLivre = dto.AcessoLivre.Value;
+        if (dto.AcessoPago.HasValue) bicicletario.AcessoPago = dto.AcessoPago.Value;
+        if (dto.AcessoCadastro.HasValue) bicicletario.AcessoCadastro = dto.AcessoCadastro.Value;
+        if (dto.AcessoMensal.HasValue) bicicletario.AcessoMensal = dto.AcessoMensal.Value;
+
+        if (dto.VeiculosSuportados.HasValue) bicicletario.VeiculosSuportados = dto.VeiculosSuportados.Value;
+
+        bicicletario.AtualizadoEm = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return await ObterPorIdAsync(id);
+    }
+
+    public async Task DeletarAsync(Guid id, Guid usuarioId)
+    {
+        var bicicletario = await _db.Bicicletarios.FirstOrDefaultAsync(b => b.Id == id)
+            ?? throw new NotFoundException($"Bicicletário {id} não encontrado.");
+
+        if (bicicletario.OperadorId != usuarioId)
+            throw new UnauthorizedException("Sem permissão para deletar este bicicletário.");
+
+        bicicletario.Deletado = true;
+        bicicletario.AtualizadoEm = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+    }
+
+    private static BicicletarioDetalheDto MapearDetalhe(Bicicletario b) => new()
+    {
+        Id = b.Id,
+        Nome = b.Nome,
+        Latitude = b.Latitude,
+        Longitude = b.Longitude,
+        TemTomada = b.TemTomada,
+        TemCalibrador = b.TemCalibrador,
+        TemVestiario = b.TemVestiario,
+        TemArmario = b.TemArmario,
+        TemEspacoManutencao = b.TemEspacoManutencao,
+        TemCadeado = b.TemCadeado,
+        AcessoLivre = b.AcessoLivre,
+        AcessoPago = b.AcessoPago,
+        AcessoCadastro = b.AcessoCadastro,
+        AcessoMensal = b.AcessoMensal,
+        VeiculosSuportados = b.VeiculosSuportados,
+        OperadorId = b.OperadorId,
+        NomeOperador = b.Operador?.DisplayName,
+        NotaMedia = b.Avaliacoes.Any() ? b.Avaliacoes.Average(a => (double)a.Nota) : 0,
+        Avaliacoes = b.Avaliacoes.OrderByDescending(a => a.CriadoEm).Select(a => new AvaliacaoDto
+        {
+            Id = a.Id,
+            UsuarioId = a.UsuarioId,
+            NomeUsuario = a.Usuario.DisplayName,
+            Nota = a.Nota,
+            Comentario = a.Comentario,
+            CriadoEm = a.CriadoEm
+        }).ToList(),
+        CriadoEm = b.CriadoEm,
+        AtualizadoEm = b.AtualizadoEm
+    };
+}
