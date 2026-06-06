@@ -1,0 +1,36 @@
+@inject NavigationManager Nav
+
+<div style="position:absolute; bottom:0; left:0; right:0; background:rgba(255,255,255,0.97); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-around; padding:8px 8px 20px; font-family:var(--font);">
+    @foreach (var item in _items)
+    {
+        var on = item.Id == Active;
+        if (item.Fab)
+        {
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;" @onclick="@(() => Nav.NavigateTo(item.Route))">
+                <div style="width:50px; height:50px; border-radius:var(--r-full); background:var(--brand); display:flex; align-items:center; justify-content:center; color:white; margin-top:-26px; box-shadow:var(--shadow-lg), 0 0 0 4px var(--bg-page);">
+                    <i class="fa-solid @item.Icon" style="font-size:19px;"></i>
+                </div>
+                <span style="font-size:10px; color:var(--text-4); font-weight:500; letter-spacing:0.01em;">@item.Label</span>
+            </div>
+        }
+        else
+        {
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:0 14px;" @onclick="@(() => Nav.NavigateTo(item.Route))">
+                <i class="fa-solid @item.Icon" style="font-size:21px; color:@(on ? "var(--brand)" : "var(--text-4)");"></i>
+                <span style="font-size:10px; color:@(on ? "var(--brand)" : "var(--text-4)"); font-weight:@(on ? "600" : "400"); letter-spacing:0.01em;">@item.Label</span>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string Active { get; set; } = "";
+
+    private readonly (string Id, string Icon, string Label, bool Fab, string Route)[] _items =
+    [
+        ("mapa",   "fa-map-location-dot", "Mapa",      false, "/"),
+        ("lista",  "fa-list",             "Lista",     false, "/lista"),
+        ("add",    "fa-plus",             "Adicionar", true,  "/adicionar"),
+        ("perfil", "fa-user",             "Perfil",    false, "/perfil"),
+    ];
+}

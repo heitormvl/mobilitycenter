@@ -1,0 +1,79 @@
+@page "/perfil"
+@inject NavigationManager Nav
+
+<!-- Header -->
+<div style="background:var(--bg); border-bottom:1px solid var(--border);">
+    <StatusBar />
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 20px 14px;">
+        <h1 style="font-size:24px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em;">Perfil</h1>
+        <button style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            <i class="fa-solid fa-gear" style="color:var(--text-3); font-size:15px;"></i>
+        </button>
+    </div>
+</div>
+
+<div style="padding:20px 20px 88px; overflow-y:auto;">
+    <!-- Avatar + name -->
+    <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:24px 20px; margin-bottom:14px; text-align:center; box-shadow:var(--shadow-sm);">
+        <div style="position:relative; display:inline-block; margin-bottom:14px;">
+            <div style="width:80px; height:80px; border-radius:var(--r-full); background:var(--bg-page); border:3px solid var(--brand); display:flex; align-items:center; justify-content:center;">
+                <i class="fa-solid fa-user" style="font-size:30px; color:var(--text-4);"></i>
+            </div>
+            <div style="position:absolute; bottom:0; right:0; width:24px; height:24px; border-radius:var(--r-full); background:var(--brand); border:2.5px solid var(--bg); display:flex; align-items:center; justify-content:center;">
+                <i class="fa-solid fa-pen" style="font-size:9px; color:white;"></i>
+            </div>
+        </div>
+        <div style="font-size:20px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:4px;">João Silva</div>
+        <div style="font-size:13px; color:var(--text-4); font-family:var(--font);">Membro desde março de 2025</div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:24px;">
+        @foreach (var s in _stats)
+        {
+            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px 10px; text-align:center; box-shadow:var(--shadow-sm);">
+                <div style="font-size:26px; font-weight:800; color:var(--brand); font-family:var(--font); letter-spacing:-0.02em; line-height:1;">@s.N</div>
+                <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:5px; font-weight:500;">@s.Label</div>
+            </div>
+        }
+    </div>
+
+    <!-- Reviews -->
+    <SecLabel>Minhas avaliações</SecLabel>
+    @foreach (var r in _avaliacoes)
+    {
+        <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px 16px; margin-bottom:10px; box-shadow:var(--shadow-sm);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                <span style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font);">@r.Place</span>
+                <Stars N="@r.Stars" Size="12" />
+            </div>
+            <p style="font-size:13px; color:var(--text-2); font-family:var(--font); margin-bottom:6px; line-height:1.45;">@r.Text</p>
+            <span style="font-size:11px; color:var(--text-4); font-family:var(--font);">@r.Date</span>
+        </div>
+    }
+
+    <!-- Sign out -->
+    <div style="margin-top:20px;">
+        <button @onclick="@(() => Nav.NavigateTo("/login"))" style="width:100%; background:var(--bg); border:1.5px solid var(--border); border-radius:var(--r-lg); padding:14px 20px; font-family:var(--font); font-size:15px; font-weight:500; color:var(--red); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <i class="fa-solid fa-arrow-right-from-bracket" style="font-size:14px;"></i>
+            Sair da conta
+        </button>
+    </div>
+</div>
+
+<BottomNav Active="perfil" />
+
+@code {
+    private readonly (int N, string Label)[] _stats =
+    [
+        (12, "Avaliações"),
+        (3,  "Adicionados"),
+        (47, "Visitados"),
+    ];
+
+    private readonly (string Place, int Stars, string Text, string Date)[] _avaliacoes =
+    [
+        ("Bicicletário Central", 4, "Ótimo local, sempre organizado!",  "28/05/2026"),
+        ("Estação Norte",        3, "Calibrador parou de funcionar.",   "15/05/2026"),
+    ];
+}

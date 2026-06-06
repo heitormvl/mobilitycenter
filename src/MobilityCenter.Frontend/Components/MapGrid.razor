@@ -1,0 +1,51 @@
+<div style="width:100%; height:@(H)px; position:relative; overflow:hidden; background:#EDE8DE;">
+
+    <!-- Park / green areas -->
+    <div style="position:absolute; top:0; left:0; width:42%; height:31%; background:#C6D9A8;"></div>
+    <div style="position:absolute; bottom:0; left:12%; width:22%; height:20%; background:#C6D9A8; border-radius:6px 6px 0 0;"></div>
+
+    <!-- Water -->
+    <div style="position:absolute; top:0; right:0; width:24%; height:48%; background:#B8D4E8; border-radius:0 0 0 16px;"></div>
+
+    <!-- Building blocks -->
+    <div style="position:absolute; top:34%; left:3%; width:26%; height:17%; background:#D6CFCA; border-radius:4px;"></div>
+    <div style="position:absolute; top:34%; left:34%; width:20%; height:17%; background:#D6CFCA; border-radius:4px;"></div>
+    <div style="position:absolute; top:55%; left:3%; width:19%; height:16%; background:#D6CFCA; border-radius:4px;"></div>
+    <div style="position:absolute; top:55%; left:27%; width:15%; height:16%; background:#D6CFCA; border-radius:4px;"></div>
+    <div style="position:absolute; top:14%; left:44%; width:14%; height:14%; background:#D6CFCA; border-radius:4px;"></div>
+    <div style="position:absolute; top:52%; right:4%; width:19%; height:28%; background:#D6CFCA; border-radius:4px;"></div>
+    <div style="position:absolute; top:12%; right:28%; width:12%; height:13%; background:#D6CFCA; border-radius:4px;"></div>
+
+    <!-- Major road horizontal -->
+    <div style="position:absolute; top:31%; left:0; right:0; height:8px; background:#FFFFFF;"></div>
+    <!-- Minor road horizontal -->
+    <div style="position:absolute; top:52%; left:0; right:30%; height:5px; background:#F5F5F2;"></div>
+    <div style="position:absolute; top:52%; left:65%; right:0; height:5px; background:#F5F5F2;"></div>
+    <!-- Major road vertical -->
+    <div style="position:absolute; left:31%; top:0; bottom:0; width:8px; background:#FFFFFF;"></div>
+    <!-- Minor road vertical -->
+    <div style="position:absolute; left:61%; top:0; bottom:55%; width:5px; background:#F5F5F2;"></div>
+
+    <!-- User location (blue dot with glow) -->
+    <div style="position:absolute; top:43%; left:37%; transform:translate(-50%,-50%);">
+        <div style="position:relative; width:22px; height:22px; display:flex; align-items:center; justify-content:center;">
+            <div style="position:absolute; width:22px; height:22px; border-radius:50%; background:rgba(29,110,245,0.18);"></div>
+            <div style="width:12px; height:12px; border-radius:50%; background:#1D6EF5; border:2.5px solid white; box-shadow:0 2px 6px rgba(29,110,245,0.5);"></div>
+        </div>
+    </div>
+
+    <!-- Pins -->
+    <div style="position:absolute; top:18%; left:26%; transform:translate(-50%,-100%);">
+        <i class="fa-solid fa-location-dot" style="font-size:30px; color:#7D1128; filter:drop-shadow(0 2px 6px rgba(125,17,40,0.45));"></i>
+    </div>
+    <div style="position:absolute; top:52%; left:57%; transform:translate(-50%,-100%);">
+        <i class="fa-solid fa-location-dot" style="font-size:25px; color:#7D1128; filter:drop-shadow(0 2px 5px rgba(125,17,40,0.4));"></i>
+    </div>
+    <div style="position:absolute; top:14%; left:73%; transform:translate(-50%,-100%);">
+        <i class="fa-solid fa-location-dot" style="font-size:21px; color:#7D1128; filter:drop-shadow(0 1px 4px rgba(125,17,40,0.35));"></i>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int H { get; set; } = 300;
+}

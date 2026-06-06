@@ -1,0 +1,9 @@
+<button @onclick="OnClick" style="width:100%; background:var(--brand); color:white; border:none; border-radius:var(--r-lg); padding:15px 20px; font-family:var(--font); font-size:15px; font-weight:700; letter-spacing:0.04em; cursor:pointer; box-shadow:0 4px 16px rgba(125,17,40,0.3); transition:opacity 0.15s, transform 0.1s; -webkit-appearance:none; @Style">
+    @ChildContent
+</button>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string Style { get; set; } = "";
+    [Parameter] public EventCallback OnClick { get; set; }
+}

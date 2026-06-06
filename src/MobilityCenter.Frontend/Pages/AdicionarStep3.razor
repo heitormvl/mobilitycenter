@@ -1,0 +1,75 @@
+@page "/adicionar/servicos"
+@inject NavigationManager Nav
+
+<!-- Header -->
+<div style="background:var(--bg); border-bottom:1px solid var(--border);">
+    <StatusBar />
+    <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
+        <button @onclick="@(() => Nav.NavigateTo("/adicionar/dados"))" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
+        </button>
+        <div style="flex:1;">
+            <div style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">Serviços e veículos</div>
+        </div>
+    </div>
+</div>
+
+<div style="padding:20px 20px 110px; overflow-y:auto;">
+    <ProgressBar Step="3" Total="3" />
+
+    <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px; margin-bottom:14px;">
+        <SecLabel>Serviços disponíveis</SecLabel>
+        @foreach (var s in _servicos)
+        {
+            <CheckItem Checked="@s.Checked">
+                <div style="display:flex; align-items:center; gap:10px; font-family:var(--font); font-size:14px; color:var(--text-2);">
+                    <div style="width:28px; height:28px; border-radius:var(--r-sm); background:var(--bg-page); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i class="fa-solid @s.Icon" style="color:var(--text-4); font-size:12px;"></i>
+                    </div>
+                    <span>@s.Label</span>
+                </div>
+            </CheckItem>
+        }
+    </div>
+
+    <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px;">
+        <SecLabel>Veículos suportados</SecLabel>
+        @foreach (var v in _veiculos)
+        {
+            <CheckItem Checked="@v.Checked">
+                <div style="display:flex; align-items:center; gap:10px; font-family:var(--font); font-size:14px; color:var(--text-2);">
+                    <div style="width:28px; height:28px; border-radius:var(--r-sm); background:var(--bg-page); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i class="fa-solid @v.Icon" style="color:var(--text-4); font-size:12px;"></i>
+                    </div>
+                    <span>@v.Label</span>
+                </div>
+            </CheckItem>
+        }
+    </div>
+</div>
+
+<div style="position:absolute; bottom:24px; left:16px; right:16px; display:flex; flex-direction:column; gap:10px;">
+    <BtnP>Publicar bicicletário</BtnP>
+    <BtnO OnClick="@(() => Nav.NavigateTo("/adicionar/dados"))">
+        <i class="fa-solid fa-chevron-left" style="font-size:12px;"></i> Voltar
+    </BtnO>
+</div>
+
+@code {
+    private readonly (string Icon, string Label, bool Checked)[] _servicos =
+    [
+        ("fa-plug",   "Tomada elétrica",         true),
+        ("fa-gauge",  "Calibrador de pneus",      true),
+        ("fa-box",    "Armário / guarda-volume",  false),
+        ("fa-wrench", "Espaço de manutenção",     false),
+        ("fa-lock",   "Cadeado próprio",           false),
+    ];
+
+    private readonly (string Icon, string Label, bool Checked)[] _veiculos =
+    [
+        ("fa-bicycle",       "Bicicleta",         true),
+        ("fa-person-biking", "Scooter",           false),
+        ("fa-bolt",          "Patinete elétrico", false),
+        ("fa-circle-dot",    "Monociclo",         false),
+    ];
+}

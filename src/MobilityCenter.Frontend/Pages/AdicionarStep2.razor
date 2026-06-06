@@ -1,0 +1,48 @@
+@page "/adicionar/dados"
+@inject NavigationManager Nav
+
+<!-- Header -->
+<div style="background:var(--bg); border-bottom:1px solid var(--border);">
+    <StatusBar />
+    <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
+        <button @onclick="@(() => Nav.NavigateTo("/adicionar"))" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
+        </button>
+        <div style="flex:1;">
+            <div style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">Dados básicos</div>
+        </div>
+    </div>
+</div>
+
+<div style="padding:20px 20px 110px;">
+    <ProgressBar Step="2" Total="3" />
+
+    <div style="display:flex; flex-direction:column; gap:18px;">
+        <div>
+            <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Nome do bicicletário <span style="color:var(--brand);">*</span></label>
+            <WfInput Placeholder="Ex: Bicicletário Parque das Flores" />
+        </div>
+
+        <div>
+            <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Capacidade <span style="color:var(--text-4);">(número de vagas)</span></label>
+            <WfInput Placeholder="Ex: 20" />
+        </div>
+
+        <div>
+            <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:10px; font-family:var(--font);">Tipo de acesso</label>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <RadioItem Checked="true">Livre — sem restrições</RadioItem>
+                <RadioItem>Pago — tarifa por uso</RadioItem>
+                <RadioItem>Requer cadastro prévio</RadioItem>
+                <RadioItem>Mensalidade</RadioItem>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="position:absolute; bottom:24px; left:16px; right:16px; display:flex; flex-direction:column; gap:10px;">
+    <BtnP OnClick="@(() => Nav.NavigateTo("/adicionar/servicos"))">Próximo →</BtnP>
+    <BtnO OnClick="@(() => Nav.NavigateTo("/adicionar"))">
+        <i class="fa-solid fa-chevron-left" style="font-size:12px;"></i> Voltar
+    </BtnO>
+</div>

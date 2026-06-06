@@ -1,0 +1,51 @@
+@page "/adicionar"
+@inject NavigationManager Nav
+
+<!-- Header -->
+<div style="background:var(--bg); border-bottom:1px solid var(--border);">
+    <StatusBar />
+    <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
+        <button @onclick="@(() => Nav.NavigateTo("/"))" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
+        </button>
+        <div style="flex:1;">
+            <div style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">Adicionar bicicletário</div>
+        </div>
+    </div>
+</div>
+
+<div style="padding:20px 20px 100px;">
+    <ProgressBar Step="1" Total="3" />
+
+    <div style="margin-bottom:20px;">
+        <h2 style="font-size:20px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:4px;">Localização</h2>
+        <p style="font-size:14px; color:var(--text-3); font-family:var(--font);">Toque no mapa para marcar o ponto exato</p>
+    </div>
+
+    <!-- Map -->
+    <div style="border-radius:var(--r-lg); overflow:hidden; border:1.5px solid var(--border); position:relative; margin-bottom:20px; box-shadow:var(--shadow-sm);">
+        <MapGrid H="240" />
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -100%);">
+            <i class="fa-solid fa-location-dot" style="color:var(--brand); font-size:44px; filter:drop-shadow(0 3px 8px rgba(125,17,40,0.45));"></i>
+        </div>
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:36px; height:36px; border:2px dashed rgba(125,17,40,0.3); border-radius:var(--r-full); margin-top:4px;"></div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+        <div style="flex:1; height:1px; background:var(--border);"></div>
+        <span style="font-size:12px; color:var(--text-4); font-family:var(--font); font-weight:500;">ou</span>
+        <div style="flex:1; height:1px; background:var(--border);"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+        <WfInput Placeholder="Buscar endereço..." IconClass="fa-magnifying-glass" />
+        <BtnO>
+            <i class="fa-solid fa-location-crosshairs" style="color:var(--brand); font-size:14px;"></i>
+            Usar minha localização atual
+        </BtnO>
+    </div>
+</div>
+
+<div style="position:absolute; bottom:24px; left:16px; right:16px;">
+    <BtnP OnClick="@(() => Nav.NavigateTo("/adicionar/dados"))">Próximo →</BtnP>
+</div>

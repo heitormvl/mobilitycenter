@@ -1,0 +1,72 @@
+@page "/lista"
+@inject NavigationManager Nav
+
+<!-- Header -->
+<div style="background:var(--bg); padding:0 20px 16px; border-bottom:1px solid var(--border);">
+    <StatusBar />
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h1 style="font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.03em; font-family:var(--font);">Bicicletários</h1>
+        <div style="display:flex; gap:14px; align-items:center;">
+            <i class="fa-solid fa-map" style="color:var(--brand); font-size:19px; cursor:pointer;" @onclick="@(() => Nav.NavigateTo("/"))"></i>
+            <i class="fa-solid fa-sliders" style="color:var(--text-3); font-size:19px; cursor:pointer;"></i>
+        </div>
+    </div>
+    <WfInput Placeholder="Buscar por nome ou bairro..." IconClass="fa-magnifying-glass" />
+</div>
+
+<!-- Filter chips -->
+<div style="background:var(--bg); padding:12px 20px 12px; border-bottom:1px solid var(--border); display:flex; gap:8px; overflow-x:auto;">
+    <Chip Accent="true" Sm="true">Todos</Chip>
+    <Chip Sm="true">Acesso livre</Chip>
+    <Chip Sm="true">Com tomada</Chip>
+    <Chip Sm="true">Bicicleta</Chip>
+    <Chip Sm="true">Scooter</Chip>
+</div>
+
+<!-- Count + sort -->
+<div style="padding:12px 20px 8px; display:flex; justify-content:space-between; align-items:center;">
+    <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">32 locais encontrados</span>
+    <span style="font-size:13px; font-family:var(--font);">
+        <span style="color:var(--text-3);">Ordenar: </span>
+        <span style="color:var(--brand); font-weight:600; cursor:pointer;">Distância ↓</span>
+    </span>
+</div>
+
+<!-- Cards -->
+<div style="padding:0 16px 88px; display:flex; flex-direction:column; gap:10px; overflow-y:auto;">
+    @foreach (var item in _items)
+    {
+        var it = item;
+        <div style="background:var(--bg); border-radius:var(--r-lg); padding:16px; border:1px solid var(--border); box-shadow:var(--shadow-sm); cursor:pointer;" @onclick="@(() => Nav.NavigateTo("/bicicletario/1"))">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                <span style="font-size:15px; font-weight:600; color:var(--text); font-family:var(--font); letter-spacing:-0.01em;">@it.Name</span>
+                <div style="display:flex; align-items:center; gap:4px; background:var(--bg-page); padding:3px 8px; border-radius:var(--r-full); flex-shrink:0; margin-left:8px;">
+                    <i class="fa-solid fa-location-dot" style="font-size:10px; color:var(--text-4);"></i>
+                    <span style="font-size:12px; color:var(--text-4); font-family:var(--font); font-weight:500;">@it.Dist</span>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+                <Stars N="@it.Stars" />
+                <span style="font-size:12px; color:var(--text-4); font-family:var(--font);">@it.Reviews avaliações</span>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                @foreach (var chip in it.Chips)
+                {
+                    <Chip Sm="true">@chip</Chip>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<BottomNav Active="lista" />
+
+@code {
+    private readonly (string Name, int Stars, int Reviews, string Dist, string[] Chips)[] _items =
+    [
+        ("Bicicletário Central",  4, 23, "0,3 km", ["Livre", "Tomada", "Calibrador"]),
+        ("Estação Norte",         3, 12, "0,8 km", ["Pago", "Armário"]),
+        ("Ciclovia Sul",          5, 41, "1,2 km", ["Livre", "Manutenção"]),
+        ("Terminal Leste",        4,  8, "1,9 km", ["Cadastro", "Tomada"]),
+    ];
+}

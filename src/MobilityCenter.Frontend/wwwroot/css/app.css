@@ -1,0 +1,181 @@
+:root {
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    /* Surfaces */
+    --bg:        #FFFFFF;
+    --bg-page:   #F2F2F7;
+    --bg-2:      #F8F8FA;
+    --bg-input:  #F5F5F8;
+
+    /* Brand */
+    --brand:      #7D1128;
+    --brand-mid:  #9B2040;
+    --brand-soft: #FDF2F4;
+    --brand-dark: #5E0D1E;
+
+    /* Text */
+    --text:   #111827;
+    --text-2: #374151;
+    --text-3: #6B7280;
+    --text-4: #9CA3AF;
+
+    /* Borders */
+    --border:   #E5E7EB;
+    --border-2: #D1D5DB;
+
+    /* Semantic */
+    --green:    #15803D;
+    --green-bg: #F0FDF4;
+    --gold:     #C4920A;
+    --red:      #DC2626;
+
+    /* Shadows */
+    --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+    --shadow:    0 4px 12px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-xl: 0 16px 48px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.07);
+
+    /* Radii */
+    --r-xs:  6px;
+    --r-sm:  8px;
+    --r:     12px;
+    --r-lg:  16px;
+    --r-xl:  20px;
+    --r-2xl: 28px;
+    --r-3xl: 36px;
+    --r-full: 999px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    height: 100%;
+    background: #1A1A2E;
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+.mobile-frame {
+    position: relative;
+    width: 393px;
+    min-height: 100vh;
+    background: var(--bg-page);
+    overflow-x: hidden;
+    font-family: var(--font);
+}
+
+@media (min-width: 600px) {
+    html, body {
+        background: linear-gradient(145deg, #0F0F1A 0%, #1A1128 40%, #0D1B2A 100%);
+    }
+    #app {
+        padding: 28px 0 28px;
+        min-height: 100vh;
+        align-items: center;
+    }
+    .mobile-frame {
+        min-height: 852px;
+        max-height: 900px;
+        box-shadow:
+            0 0 0 1px rgba(255,255,255,0.07),
+            0 0 0 8px rgba(0,0,0,0.25),
+            0 32px 96px rgba(0,0,0,0.7),
+            0 8px 32px rgba(0,0,0,0.4);
+        border-radius: 50px;
+        overflow: hidden;
+    }
+}
+
+/* Splash */
+.splash {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    height: 100vh;
+    background: var(--bg);
+}
+.splash-logo {
+    width: 68px;
+    height: 68px;
+    background: var(--brand);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 30px;
+    box-shadow: 0 8px 28px rgba(125,17,40,0.35);
+}
+.splash-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.03em;
+}
+
+/* Inputs */
+input, textarea {
+    font-family: var(--font);
+    -webkit-appearance: none;
+    appearance: none;
+}
+input:focus, textarea:focus {
+    border-color: var(--brand) !important;
+    box-shadow: 0 0 0 3px rgba(125,17,40,0.12) !important;
+    outline: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 0; display: none; }
+* { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Error UI */
+#blazor-error-ui {
+    background: #fff3cd;
+    bottom: 0; left: 0;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.1);
+    display: none;
+    padding: 12px 20px;
+    position: fixed;
+    width: 100%;
+    z-index: 9999;
+    font-size: 14px;
+    font-family: var(--font);
+}
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 12px; top: 10px; }
+
+/* Loading progress (fallback) */
+.loading-progress {
+    position: absolute; display: block;
+    width: 8rem; height: 8rem;
+    inset: 20vh 0 auto 0; margin: 0 auto;
+}
+.loading-progress circle {
+    fill: none; stroke: #e0e0e0;
+    stroke-width: 0.6rem;
+    transform-origin: 50% 50%;
+    transform: rotate(-90deg);
+}
+.loading-progress circle:last-child {
+    stroke: var(--brand);
+    stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+    transition: stroke-dasharray 0.05s ease-in-out;
+}
+.loading-progress-text {
+    position: absolute; text-align: center; font-weight: 600;
+    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+    font-family: var(--font); color: var(--brand); font-size: 14px;
+}
+.loading-progress-text:after { content: var(--blazor-load-percentage-text, "Carregando"); }

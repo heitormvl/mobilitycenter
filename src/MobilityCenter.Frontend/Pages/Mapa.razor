@@ -1,0 +1,52 @@
+@page "/"
+@inject NavigationManager Nav
+
+<StatusBar />
+
+<!-- Map full-width -->
+<div style="position:relative;">
+    <MapGrid H="500" />
+
+    <!-- Floating search bar over map -->
+    <div style="position:absolute; top:10px; left:16px; right:16px; z-index:10;">
+        <div style="background:var(--bg); border-radius:var(--r-xl); box-shadow:var(--shadow-lg); display:flex; align-items:center; gap:10px; padding:0 16px; height:50px;">
+            <i class="fa-solid fa-magnifying-glass" style="color:var(--text-4); font-size:14px;"></i>
+            <span style="flex:1; font-size:15px; color:var(--text-4); font-family:var(--font);">Buscar bicicletários...</span>
+            <div style="width:1px; height:18px; background:var(--border);"></div>
+            <i class="fa-solid fa-sliders" style="color:var(--brand); font-size:14px;"></i>
+        </div>
+    </div>
+
+    <!-- Zoom controls -->
+    <div style="position:absolute; right:16px; top:76px; z-index:5; border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow);">
+        <div style="width:36px; height:36px; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:20px; color:var(--text-2); cursor:pointer; font-weight:300; border-bottom:1px solid var(--border);">+</div>
+        <div style="width:36px; height:36px; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:20px; color:var(--text-2); cursor:pointer; font-weight:300;">−</div>
+    </div>
+
+    <!-- My location button -->
+    <div style="position:absolute; right:16px; bottom:16px; width:42px; height:42px; border-radius:var(--r-full); background:var(--bg); display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow); cursor:pointer; z-index:5;">
+        <i class="fa-solid fa-location-crosshairs" style="color:var(--brand); font-size:16px;"></i>
+    </div>
+</div>
+
+<!-- Bottom sheet -->
+<div style="background:var(--bg); border-radius:var(--r-2xl) var(--r-2xl) 0 0; box-shadow:0 -4px 24px rgba(0,0,0,0.08); padding:12px 20px 88px;">
+    <div style="width:32px; height:3px; background:var(--border-2); border-radius:var(--r-full); margin:0 auto 16px;"></div>
+
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
+        <div>
+            <span style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">14 bicicletários</span>
+            <span style="font-size:14px; color:var(--text-3); font-family:var(--font); margin-left:4px;">próximos</span>
+        </div>
+        <span style="font-size:13px; color:var(--brand); font-weight:600; font-family:var(--font); cursor:pointer;" @onclick="@(() => Nav.NavigateTo("/lista"))">Ver lista →</span>
+    </div>
+
+    <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:2px;">
+        <Chip Accent="true" Sm="true"><i class="fa-solid fa-clock" style="font-size:10px;"></i> &lt;0.5 km · 3</Chip>
+        <Chip Sm="true">Com tomada · 6</Chip>
+        <Chip Sm="true">Acesso livre · 9</Chip>
+        <Chip Sm="true">Scooter · 4</Chip>
+    </div>
+</div>
+
+<BottomNav Active="mapa" />

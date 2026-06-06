@@ -1,0 +1,8 @@
+<button @onclick="OnClick" style="width:100%; background:var(--bg); color:var(--text-2); border:1.5px solid var(--border); border-radius:var(--r-lg); padding:14px 20px; font-family:var(--font); font-size:15px; font-weight:500; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:background 0.15s; -webkit-appearance:none;">
+    @ChildContent
+</button>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+}

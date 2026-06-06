@@ -1,0 +1,36 @@
+<div style="padding:0 0 20px; font-family:var(--font);">
+    <!-- Step dots -->
+    <div style="display:flex; align-items:center; gap:0; margin-bottom:14px;">
+        @for (int i = 1; i <= Total; i++)
+        {
+            var idx = i;
+            var done = idx < Step;
+            var active = idx == Step;
+            <div style="display:flex; align-items:center; flex:1;">
+                <div style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:var(--r-full); background:@(active ? "var(--brand)" : done ? "var(--brand)" : "var(--bg)"); border:2px solid @(active || done ? "var(--brand)" : "var(--border)"); flex-shrink:0; transition:all 0.2s;">
+                    @if (done)
+                    {
+                        <i class="fa-solid fa-check" style="font-size:10px; color:white;"></i>
+                    }
+                    else
+                    {
+                        <span style="font-size:11px; font-weight:700; color:@(active ? "white" : "var(--text-4)");">@idx</span>
+                    }
+                </div>
+                @if (idx < Total)
+                {
+                    <div style="flex:1; height:2px; background:@(done ? "var(--brand)" : "var(--border)"); margin:0 4px;"></div>
+                }
+            </div>
+        }
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-4);">
+        <span>Passo @Step de @Total</span>
+        <span style="font-weight:600; color:var(--brand);">@(Math.Round((double)Step / Total * 100))%</span>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Step { get; set; } = 1;
+    [Parameter] public int Total { get; set; } = 3;
+}

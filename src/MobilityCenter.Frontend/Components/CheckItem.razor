@@ -1,0 +1,14 @@
+<div style="display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--border); font-family:var(--font); font-size:15px; color:var(--text); cursor:pointer;">
+    <div style="width:22px; height:22px; border-radius:6px; flex-shrink:0; border:2px solid @(Checked ? "var(--brand)" : "var(--border-2)"); background:@(Checked ? "var(--brand)" : "var(--bg)"); display:flex; align-items:center; justify-content:center; transition:all 0.15s;">
+        @if (Checked)
+        {
+            <i class="fa-solid fa-check" style="color:white; font-size:10px;"></i>
+        }
+    </div>
+    <div style="flex:1;">@ChildContent</div>
+</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool Checked { get; set; }
+}

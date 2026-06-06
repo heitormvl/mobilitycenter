@@ -1,0 +1,9 @@
+<span style="display:inline-flex; align-items:center; gap:5px; padding:@(Sm ? "4px 10px" : "6px 14px"); border-radius:var(--r-full); background:@(Accent ? "var(--brand)" : "var(--bg)"); color:@(Accent ? "#FFFFFF" : "var(--text-2)"); font-size:@(Sm ? "12px" : "13px"); font-weight:@(Accent ? "600" : "500"); font-family:var(--font); letter-spacing:@(Sm ? "0" : "0.01em"); border:1.5px solid @(Accent ? "var(--brand)" : "var(--border)"); white-space:nowrap; box-shadow:@(Accent ? "none" : "var(--shadow-xs)");">
+    @ChildContent
+</span>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool Accent { get; set; }
+    [Parameter] public bool Sm { get; set; }
+}

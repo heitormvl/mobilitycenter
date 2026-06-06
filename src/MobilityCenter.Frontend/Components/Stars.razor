@@ -1,0 +1,12 @@
+@for (int i = 1; i <= Of; i++)
+{
+    var idx = i;
+    <i class="@(idx <= N ? "fa-solid fa-star" : "fa-regular fa-star")"
+       style="color:@(idx <= N ? "var(--gold)" : "var(--border-2)"); font-size:@(Size)px; margin-right:1px;"></i>
+}
+
+@code {
+    [Parameter] public int N { get; set; } = 4;
+    [Parameter] public int Of { get; set; } = 5;
+    [Parameter] public int Size { get; set; } = 14;
+}
