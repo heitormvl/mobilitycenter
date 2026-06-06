@@ -18,8 +18,11 @@ public static class ServiceCollectionExtensions
             )
         );
 
+        // AddIdentityCore não sobrescreve o scheme de autenticação padrão,
+        // permitindo que o JWT Bearer do Program.cs seja o scheme ativo.
         services
-            .AddIdentity<Usuario, IdentityRole<Guid>>()
+            .AddIdentityCore<Usuario>()
+            .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<MobilityCenterDbContext>()
             .AddDefaultTokenProviders();
 
