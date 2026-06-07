@@ -1,6 +1,42 @@
 @page "/perfil"
 @inject NavigationManager Nav
 @inject AuthService AuthService
+@inject IJSRuntime JS
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net.Http.Headers
+
+<!-- Crop modal (fixed overlay, rendered first so z-index works) -->
+@if (_showCropModal)
+{
+    <div style="position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.85); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px;">
+        <div style="width:100%; max-width:320px; display:flex; flex-direction:column; align-items:center; gap:16px;">
+            <p style="color:white; font-family:var(--font); font-size:17px; font-weight:600; margin:0;">Ajuste sua foto</p>
+
+            <canvas @ref="_canvasRef" width="300" height="300"
+                    style="width:300px; height:300px; border-radius:12px; display:block; touch-action:none;"></canvas>
+
+            <p style="color:rgba(255,255,255,0.5); font-size:12px; font-family:var(--font); margin:0; text-align:center;">
+                Arraste para reposicionar &middot; Scroll ou pinça para zoom
+            </p>
+
+            <div style="display:flex; gap:12px; width:100%;">
+                <button @onclick="CancelarCrop"
+                        style="flex:1; padding:13px; border-radius:var(--r-lg); border:1.5px solid rgba(255,255,255,0.25); background:transparent; color:white; font-family:var(--font); font-size:15px; font-weight:500; cursor:pointer;">
+                    Cancelar
+                </button>
+                <button @onclick="ConfirmarCrop" disabled="@_uploading"
+                        style="flex:1; padding:13px; border-radius:var(--r-lg); border:none; background:var(--brand); color:white; font-family:var(--font); font-size:15px; font-weight:600; cursor:pointer; opacity:@(_uploading ? "0.6" : "1");">
+                    @(_uploading ? "Salvando..." : "Confirmar")
+                </button>
+            </div>
+
+            @if (_erroUpload is not null)
+            {
+                <p style="color:#ff6b6b; font-size:13px; font-family:var(--font); margin:0;">@_erroUpload</p>
+            }
+        </div>
+    </div>
+}
 
 <!-- Header -->
 <div style="background:var(--bg); border-bottom:1px solid var(--border);">
@@ -23,13 +59,28 @@
         <!-- Avatar + name -->
         <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:24px 20px; margin-bottom:14px; text-align:center; box-shadow:var(--shadow-sm);">
             <div style="position:relative; display:inline-block; margin-bottom:14px;">
-                <div style="width:80px; height:80px; border-radius:var(--r-full); background:var(--bg-page); border:3px solid var(--brand); display:flex; align-items:center; justify-content:center;">
-                    <i class="fa-solid fa-user" style="font-size:30px; color:var(--text-4);"></i>
-                </div>
-                <div style="position:absolute; bottom:0; right:0; width:24px; height:24px; border-radius:var(--r-full); background:var(--brand); border:2.5px solid var(--bg); display:flex; align-items:center; justify-content:center;">
+                <label for="fotoInput" style="cursor:pointer; display:block;">
+                    <div style="width:80px; height:80px; border-radius:var(--r-full); background:var(--bg-page); border:3px solid var(--brand); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        @if (!string.IsNullOrEmpty(_user.FotoPerfilUrl))
+                        {
+                            <img src="@_user.FotoPerfilUrl" alt="Foto de perfil"
+                                 style="width:100%; height:100%; object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <i class="fa-solid fa-user" style="font-size:30px; color:var(--text-4);"></i>
+                        }
+                    </div>
+                </label>
+                <label for="fotoInput" style="cursor:pointer; position:absolute; bottom:0; right:0; width:24px; height:24px; border-radius:var(--r-full); background:var(--brand); border:2.5px solid var(--bg); display:flex; align-items:center; justify-content:center;">
                     <i class="fa-solid fa-pen" style="font-size:9px; color:white;"></i>
-                </div>
+                </label>
             </div>
+
+            <InputFile id="fotoInput" OnChange="OnFotoSelecionada"
+                       accept="image/webp,image/png,image/jpeg"
+                       style="display:none;" />
+
             <div style="font-size:20px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:4px;">@_user.DisplayName</div>
             <div style="font-size:13px; color:var(--text-4); font-family:var(--font);">Membro desde @_user.CreatedAt.ToString("MMMM \\de yyyy")</div>
         </div>
@@ -68,6 +119,13 @@
     private int _totalAdicionados;
     private bool _loading = true;
 
+    private ElementReference _canvasRef;
+    private bool _showCropModal;
+    private bool _canvasReady;
+    private string? _imageSrc;
+    private bool _uploading;
+    private string? _erroUpload;
+
     protected override async Task OnInitializedAsync()
     {
         _user = await AuthService.GetUserInfoAsync();
@@ -83,9 +141,105 @@
         {
             _totalAvaliacoes = perfil.TotalAvaliacoes;
             _totalAdicionados = perfil.TotalAdicionados;
+            if (perfil.Usuario?.FotoPerfilUrl is not null)
+                _user.FotoPerfilUrl = AuthService.ResolveUrl(perfil.Usuario.FotoPerfilUrl);
         }
 
         _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_showCropModal && !_canvasReady && !string.IsNullOrEmpty(_imageSrc))
+        {
+            _canvasReady = true;
+            await JS.InvokeVoidAsync("fotoCropper.init", _canvasRef, _imageSrc);
+        }
+    }
+
+    private async Task OnFotoSelecionada(InputFileChangeEventArgs e)
+    {
+        _erroUpload = null;
+        var file = e.File;
+
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            _erroUpload = "A foto deve ter no máximo 5 MB.";
+            return;
+        }
+
+        var tiposPermitidos = new[] { "image/webp", "image/png", "image/jpeg" };
+        if (!tiposPermitidos.Contains(file.ContentType.ToLowerInvariant()))
+        {
+            _erroUpload = "Use WEBP, PNG ou JPG.";
+            return;
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            var buffer = new byte[file.Size];
+            await stream.ReadExactlyAsync(buffer);
+            _imageSrc = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+            _canvasReady = false;
+            _showCropModal = true;
+        }
+        catch
+        {
+            _erroUpload = "Não foi possível ler o arquivo.";
+        }
+    }
+
+    private async Task ConfirmarCrop()
+    {
+        if (_uploading) return;
+        _uploading = true;
+        _erroUpload = null;
+
+        try
+        {
+            var dataUrl = await JS.InvokeAsync<string>("fotoCropper.getCroppedDataUrl");
+            if (dataUrl is null)
+            {
+                _erroUpload = "Erro ao processar a imagem.";
+                return;
+            }
+
+            var base64 = dataUrl.Split(',')[1];
+            var bytes = Convert.FromBase64String(base64);
+
+            using var ms = new MemoryStream(bytes);
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(ms);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+            content.Add(fileContent, "foto", "foto.png");
+
+            var url = await AuthService.UploadFotoAsync(content);
+            if (url is null)
+            {
+                _erroUpload = "Erro ao salvar a foto. Tente novamente.";
+                return;
+            }
+
+            _user!.FotoPerfilUrl = url;
+            _showCropModal = false;
+        }
+        catch
+        {
+            _erroUpload = "Erro inesperado. Tente novamente.";
+        }
+        finally
+        {
+            _uploading = false;
+        }
+    }
+
+    private void CancelarCrop()
+    {
+        _showCropModal = false;
+        _imageSrc = null;
+        _canvasReady = false;
+        _erroUpload = null;
     }
 
     private async Task HandleSignOut()

@@ -39,6 +39,24 @@ public class UsuariosController : ControllerBase
         return Ok(resultado);
     }
 
+    [HttpPost("me/foto")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    public async Task<IActionResult> AtualizarFoto(IFormFile foto)
+    {
+        if (foto is null || foto.Length == 0)
+            return BadRequest(new { error = true, message = "Nenhuma foto enviada." });
+
+        var tiposPermitidos = new[] { "image/webp", "image/png", "image/jpeg" };
+        if (!tiposPermitidos.Contains(foto.ContentType.ToLowerInvariant()))
+            return BadRequest(new { error = true, message = "Formato inválido. Use WEBP, PNG ou JPG." });
+
+        var usuarioId = ObterUsuarioId();
+        using var stream = foto.OpenReadStream();
+        var url = await _usuarioService.AtualizarFotoPerfilAsync(usuarioId, stream, foto.ContentType);
+
+        return Ok(new { url });
+    }
+
     private Guid ObterUsuarioId()
     {
         var valor = User.FindFirstValue(ClaimTypes.NameIdentifier)

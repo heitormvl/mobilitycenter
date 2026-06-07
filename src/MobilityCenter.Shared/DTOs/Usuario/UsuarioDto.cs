@@ -9,4 +9,5 @@ public class UsuarioDto
     public string Email { get; set; } = string.Empty;
     public TipoUsuario Type { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? FotoPerfilUrl { get; set; }
 }

@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using MobilityCenter.Frontend.Models;
 
@@ -80,6 +81,40 @@ public class AuthService(
         }
     }
 
+    public async Task<string?> UploadFotoAsync(MultipartFormDataContent content)
+    {
+        try
+        {
+            var response = await http.PostAsync("api/usuarios/me/foto", content);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var result = await response.Content.ReadFromJsonAsync<FotoResponse>();
+            if (result?.Url is null) return null;
+
+            var fullUrl = ResolveUrl(result.Url);
+
+            var userInfo = await GetUserInfoAsync();
+            if (userInfo is not null)
+            {
+                userInfo.FotoPerfilUrl = fullUrl;
+                await localStorage.SetItemAsync("userInfo", userInfo);
+            }
+
+            return fullUrl;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public string? ResolveUrl(string? relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath)) return null;
+        if (relativePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return relativePath;
+        return new Uri(http.BaseAddress!, relativePath.TrimStart('/')).ToString();
+    }
+
     private async Task PersistSession(AuthResponse result)
     {
         await localStorage.SetItemAsync("authToken", result.Token);
@@ -88,4 +123,5 @@ public class AuthService(
     }
 
     private record ApiError(string Message);
+    private record FotoResponse(string Url);
 }

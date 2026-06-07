@@ -99,6 +99,7 @@ public class AuthService : IAuthService
         DisplayName = u.DisplayName,
         Email = u.Email!,
         Type = u.Type,
-        CreatedAt = u.CreatedAt
+        CreatedAt = u.CreatedAt,
+        FotoPerfilUrl = u.FotoPerfilUrl
     };
 }

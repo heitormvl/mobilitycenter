@@ -7,4 +7,5 @@ public class UserInfo
     public string Email { get; set; } = string.Empty;
     public int Type { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? FotoPerfilUrl { get; set; }
 }

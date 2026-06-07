@@ -15,11 +15,13 @@ public class UsuarioService : IUsuarioService
 {
     private readonly MobilityCenterDbContext _db;
     private readonly UserManager<Usuario> _userManager;
+    private readonly IFotoStorageService _fotoStorage;
 
-    public UsuarioService(MobilityCenterDbContext db, UserManager<Usuario> userManager)
+    public UsuarioService(MobilityCenterDbContext db, UserManager<Usuario> userManager, IFotoStorageService fotoStorage)
     {
         _db = db;
         _userManager = userManager;
+        _fotoStorage = fotoStorage;
     }
 
     public async Task<UsuarioPerfilDto> ObterPerfilAsync(Guid usuarioId)
@@ -38,11 +40,25 @@ public class UsuarioService : IUsuarioService
                 DisplayName = usuario.DisplayName,
                 Email = usuario.Email!,
                 Type = usuario.Type,
-                CreatedAt = usuario.CreatedAt
+                CreatedAt = usuario.CreatedAt,
+                FotoPerfilUrl = usuario.FotoPerfilUrl
             },
             TotalAvaliacoes = totalAvaliacoes,
             TotalAdicionados = totalAdicionados
         };
+    }
+
+    public async Task<string> AtualizarFotoPerfilAsync(Guid usuarioId, Stream imageStream, string contentType)
+    {
+        var usuario = await _userManager.FindByIdAsync(usuarioId.ToString())
+            ?? throw new NotFoundException("Usuário não encontrado.");
+
+        var url = await _fotoStorage.UploadFotoPerfilAsync(usuarioId, imageStream, contentType);
+
+        usuario.FotoPerfilUrl = url;
+        await _userManager.UpdateAsync(usuario);
+
+        return url;
     }
 
     public async Task<IEnumerable<AvaliacaoDto>> ObterAvaliacoesAsync(Guid usuarioId)
