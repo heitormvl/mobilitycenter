@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/MobilityCenter.API"],
+      "port": 5000
+    },
+    {
       "name": "frontend",
       "runtimeExecutable": "dotnet",
       "runtimeArgs": ["run", "--project", "src/MobilityCenter.Frontend/MobilityCenter.Frontend.csproj", "--urls", "http://localhost:5200"],
