@@ -25,6 +25,7 @@ builder.Services.AddScoped(sp =>
     sp.GetRequiredService<IHttpClientFactory>().CreateClient("api"));
 
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<BicicletarioService>();
 
 builder.Services.AddHttpClient("geocoder", client =>
 {

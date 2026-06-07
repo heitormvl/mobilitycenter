@@ -1,5 +1,6 @@
 @page "/adicionar/servicos"
 @inject NavigationManager Nav
+@inject BicicletarioService BicicletarioSvc
 
 <!-- Header -->
 <div style="background:var(--bg); border-bottom:1px solid var(--border);">
@@ -17,68 +18,151 @@
 <div style="padding:20px 20px 110px; overflow-y:auto;">
     <ProgressBar Step="3" Total="3" />
 
+    <!-- Serviços -->
     <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px; margin-bottom:14px;">
         <SecLabel>Serviços disponíveis</SecLabel>
         @foreach (var s in _servicos)
         {
-            <CheckItem Checked="@s.Checked">
-                <div style="display:flex; align-items:center; gap:10px; font-family:var(--font); font-size:14px; color:var(--text-2);">
-                    <div style="width:28px; height:28px; border-radius:var(--r-sm); background:var(--bg-page); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                        <i class="fa-solid @s.Icon" style="color:var(--text-4); font-size:12px;"></i>
+            var item = s;
+            <div @onclick="() => item.Checked = !item.Checked">
+                <CheckItem Checked="@item.Checked">
+                    <div style="display:flex; align-items:center; gap:10px; font-family:var(--font); font-size:14px; color:var(--text-2);">
+                        <div style="width:28px; height:28px; border-radius:var(--r-sm); background:var(--bg-page); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i class="fa-solid @item.Icon" style="color:var(--text-4); font-size:12px;"></i>
+                        </div>
+                        <span>@item.Label</span>
                     </div>
-                    <span>@s.Label</span>
-                </div>
-            </CheckItem>
+                </CheckItem>
+            </div>
         }
     </div>
 
-    <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px;">
+    <!-- Veículos -->
+    <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px; margin-bottom:14px;">
         <SecLabel>Veículos suportados</SecLabel>
         @foreach (var v in _veiculos)
         {
-            <CheckItem Checked="@v.Checked">
-                <div style="display:flex; align-items:center; gap:10px; font-family:var(--font); font-size:14px; color:var(--text-2);">
-                    <div style="width:28px; height:28px; border-radius:var(--r-sm); background:var(--bg-page); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                        <i class="fa-solid @v.Icon" style="color:var(--text-4); font-size:12px;"></i>
+            var item = v;
+            <div @onclick="() => item.Checked = !item.Checked">
+                <CheckItem Checked="@item.Checked">
+                    <div style="display:flex; align-items:center; gap:10px; font-family:var(--font); font-size:14px; color:var(--text-2);">
+                        <div style="width:28px; height:28px; border-radius:var(--r-sm); background:var(--bg-page); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i class="fa-solid @item.Icon" style="color:var(--text-4); font-size:12px;"></i>
+                        </div>
+                        <span>@item.Label</span>
                     </div>
-                    <span>@v.Label</span>
-                </div>
-            </CheckItem>
+                </CheckItem>
+            </div>
         }
     </div>
+
+    @if (_publishError != null)
+    {
+        <div style="font-size:13px; color:#c0392b; font-family:var(--font); padding:10px 14px; background:#fdf2f2; border-radius:var(--r); border:1px solid #f5c6c6;">
+            <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>@_publishError
+        </div>
+    }
 </div>
 
 <div style="position:absolute; bottom:24px; left:16px; right:16px; display:flex; flex-direction:column; gap:10px;">
-    <BtnP>Publicar bicicletário</BtnP>
+    <BtnP OnClick="PublishAsync">
+        @if (_isPublishing)
+        {
+            <i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i>
+            <span>Publicando...</span>
+        }
+        else
+        {
+            <span>Publicar bicicletário</span>
+        }
+    </BtnP>
     <BtnO OnClick="GoBack">
         <i class="fa-solid fa-chevron-left" style="font-size:12px;"></i> Voltar
     </BtnO>
 </div>
 
 @code {
-    [Parameter] [SupplyParameterFromQuery(Name = "lat")]      public string? LatStr      { get; set; }
-    [Parameter] [SupplyParameterFromQuery(Name = "lng")]      public string? LngStr      { get; set; }
-    [Parameter] [SupplyParameterFromQuery(Name = "name")]     public string? Name        { get; set; }
-    [Parameter] [SupplyParameterFromQuery(Name = "capacity")] public string? Capacity    { get; set; }
-    [Parameter] [SupplyParameterFromQuery(Name = "accessType")] public string? AccessType { get; set; }
+    [Parameter] [SupplyParameterFromQuery(Name = "lat")]        public string? LatStr      { get; set; }
+    [Parameter] [SupplyParameterFromQuery(Name = "lng")]        public string? LngStr      { get; set; }
+    [Parameter] [SupplyParameterFromQuery(Name = "name")]       public string? Name        { get; set; }
+    [Parameter] [SupplyParameterFromQuery(Name = "capacity")]   public string? Capacity    { get; set; }
+    [Parameter] [SupplyParameterFromQuery(Name = "accessType")] public string? AccessType  { get; set; }
+
+    private bool _isPublishing;
+    private string? _publishError;
+
+    private CheckOption[] _servicos =
+    [
+        new("fa-plug",   "Tomada elétrica",        true),
+        new("fa-gauge",  "Calibrador de pneus",     true),
+        new("fa-box",    "Armário / guarda-volume", false),
+        new("fa-wrench", "Espaço de manutenção",    false),
+        new("fa-lock",   "Cadeado próprio",         false),
+    ];
+
+    private CheckOption[] _veiculos =
+    [
+        new("fa-bicycle",       "Bicicleta",         true),
+        new("fa-person-biking", "Scooter",           false),
+        new("fa-bolt",          "Patinete elétrico", false),
+        new("fa-circle-dot",    "Monociclo",         false),
+    ];
 
     private void GoBack() =>
         Nav.NavigateTo($"/adicionar/dados?lat={LatStr}&lng={LngStr}&name={Uri.EscapeDataString(Name ?? "")}&capacity={Capacity}&accessType={AccessType}");
 
-    private readonly (string Icon, string Label, bool Checked)[] _servicos =
-    [
-        ("fa-plug",   "Tomada elétrica",         true),
-        ("fa-gauge",  "Calibrador de pneus",      true),
-        ("fa-box",    "Armário / guarda-volume",  false),
-        ("fa-wrench", "Espaço de manutenção",     false),
-        ("fa-lock",   "Cadeado próprio",           false),
-    ];
+    private async Task PublishAsync()
+    {
+        if (_isPublishing) return;
+        _isPublishing = true;
+        _publishError = null;
+        StateHasChanged();
 
-    private readonly (string Icon, string Label, bool Checked)[] _veiculos =
-    [
-        ("fa-bicycle",       "Bicicleta",         true),
-        ("fa-person-biking", "Scooter",           false),
-        ("fa-bolt",          "Patinete elétrico", false),
-        ("fa-circle-dot",    "Monociclo",         false),
-    ];
+        var (error, _) = await BicicletarioSvc.CreateAsync(BuildRequest());
+
+        if (error != null)
+        {
+            _publishError = error;
+            _isPublishing = false;
+            StateHasChanged();
+            return;
+        }
+
+        Nav.NavigateTo("/", forceLoad: false);
+    }
+
+    private CreateBicicletarioRequest BuildRequest()
+    {
+        var accessType = int.TryParse(AccessType, out var at) ? at : 0;
+
+        return new CreateBicicletarioRequest
+        {
+            Name = Name ?? "",
+            Latitude = decimal.TryParse(LatStr, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var lat) ? lat : 0,
+            Longitude = decimal.TryParse(LngStr, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var lng) ? lng : 0,
+            HasPowerOutlet      = _servicos[0].Checked,
+            HasAirPump          = _servicos[1].Checked,
+            HasLocker           = _servicos[2].Checked,
+            HasStorage          = _servicos[2].Checked,
+            HasMaintenanceSpace = _servicos[3].Checked,
+            HasBikeLock         = _servicos[4].Checked,
+            IsFree                  = accessType == 0,
+            IsPaid                  = accessType == 1,
+            RequiresSignup          = accessType == 2,
+            IsMonthlySubscription   = accessType == 3,
+            VehicleTypes = (_veiculos[0].Checked ? 1 : 0)
+                         | (_veiculos[1].Checked ? 2 : 0)
+                         | (_veiculos[2].Checked ? 4 : 0)
+                         | (_veiculos[3].Checked ? 8 : 0),
+        };
+    }
+
+    private class CheckOption(string icon, string label, bool @checked)
+    {
+        public string Icon    { get; } = icon;
+        public string Label   { get; } = label;
+        public bool   Checked { get; set; } = @checked;
+    }
 }
