@@ -5,7 +5,7 @@
 <div style="background:var(--bg); border-bottom:1px solid var(--border);">
     <StatusBar />
     <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
-        <button @onclick="@(() => Nav.NavigateTo("/adicionar/dados"))" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <button @onclick="GoBack" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
             <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
         </button>
         <div style="flex:1;">
@@ -50,12 +50,21 @@
 
 <div style="position:absolute; bottom:24px; left:16px; right:16px; display:flex; flex-direction:column; gap:10px;">
     <BtnP>Publicar bicicletário</BtnP>
-    <BtnO OnClick="@(() => Nav.NavigateTo("/adicionar/dados"))">
+    <BtnO OnClick="GoBack">
         <i class="fa-solid fa-chevron-left" style="font-size:12px;"></i> Voltar
     </BtnO>
 </div>
 
 @code {
+    [Parameter] [SupplyParameterFromQuery(Name = "lat")]      public string? LatStr      { get; set; }
+    [Parameter] [SupplyParameterFromQuery(Name = "lng")]      public string? LngStr      { get; set; }
+    [Parameter] [SupplyParameterFromQuery(Name = "name")]     public string? Name        { get; set; }
+    [Parameter] [SupplyParameterFromQuery(Name = "capacity")] public string? Capacity    { get; set; }
+    [Parameter] [SupplyParameterFromQuery(Name = "accessType")] public string? AccessType { get; set; }
+
+    private void GoBack() =>
+        Nav.NavigateTo($"/adicionar/dados?lat={LatStr}&lng={LngStr}&name={Uri.EscapeDataString(Name ?? "")}&capacity={Capacity}&accessType={AccessType}");
+
     private readonly (string Icon, string Label, bool Checked)[] _servicos =
     [
         ("fa-plug",   "Tomada elétrica",         true),
