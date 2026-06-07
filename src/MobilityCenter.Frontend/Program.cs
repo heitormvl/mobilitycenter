@@ -26,6 +26,13 @@ builder.Services.AddScoped(sp =>
 
 builder.Services.AddScoped<AuthService>();
 
+builder.Services.AddHttpClient("geocoder", client =>
+{
+    client.BaseAddress = new Uri("https://nominatim.openstreetmap.org/");
+    client.DefaultRequestHeaders.Add("User-Agent", "MobilityCenter/1.0");
+    client.DefaultRequestHeaders.Add("Accept-Language", "pt-BR,pt;q=0.9");
+});
+
 builder.Services.AddAuthorizationCore();
 
 await builder.Build().RunAsync();

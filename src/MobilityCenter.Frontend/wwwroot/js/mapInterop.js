@@ -74,6 +74,31 @@ window.mapInterop = {
         if (inst) inst.map.zoomOut();
     },
 
+    panTo: function (mapId, lat, lng) {
+        const inst = this._instances[mapId];
+        if (inst) inst.map.setView([lat, lng], 16);
+    },
+
+    getCenter: function (mapId) {
+        const inst = this._instances[mapId];
+        if (!inst) return null;
+        const c = inst.map.getCenter();
+        return [c.lat, c.lng];
+    },
+
+    getUserLocation: function () {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject('Geolocalização não disponível neste navegador');
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                pos => resolve([pos.coords.latitude, pos.coords.longitude]),
+                err => reject(err.message)
+            );
+        });
+    },
+
     destroy: function (mapId) {
         const inst = this._instances[mapId];
         if (inst) {

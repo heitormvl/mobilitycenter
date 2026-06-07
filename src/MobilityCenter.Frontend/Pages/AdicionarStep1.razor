@@ -1,5 +1,7 @@
 @page "/adicionar"
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject IHttpClientFactory HttpFactory
 
 <!-- Header -->
 <div style="background:var(--bg); border-bottom:1px solid var(--border);">
@@ -19,16 +21,16 @@
 
     <div style="margin-bottom:20px;">
         <h2 style="font-size:20px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:4px;">Localização</h2>
-        <p style="font-size:14px; color:var(--text-3); font-family:var(--font);">Toque no mapa para marcar o ponto exato</p>
+        <p style="font-size:14px; color:var(--text-3); font-family:var(--font);">Arraste o mapa para posicionar o marcador</p>
     </div>
 
-    <!-- Map -->
+    <!-- Map with fixed center pin -->
     <div style="border-radius:var(--r-lg); overflow:hidden; border:1.5px solid var(--border); position:relative; margin-bottom:20px; box-shadow:var(--shadow-sm);">
-        <MapGrid H="240" />
-        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -100%);">
+        <MapGrid @ref="_map" H="280" />
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -100%); pointer-events:none; z-index:400;">
             <i class="fa-solid fa-location-dot" style="color:var(--brand); font-size:44px; filter:drop-shadow(0 3px 8px rgba(125,17,40,0.45));"></i>
         </div>
-        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:36px; height:36px; border:2px dashed rgba(125,17,40,0.3); border-radius:var(--r-full); margin-top:4px;"></div>
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:36px; height:36px; border:2px dashed rgba(125,17,40,0.3); border-radius:var(--r-full); margin-top:4px; pointer-events:none; z-index:400;"></div>
     </div>
 
     <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
@@ -38,14 +40,168 @@
     </div>
 
     <div style="display:flex; flex-direction:column; gap:10px;">
-        <WfInput Placeholder="Buscar endereço..." IconClass="fa-magnifying-glass" />
-        <BtnO>
-            <i class="fa-solid fa-location-crosshairs" style="color:var(--brand); font-size:14px;"></i>
-            Usar minha localização atual
+
+        <!-- Address search -->
+        <div style="display:flex; gap:8px;">
+            <div style="flex:1; position:relative; font-family:var(--font);">
+                <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-4); font-size:13px; pointer-events:none; z-index:1;"></i>
+                <input type="text"
+                       value="@_searchText"
+                       @oninput="@((e) => _searchText = e.Value?.ToString() ?? "")"
+                       @onkeydown="OnSearchKeyDown"
+                       placeholder="Buscar endereço..."
+                       style="width:100%; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 14px 12px 40px; background:var(--bg); color:var(--text); font-size:15px; font-family:var(--font); line-height:1.4; -webkit-appearance:none; box-sizing:border-box;" />
+            </div>
+            <button @onclick="SearchAddressAsync"
+                    style="width:48px; height:48px; border-radius:var(--r); background:var(--brand); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; opacity:@(_isSearching ? "0.6" : "1");">
+                @if (_isSearching)
+                {
+                    <i class="fa-solid fa-spinner fa-spin" style="color:white; font-size:14px;"></i>
+                }
+                else
+                {
+                    <i class="fa-solid fa-magnifying-glass" style="color:white; font-size:14px;"></i>
+                }
+            </button>
+        </div>
+
+        @if (_searchError != null)
+        {
+            <div style="font-size:13px; color:#c0392b; font-family:var(--font); padding:8px 12px; background:#fdf2f2; border-radius:var(--r); border:1px solid #f5c6c6;">
+                <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>@_searchError
+            </div>
+        }
+
+        <!-- Current location button -->
+        <BtnO OnClick="UseCurrentLocationAsync">
+            @if (_isLocating)
+            {
+                <i class="fa-solid fa-spinner fa-spin" style="color:var(--brand); font-size:14px;"></i>
+                <span>Obtendo localização...</span>
+            }
+            else
+            {
+                <i class="fa-solid fa-location-crosshairs" style="color:var(--brand); font-size:14px;"></i>
+                <span>Usar minha localização atual</span>
+            }
         </BtnO>
+
+        @if (_locationError != null)
+        {
+            <div style="font-size:13px; color:#c0392b; font-family:var(--font); padding:8px 12px; background:#fdf2f2; border-radius:var(--r); border:1px solid #f5c6c6;">
+                <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>@_locationError
+            </div>
+        }
+
     </div>
 </div>
 
 <div style="position:absolute; bottom:24px; left:16px; right:16px;">
-    <BtnP OnClick="@(() => Nav.NavigateTo("/adicionar/dados"))">Próximo →</BtnP>
+    <BtnP OnClick="GoToNextAsync">Próximo →</BtnP>
 </div>
+
+@code {
+    private MapGrid? _map;
+    private string _searchText = "";
+    private bool _isSearching;
+    private bool _isLocating;
+    private string? _searchError;
+    private string? _locationError;
+
+    private async Task OnSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SearchAddressAsync();
+    }
+
+    private async Task SearchAddressAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_searchText) || _isSearching) return;
+        _isSearching = true;
+        _searchError = null;
+        StateHasChanged();
+
+        try
+        {
+            var client = HttpFactory.CreateClient("geocoder");
+            var results = await client.GetFromJsonAsync<NominatimResult[]>(
+                $"search?format=json&q={Uri.EscapeDataString(_searchText)}&limit=1&addressdetails=0");
+
+            if (results?.Length > 0)
+            {
+                var lat = double.Parse(results[0].Lat, System.Globalization.CultureInfo.InvariantCulture);
+                var lng = double.Parse(results[0].Lon, System.Globalization.CultureInfo.InvariantCulture);
+                await _map!.PanToAsync(lat, lng);
+            }
+            else
+            {
+                _searchError = "Endereço não encontrado. Tente ser mais específico.";
+            }
+        }
+        catch
+        {
+            _searchError = "Erro ao buscar endereço. Verifique sua conexão.";
+        }
+        finally
+        {
+            _isSearching = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UseCurrentLocationAsync()
+    {
+        if (_isLocating) return;
+        _isLocating = true;
+        _locationError = null;
+        StateHasChanged();
+
+        try
+        {
+            var arr = await JS.InvokeAsync<double[]>("mapInterop.getUserLocation");
+            var lat = arr[0];
+            var lng = arr[1];
+
+            await _map!.PanToAsync(lat, lng);
+
+            var client = HttpFactory.CreateClient("geocoder");
+            var result = await client.GetFromJsonAsync<NominatimReverseResult>(
+                $"reverse?format=json&lat={lat.ToString(System.Globalization.CultureInfo.InvariantCulture)}&lon={lng.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+
+            if (result?.DisplayName is not null)
+                _searchText = result.DisplayName;
+        }
+        catch (Exception ex)
+        {
+            _locationError = ex.Message.Contains("denied") || ex.Message.Contains("ermissão")
+                ? "Permissão de localização negada. Verifique as configurações do navegador."
+                : "Não foi possível obter sua localização.";
+        }
+        finally
+        {
+            _isLocating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GoToNextAsync()
+    {
+        var center = await _map!.GetCenterAsync();
+        if (center is null) return;
+
+        var lat = center.Value.Lat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var lng = center.Value.Lng.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        Nav.NavigateTo($"/adicionar/dados?lat={lat}&lng={lng}");
+    }
+
+    private class NominatimResult
+    {
+        public string Lat { get; set; } = "";
+        public string Lon { get; set; } = "";
+    }
+
+    private class NominatimReverseResult
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("display_name")]
+        public string? DisplayName { get; set; }
+    }
+}
