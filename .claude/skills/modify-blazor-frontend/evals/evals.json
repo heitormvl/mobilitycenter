@@ -1,0 +1,23 @@
+{
+  "skill_name": "modify-blazor-frontend",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a new page at route '/meu-perfil' that displays the current user's profile information. Show: name, email, profile photo. Include a button to upload a new profile photo that calls the POST /api/usuarios/me/foto endpoint. Use the existing WfInput and BtnP components. Handle errors by showing error messages to the user.",
+      "expected_output": "A Blazor component file (Pages/MeuPerfil.razor) that: (1) displays user name and email from AuthService.GetUserInfoAsync(), (2) shows profile photo using <img>, (3) includes a file input and upload button, (4) calls AuthService.UploadFotoAsync(), (5) handles errors with visible error messages, (6) follows existing component patterns and styling.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Create a reusable component called 'AvaliacaoCard.razor' that displays a single bike rack rating/review. It should take @Parameter properties for: bicicletarioId (guid), rating (int 1-5), comment (string), usuarioId (guid). The component should: (1) show the rating as stars using the existing Stars component, (2) display the comment, (3) include Edit and Delete buttons. Don't implement the button handlers - just show the buttons with @onclick placeholders. Use existing styles and components.",
+      "expected_output": "A Blazor component file (Components/AvaliacaoCard.razor) with @Parameter properties for the rating data. The component renders: Stars component showing the rating, comment text, Edit button (using BtnO), Delete button (using BtnO). Uses existing CSS variables for colors and layout. No logic in buttons, just @onclick='@(() => {})' placeholders.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Create a service called 'AvaliacaoService.cs' that handles API calls for ratings. The service should have methods: (1) GetMinhasAvaliacoeAsync() - calls GET /api/usuarios/me/avaliacoes and returns List<AvaliacaoDto>; (2) CreateAvaliacaoAsync(bicicletarioId, rating, comment) - calls POST /api/avaliacoes with the data and returns error message or null for success; (3) DeleteAvaliacaoAsync(id) - calls DELETE /api/avaliacoes/{id} and returns error message or null. Also create the Models/AvaliacaoDto.cs file that matches the API response format. Follow the existing service patterns in the codebase.",
+      "expected_output": "Two files: (1) Services/AvaliacaoService.cs with methods following the existing pattern (HttpClient injection, try-catch, return string? for errors), (2) Models/AvaliacaoDto.cs with properties: Id, BicicletarioId, UsuarioId, Rating, Comment, CreatedAt. Both files follow existing code patterns and include proper using statements.",
+      "files": []
+    }
+  ]
+}
