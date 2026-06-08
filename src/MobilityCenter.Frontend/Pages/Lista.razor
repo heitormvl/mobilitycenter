@@ -1,5 +1,7 @@
 @page "/lista"
 @inject NavigationManager Nav
+@inject BicicletarioService BicicletarioSvc
+@inject IJSRuntime JS
 
 <!-- Header -->
 <div style="background:var(--bg); padding:0 20px 16px; border-bottom:1px solid var(--border);">
@@ -8,65 +10,202 @@
         <h1 style="font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.03em; font-family:var(--font);">Bicicletários</h1>
         <div style="display:flex; gap:14px; align-items:center;">
             <i class="fa-solid fa-map" style="color:var(--brand); font-size:19px; cursor:pointer;" @onclick="@(() => Nav.NavigateTo("/"))"></i>
-            <i class="fa-solid fa-sliders" style="color:var(--text-3); font-size:19px; cursor:pointer;"></i>
         </div>
     </div>
-    <WfInput Placeholder="Buscar por nome ou bairro..." IconClass="fa-magnifying-glass" />
+    <WfInput Placeholder="Buscar por nome..." IconClass="fa-magnifying-glass"
+             Value="@_search" ValueChanged="@((v) => _search = v)" />
 </div>
 
 <!-- Filter chips -->
 <div style="background:var(--bg); padding:12px 20px 12px; border-bottom:1px solid var(--border); display:flex; gap:8px; overflow-x:auto;">
-    <Chip Accent="true" Sm="true">Todos</Chip>
-    <Chip Sm="true">Acesso livre</Chip>
-    <Chip Sm="true">Com tomada</Chip>
-    <Chip Sm="true">Bicicleta</Chip>
-    <Chip Sm="true">Scooter</Chip>
+    <div @onclick="@(() => _filter = 0)"><Chip Accent="@(_filter == 0)" Sm="true">Todos</Chip></div>
+    <div @onclick="@(() => _filter = 1)"><Chip Accent="@(_filter == 1)" Sm="true">Acesso livre</Chip></div>
+    <div @onclick="@(() => _filter = 2)"><Chip Accent="@(_filter == 2)" Sm="true">Com tomada</Chip></div>
+    <div @onclick="@(() => _filter = 3)"><Chip Accent="@(_filter == 3)" Sm="true">Bicicleta</Chip></div>
+    <div @onclick="@(() => _filter = 4)"><Chip Accent="@(_filter == 4)" Sm="true">Scooter</Chip></div>
 </div>
 
-<!-- Count + sort -->
+<!-- Count -->
 <div style="padding:12px 20px 8px; display:flex; justify-content:space-between; align-items:center;">
-    <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">32 locais encontrados</span>
-    <span style="font-size:13px; font-family:var(--font);">
-        <span style="color:var(--text-3);">Ordenar: </span>
-        <span style="color:var(--brand); font-weight:600; cursor:pointer;">Distância ↓</span>
-    </span>
+    @if (_isLoading)
+    {
+        <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">Carregando...</span>
+    }
+    else if (_loadError == null)
+    {
+        <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">@Filtered.Count() locais encontrados</span>
+        <span style="font-size:13px; color:var(--text-3); font-family:var(--font);">
+            @(_hasLocation ? "Ordenado por distância" : "Ordenado por nome")
+        </span>
+    }
 </div>
 
 <!-- Cards -->
 <div style="padding:0 16px 88px; display:flex; flex-direction:column; gap:10px; overflow-y:auto;">
-    @foreach (var item in _items)
+
+    @if (_isLoading)
     {
-        var it = item;
-        <div style="background:var(--bg); border-radius:var(--r-lg); padding:16px; border:1px solid var(--border); box-shadow:var(--shadow-sm); cursor:pointer;" @onclick="@(() => Nav.NavigateTo("/bicicletario/1"))">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                <span style="font-size:15px; font-weight:600; color:var(--text); font-family:var(--font); letter-spacing:-0.01em;">@it.Name</span>
-                <div style="display:flex; align-items:center; gap:4px; background:var(--bg-page); padding:3px 8px; border-radius:var(--r-full); flex-shrink:0; margin-left:8px;">
-                    <i class="fa-solid fa-location-dot" style="font-size:10px; color:var(--text-4);"></i>
-                    <span style="font-size:12px; color:var(--text-4); font-family:var(--font); font-weight:500;">@it.Dist</span>
+        @for (int i = 0; i < 4; i++)
+        {
+            <div style="background:var(--bg); border-radius:var(--r-lg); padding:16px; border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+                <div style="height:16px; width:60%; background:var(--border); border-radius:4px; margin-bottom:10px;"></div>
+                <div style="height:12px; width:30%; background:var(--border); border-radius:4px; margin-bottom:14px;"></div>
+                <div style="display:flex; gap:6px;">
+                    <div style="height:22px; width:50px; background:var(--border); border-radius:999px;"></div>
+                    <div style="height:22px; width:60px; background:var(--border); border-radius:999px;"></div>
                 </div>
             </div>
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
-                <Stars N="@it.Stars" />
-                <span style="font-size:12px; color:var(--text-4); font-family:var(--font);">@it.Reviews avaliações</span>
+        }
+    }
+    else if (_loadError != null)
+    {
+        <div style="text-align:center; padding:40px 20px; font-family:var(--font);">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:32px; color:var(--text-4); margin-bottom:12px; display:block;"></i>
+            <div style="font-size:15px; color:var(--text-3);">@_loadError</div>
+        </div>
+    }
+    else
+    {
+        var items = Filtered.ToList();
+        @if (items.Count == 0)
+        {
+            <div style="text-align:center; padding:40px 20px; font-family:var(--font);">
+                <i class="fa-solid fa-circle-xmark" style="font-size:32px; color:var(--text-4); margin-bottom:12px; display:block;"></i>
+                <div style="font-size:15px; color:var(--text-3);">Nenhum bicicletário encontrado</div>
             </div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                @foreach (var chip in it.Chips)
+        }
+        @foreach (var item in items)
+        {
+            var id = item.Id;
+            var stars = AvgStars(item);
+            var reviews = item.Ratings.Length;
+            var chips = GetChips(item);
+            var dist = _hasLocation ? FormatDist(HaversineDist(_userLat, _userLng, item.Latitude, item.Longitude)) : "";
+
+            <div style="background:var(--bg); border-radius:var(--r-lg); padding:16px; border:1px solid var(--border); box-shadow:var(--shadow-sm); cursor:pointer;"
+                 @onclick="@(() => Nav.NavigateTo($"/bicicletario/{id}"))">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                    <span style="font-size:15px; font-weight:600; color:var(--text); font-family:var(--font); letter-spacing:-0.01em;">@item.Name</span>
+                    @if (!string.IsNullOrEmpty(dist))
+                    {
+                        <div style="display:flex; align-items:center; gap:4px; background:var(--bg-page); padding:3px 8px; border-radius:var(--r-full); flex-shrink:0; margin-left:8px;">
+                            <i class="fa-solid fa-location-dot" style="font-size:10px; color:var(--text-4);"></i>
+                            <span style="font-size:12px; color:var(--text-4); font-family:var(--font); font-weight:500;">@dist</span>
+                        </div>
+                    }
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+                    <Stars N="@stars" />
+                    <span style="font-size:12px; color:var(--text-4); font-family:var(--font);">
+                        @(reviews > 0 ? $"{reviews} avaliação{(reviews == 1 ? "" : "ões")}" : "Sem avaliações")
+                    </span>
+                </div>
+                @if (chips.Length > 0)
                 {
-                    <Chip Sm="true">@chip</Chip>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        @foreach (var chip in chips)
+                        {
+                            <Chip Sm="true">@chip</Chip>
+                        }
+                    </div>
                 }
             </div>
-        </div>
+        }
     }
 </div>
 
 <BottomNav Active="lista" />
 
 @code {
-    private readonly (string Name, int Stars, int Reviews, string Dist, string[] Chips)[] _items =
-    [
-        ("Bicicletário Central",  4, 23, "0,3 km", ["Livre", "Tomada", "Calibrador"]),
-        ("Estação Norte",         3, 12, "0,8 km", ["Pago", "Armário"]),
-        ("Ciclovia Sul",          5, 41, "1,2 km", ["Livre", "Manutenção"]),
-        ("Terminal Leste",        4,  8, "1,9 km", ["Cadastro", "Tomada"]),
-    ];
+    private BicicletarioDto[]? _allItems;
+    private string _search = "";
+    private int _filter = 0;
+    private bool _isLoading = true;
+    private string? _loadError;
+    private double _userLat;
+    private double _userLng;
+    private bool _hasLocation;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var arr = await JS.InvokeAsync<double[]>("mapInterop.getUserLocation");
+            _userLat = arr[0];
+            _userLng = arr[1];
+            _hasLocation = true;
+        }
+        catch { }
+
+        var result = await BicicletarioSvc.GetAllAsync(
+            _hasLocation ? _userLat : null,
+            _hasLocation ? _userLng : null);
+
+        if (result == null)
+            _loadError = "Não foi possível carregar os bicicletários.";
+        else
+            _allItems = result;
+
+        _isLoading = false;
+    }
+
+    private IEnumerable<BicicletarioDto> Filtered
+    {
+        get
+        {
+            var q = (_allItems ?? []).AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_search))
+                q = q.Where(i => i.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+            q = _filter switch
+            {
+                1 => q.Where(i => i.IsFree),
+                2 => q.Where(i => i.HasPowerOutlet),
+                3 => q.Where(i => (i.VehicleTypes & 1) != 0),
+                4 => q.Where(i => (i.VehicleTypes & 2) != 0),
+                _ => q
+            };
+
+            return _hasLocation
+                ? q.OrderBy(i => HaversineDist(_userLat, _userLng, i.Latitude, i.Longitude))
+                : q.OrderBy(i => i.Name);
+        }
+    }
+
+    private static int AvgStars(BicicletarioDto item) =>
+        item.Ratings is { Length: > 0 }
+            ? (int)Math.Round(item.Ratings.Average(r => (double)r.Rating))
+            : 0;
+
+    private static string[] GetChips(BicicletarioDto item)
+    {
+        var list = new List<string>(3);
+        if (item.IsFree) list.Add("Livre");
+        else if (item.IsPaid) list.Add("Pago");
+        else if (item.RequiresSignup) list.Add("Cadastro");
+        else if (item.IsMonthlySubscription) list.Add("Mensal");
+        if (item.HasPowerOutlet && list.Count < 3) list.Add("Tomada");
+        if (item.HasAirPump && list.Count < 3) list.Add("Calibrador");
+        if (item.HasLocker && list.Count < 3) list.Add("Armário");
+        if (item.HasMaintenanceSpace && list.Count < 3) list.Add("Manutenção");
+        if (item.HasBikeLock && list.Count < 3) list.Add("Cadeado");
+        return [.. list];
+    }
+
+    private static string FormatDist(double km) =>
+        km < 1
+            ? $"{(int)(km * 1000)} m"
+            : km.ToString("F1", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',') + " km";
+
+    private static double HaversineDist(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double R = 6371;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLon = (lon2 - lon1) * Math.PI / 180;
+        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
+              + Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180)
+              * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+    }
 }
