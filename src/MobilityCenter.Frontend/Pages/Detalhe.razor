@@ -5,7 +5,7 @@
 @inject BicicletarioService BicicletarioSvc
 @inject IHttpClientFactory HttpFactory
 
-<!-- Header (sticky) -->
+@* Sticky header *@
 <div style="background:var(--bg); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20;">
     <StatusBar />
     <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
@@ -19,10 +19,10 @@
     </div>
 </div>
 
-<!-- ── LOADING ── -->
 @if (_isLoading)
 {
-    <div style="height:200px; background:var(--border); animation:pulse 1.4s ease-in-out infinite;"></div>
+    @* Skeleton *@
+    <div style="height:200px; background:var(--border);"></div>
     <div style="padding:20px; display:flex; flex-direction:column; gap:14px;">
         <div style="display:flex; gap:8px; align-items:center;">
             <div style="height:14px; width:120px; background:var(--border); border-radius:4px;"></div>
@@ -38,10 +38,9 @@
         <div style="height:90px; background:var(--border); border-radius:var(--r-lg);"></div>
     </div>
 }
-
-<!-- ── ERROR ── -->
 else if (_loadError != null)
 {
+    @* Error state *@
     <div style="text-align:center; padding:60px 24px; font-family:var(--font);">
         <i class="fa-solid fa-triangle-exclamation" style="font-size:40px; color:var(--text-4); margin-bottom:16px; display:block;"></i>
         <div style="font-size:16px; font-weight:600; color:var(--text); margin-bottom:8px;">Oops!</div>
@@ -51,22 +50,15 @@ else if (_loadError != null)
         </BtnO>
     </div>
 }
-
-<!-- ── CONTENT ── -->
 else if (_item != null)
 {
-    @{
-        var servicos = GetServicos();
-        var veiculos = GetVeiculos();
-    }
-
-    <!-- Photo placeholder -->
+    @* Photo placeholder *@
     <ImgPH H="200" Label="Foto do local" />
 
-    <!-- Scrollable body -->
+    @* Scrollable body *@
     <div style="padding:20px 20px 160px;">
 
-        <!-- Rating + address row -->
+        @* Rating + address *@
         <div style="margin-bottom:20px;">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
                 <Stars N="@((int)Math.Round(_item.NotaMedia))" Size="15" />
@@ -92,11 +84,11 @@ else if (_item != null)
             }
         </div>
 
-        <!-- Services card -->
+        @* Services card *@
         <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px; margin-bottom:12px; box-shadow:var(--shadow-xs);">
             <SecLabel>Serviços</SecLabel>
             <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
-                @foreach (var s in servicos)
+                @foreach (var s in _servicos)
                 {
                     <div style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:500; padding:5px 11px; border-radius:var(--r-full); font-family:var(--font); border:1px solid @(s.Ok ? "#BBF7D0" : "var(--border)"); background:@(s.Ok ? "var(--green-bg)" : "var(--bg-page)"); color:@(s.Ok ? "var(--green)" : "var(--text-4)");">
                         <i class="fa-solid @s.Icon" style="font-size:10px;"></i>
@@ -106,9 +98,8 @@ else if (_item != null)
             </div>
         </div>
 
-        <!-- Access + Vehicles 2-col -->
+        @* Access + Vehicles 2-col *@
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
-
             <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px; box-shadow:var(--shadow-xs);">
                 <SecLabel>Acesso</SecLabel>
                 <div style="margin-top:8px;">
@@ -138,11 +129,11 @@ else if (_item != null)
             <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px; box-shadow:var(--shadow-xs);">
                 <SecLabel>Veículos</SecLabel>
                 <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-                    @if (veiculos.Count == 0)
+                    @if (_veiculos.Count == 0)
                     {
                         <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">—</span>
                     }
-                    @foreach (var v in veiculos)
+                    @foreach (var v in _veiculos)
                     {
                         <Chip Sm="true">
                             <i class="fa-solid @v.Icon" style="font-size:10px;"></i>&nbsp;@v.Label
@@ -152,7 +143,7 @@ else if (_item != null)
             </div>
         </div>
 
-        <!-- Operator badge -->
+        @* Operator badge *@
         @if (!string.IsNullOrEmpty(_item.NomeOperador))
         {
             <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--brand-soft); border-radius:var(--r-lg); border:1px solid #F5C6CB; margin-bottom:20px;">
@@ -166,8 +157,8 @@ else if (_item != null)
             </div>
         }
 
-        <!-- Reviews -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        @* Reviews *@
+        <div style="margin-bottom:12px;">
             <SecLabel>Avaliações (@(_item.Avaliacoes.Length))</SecLabel>
         </div>
 
@@ -190,7 +181,7 @@ else if (_item != null)
                         <i class="fa-solid fa-user" style="font-size:13px; color:var(--text-4);"></i>
                     </div>
                     <div style="flex:1; min-width:0;">
-                        <div style="font-size:13px; font-weight:600; color:var(--text); font-family:var(--font); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@r.NomeUsuario</div>
+                        <div style="font-size:13px; font-weight:600; color:var(--text); font-family:var(--font);">@r.NomeUsuario</div>
                         <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:1px;">@FormatDate(r.CriadoEm)</div>
                     </div>
                     <Stars N="@r.Nota" Size="12" />
@@ -202,9 +193,9 @@ else if (_item != null)
             </div>
         }
 
-    </div><!-- /scrollable body -->
+    </div>@* /scrollable body *@
 
-    <!-- Sticky CTA above BottomNav -->
+    @* Sticky CTA above BottomNav *@
     <div style="position:absolute; bottom:82px; left:16px; right:16px;">
         <BtnP OnClick="@(() => Nav.NavigateTo($"/avaliar/{Id}?name={Uri.EscapeDataString(_item.Nome)}"))">
             <i class="fa-regular fa-star" style="margin-right:8px;"></i>Avaliar este local
@@ -218,9 +209,13 @@ else if (_item != null)
     [Parameter] public string? Id { get; set; }
 
     private BicicletarioDetalheModel? _item;
-    private bool   _isLoading = true;
+    private bool    _isLoading = true;
     private string? _loadError;
     private string? _address;
+
+    // Pre-computed from _item so template never calls helpers with _item == null
+    private (string Icon, string Label, bool Ok)[] _servicos = [];
+    private List<(string Icon, string Label)>       _veiculos = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -240,7 +235,24 @@ else if (_item != null)
             return;
         }
 
-        // Fire-and-forget: reverse geocode to get human-readable address
+        // Pre-compute display data — template reads fields, never calls methods with _item
+        _servicos =
+        [
+            ("fa-plug",   "Tomada",     _item.TemTomada),
+            ("fa-gauge",  "Calibrador", _item.TemCalibrador),
+            ("fa-shirt",  "Vestiário",  _item.TemVestiario),
+            ("fa-box",    "Armário",    _item.TemArmario),
+            ("fa-wrench", "Manutenção", _item.TemEspacoManutencao),
+            ("fa-lock",   "Cadeado",    _item.TemCadeado),
+        ];
+
+        _veiculos = [];
+        if ((_item.VeiculosSuportados & 1) != 0) _veiculos.Add(("fa-bicycle",       "Bicicleta"));
+        if ((_item.VeiculosSuportados & 2) != 0) _veiculos.Add(("fa-person-biking", "Scooter"));
+        if ((_item.VeiculosSuportados & 4) != 0) _veiculos.Add(("fa-circle-dot",    "Monociclo"));
+        if ((_item.VeiculosSuportados & 8) != 0) _veiculos.Add(("fa-bolt",          "Patinete"));
+
+        // Reverse geocode without blocking render
         _ = ReverseGeocodeAsync(_item.Latitude, _item.Longitude);
     }
 
@@ -261,38 +273,14 @@ else if (_item != null)
                 if (!string.IsNullOrEmpty(addr.City)) parts.Add(addr.City);
                 _address = parts.Count > 0 ? string.Join(", ", parts) : result.DisplayName;
             }
-            else if (!string.IsNullOrEmpty(result?.DisplayName))
+            else if (result is { DisplayName: { } dn })
             {
-                _address = result.DisplayName.Length > 70
-                    ? result.DisplayName[..67] + "..."
-                    : result.DisplayName;
+                _address = dn.Length > 70 ? dn[..67] + "..." : dn;
             }
 
             StateHasChanged();
         }
         catch { /* address stays null — harmless */ }
-    }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
-    private (string Icon, string Label, bool Ok)[] GetServicos() =>
-    [
-        ("fa-plug",   "Tomada",     _item!.TemTomada),
-        ("fa-gauge",  "Calibrador", _item.TemCalibrador),
-        ("fa-shirt",  "Vestiário",  _item.TemVestiario),
-        ("fa-box",    "Armário",    _item.TemArmario),
-        ("fa-wrench", "Manutenção", _item.TemEspacoManutencao),
-        ("fa-lock",   "Cadeado",    _item.TemCadeado),
-    ];
-
-    private List<(string Icon, string Label)> GetVeiculos()
-    {
-        var list = new List<(string, string)>(4);
-        if ((_item!.VeiculosSuportados & 1) != 0) list.Add(("fa-bicycle",       "Bicicleta"));
-        if ((_item.VeiculosSuportados  & 2) != 0) list.Add(("fa-person-biking", "Scooter"));
-        if ((_item.VeiculosSuportados  & 4) != 0) list.Add(("fa-circle-dot",    "Monociclo"));
-        if ((_item.VeiculosSuportados  & 8) != 0) list.Add(("fa-bolt",          "Patinete"));
-        return list;
     }
 
     private static string FormatDate(DateTime dt)
@@ -308,8 +296,6 @@ else if (_item != null)
         var anos = (int)(diff.TotalDays / 365);
         return $"há {anos} ano{(anos > 1 ? "s" : "")}";
     }
-
-    // ── Private Nominatim types ───────────────────────────────────────────────
 
     private class NominatimReverseResult
     {
