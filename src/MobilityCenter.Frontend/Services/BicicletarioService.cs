@@ -43,45 +43,34 @@ public class BicicletarioService(HttpClient http)
     private record CreatedResponse(string Id);
 }
 
+// Matches BicicletarioResumoDto (Portuguese names, camelCase from API)
 public class BicicletarioDto
 {
     public string Id { get; set; } = "";
-    public string Name { get; set; } = "";
+    public string Nome { get; set; } = "";
     public double Latitude { get; set; }
     public double Longitude { get; set; }
-    public bool HasPowerOutlet { get; set; }
-    public bool HasAirPump { get; set; }
-    public bool HasLocker { get; set; }
-    public bool HasStorage { get; set; }
-    public bool HasMaintenanceSpace { get; set; }
-    public bool HasBikeLock { get; set; }
-    public bool IsFree { get; set; }
-    public bool IsPaid { get; set; }
-    public bool RequiresSignup { get; set; }
-    public bool IsMonthlySubscription { get; set; }
-    public int VehicleTypes { get; set; }
-    public RatingDto[] Ratings { get; set; } = [];
+    public double NotaMedia { get; set; }
+    public int TotalAvaliacoes { get; set; }
+    public int VeiculosSuportados { get; set; }
 }
 
-public class RatingDto
-{
-    public int Rating { get; set; }
-}
-
+// Matches CriarBicicletarioDto (Portuguese names)
+// TipoVeiculo flags: Bicicleta=1, Scooter=2, Monociclo=4, Patinete=8
 public class CreateBicicletarioRequest
 {
-    public string Name { get; set; } = "";
-    public decimal Latitude { get; set; }
-    public decimal Longitude { get; set; }
-    public bool HasPowerOutlet { get; set; }
-    public bool HasAirPump { get; set; }
-    public bool HasLocker { get; set; }
-    public bool HasStorage { get; set; }
-    public bool HasMaintenanceSpace { get; set; }
-    public bool HasBikeLock { get; set; }
-    public bool IsFree { get; set; }
-    public bool IsPaid { get; set; }
-    public bool RequiresSignup { get; set; }
-    public bool IsMonthlySubscription { get; set; }
-    public int VehicleTypes { get; set; }
+    public string Nome { get; set; } = "";
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public bool TemTomada { get; set; }
+    public bool TemCalibrador { get; set; }
+    public bool TemVestiario { get; set; }
+    public bool TemArmario { get; set; }
+    public bool TemEspacoManutencao { get; set; }
+    public bool TemCadeado { get; set; }
+    public bool AcessoLivre { get; set; }
+    public bool AcessoPago { get; set; }
+    public bool AcessoCadastro { get; set; }
+    public bool AcessoMensal { get; set; }
+    public int VeiculosSuportados { get; set; }
 }

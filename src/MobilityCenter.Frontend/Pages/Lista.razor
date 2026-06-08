@@ -19,10 +19,10 @@
 <!-- Filter chips -->
 <div style="background:var(--bg); padding:12px 20px 12px; border-bottom:1px solid var(--border); display:flex; gap:8px; overflow-x:auto;">
     <div @onclick="@(() => _filter = 0)"><Chip Accent="@(_filter == 0)" Sm="true">Todos</Chip></div>
-    <div @onclick="@(() => _filter = 1)"><Chip Accent="@(_filter == 1)" Sm="true">Acesso livre</Chip></div>
-    <div @onclick="@(() => _filter = 2)"><Chip Accent="@(_filter == 2)" Sm="true">Com tomada</Chip></div>
-    <div @onclick="@(() => _filter = 3)"><Chip Accent="@(_filter == 3)" Sm="true">Bicicleta</Chip></div>
-    <div @onclick="@(() => _filter = 4)"><Chip Accent="@(_filter == 4)" Sm="true">Scooter</Chip></div>
+    <div @onclick="@(() => _filter = 1)"><Chip Accent="@(_filter == 1)" Sm="true">Bicicleta</Chip></div>
+    <div @onclick="@(() => _filter = 2)"><Chip Accent="@(_filter == 2)" Sm="true">Scooter</Chip></div>
+    <div @onclick="@(() => _filter = 3)"><Chip Accent="@(_filter == 3)" Sm="true">Monociclo</Chip></div>
+    <div @onclick="@(() => _filter = 4)"><Chip Accent="@(_filter == 4)" Sm="true">Patinete</Chip></div>
 </div>
 
 <!-- Count -->
@@ -77,15 +77,15 @@
         @foreach (var item in items)
         {
             var id = item.Id;
-            var stars = AvgStars(item);
-            var reviews = item.Ratings.Length;
+            var stars = (int)Math.Round(item.NotaMedia);
+            var reviews = item.TotalAvaliacoes;
             var chips = GetChips(item);
             var dist = _hasLocation ? FormatDist(HaversineDist(_userLat, _userLng, item.Latitude, item.Longitude)) : "";
 
             <div style="background:var(--bg); border-radius:var(--r-lg); padding:16px; border:1px solid var(--border); box-shadow:var(--shadow-sm); cursor:pointer;"
                  @onclick="@(() => Nav.NavigateTo($"/bicicletario/{id}"))">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                    <span style="font-size:15px; font-weight:600; color:var(--text); font-family:var(--font); letter-spacing:-0.01em;">@item.Name</span>
+                    <span style="font-size:15px; font-weight:600; color:var(--text); font-family:var(--font); letter-spacing:-0.01em;">@item.Nome</span>
                     @if (!string.IsNullOrEmpty(dist))
                     {
                         <div style="display:flex; align-items:center; gap:4px; background:var(--bg-page); padding:3px 8px; border-radius:var(--r-full); flex-shrink:0; margin-left:8px;">
@@ -156,40 +156,31 @@
             var q = (_allItems ?? []).AsEnumerable();
 
             if (!string.IsNullOrWhiteSpace(_search))
-                q = q.Where(i => i.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
+                q = q.Where(i => i.Nome.Contains(_search, StringComparison.OrdinalIgnoreCase));
 
             q = _filter switch
             {
-                1 => q.Where(i => i.IsFree),
-                2 => q.Where(i => i.HasPowerOutlet),
-                3 => q.Where(i => (i.VehicleTypes & 1) != 0),
-                4 => q.Where(i => (i.VehicleTypes & 2) != 0),
+                1 => q.Where(i => (i.VeiculosSuportados & 1) != 0),  // Bicicleta
+                2 => q.Where(i => (i.VeiculosSuportados & 2) != 0),  // Scooter
+                3 => q.Where(i => (i.VeiculosSuportados & 4) != 0),  // Monociclo
+                4 => q.Where(i => (i.VeiculosSuportados & 8) != 0),  // Patinete
                 _ => q
             };
 
             return _hasLocation
                 ? q.OrderBy(i => HaversineDist(_userLat, _userLng, i.Latitude, i.Longitude))
-                : q.OrderBy(i => i.Name);
+                : q.OrderBy(i => i.Nome);
         }
     }
 
-    private static int AvgStars(BicicletarioDto item) =>
-        item.Ratings is { Length: > 0 }
-            ? (int)Math.Round(item.Ratings.Average(r => (double)r.Rating))
-            : 0;
-
+    // TipoVeiculo flags: Bicicleta=1, Scooter=2, Monociclo=4, Patinete=8
     private static string[] GetChips(BicicletarioDto item)
     {
-        var list = new List<string>(3);
-        if (item.IsFree) list.Add("Livre");
-        else if (item.IsPaid) list.Add("Pago");
-        else if (item.RequiresSignup) list.Add("Cadastro");
-        else if (item.IsMonthlySubscription) list.Add("Mensal");
-        if (item.HasPowerOutlet && list.Count < 3) list.Add("Tomada");
-        if (item.HasAirPump && list.Count < 3) list.Add("Calibrador");
-        if (item.HasLocker && list.Count < 3) list.Add("Armário");
-        if (item.HasMaintenanceSpace && list.Count < 3) list.Add("Manutenção");
-        if (item.HasBikeLock && list.Count < 3) list.Add("Cadeado");
+        var list = new List<string>(4);
+        if ((item.VeiculosSuportados & 1) != 0) list.Add("Bicicleta");
+        if ((item.VeiculosSuportados & 2) != 0) list.Add("Scooter");
+        if ((item.VeiculosSuportados & 4) != 0) list.Add("Monociclo");
+        if ((item.VeiculosSuportados & 8) != 0) list.Add("Patinete");
         return [.. list];
     }
 

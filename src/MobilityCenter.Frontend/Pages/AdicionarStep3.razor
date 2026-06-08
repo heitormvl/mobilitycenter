@@ -137,25 +137,26 @@
 
         return new CreateBicicletarioRequest
         {
-            Name = Name ?? "",
-            Latitude = decimal.TryParse(LatStr, System.Globalization.NumberStyles.Any,
+            Nome = Name ?? "",
+            Latitude = double.TryParse(LatStr, System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out var lat) ? lat : 0,
-            Longitude = decimal.TryParse(LngStr, System.Globalization.NumberStyles.Any,
+            Longitude = double.TryParse(LngStr, System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out var lng) ? lng : 0,
-            HasPowerOutlet      = _servicos[0].Checked,
-            HasAirPump          = _servicos[1].Checked,
-            HasLocker           = _servicos[2].Checked,
-            HasStorage          = _servicos[2].Checked,
-            HasMaintenanceSpace = _servicos[3].Checked,
-            HasBikeLock         = _servicos[4].Checked,
-            IsFree                  = accessType == 0,
-            IsPaid                  = accessType == 1,
-            RequiresSignup          = accessType == 2,
-            IsMonthlySubscription   = accessType == 3,
-            VehicleTypes = (_veiculos[0].Checked ? 1 : 0)
-                         | (_veiculos[1].Checked ? 2 : 0)
-                         | (_veiculos[2].Checked ? 4 : 0)
-                         | (_veiculos[3].Checked ? 8 : 0),
+            TemTomada           = _servicos[0].Checked,
+            TemCalibrador       = _servicos[1].Checked,
+            TemArmario          = _servicos[2].Checked,
+            TemEspacoManutencao = _servicos[3].Checked,
+            TemCadeado          = _servicos[4].Checked,
+            TemVestiario        = false,
+            AcessoLivre         = accessType == 0,
+            AcessoPago          = accessType == 1,
+            AcessoCadastro      = accessType == 2,
+            AcessoMensal        = accessType == 3,
+            // TipoVeiculo flags: Bicicleta=1, Scooter=2, Monociclo=4, Patinete=8
+            VeiculosSuportados  = (_veiculos[0].Checked ? 1 : 0)   // Bicicleta
+                                | (_veiculos[1].Checked ? 2 : 0)   // Scooter
+                                | (_veiculos[2].Checked ? 8 : 0)   // Patinete (fa-bolt)
+                                | (_veiculos[3].Checked ? 4 : 0),  // Monociclo (fa-circle-dot)
         };
     }
 
