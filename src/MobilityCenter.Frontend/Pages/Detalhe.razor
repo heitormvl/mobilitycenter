@@ -1,112 +1,327 @@
 @page "/bicicletario/{Id}"
+@using System.Text.Json.Serialization
+@using System.Globalization
 @inject NavigationManager Nav
+@inject BicicletarioService BicicletarioSvc
+@inject IHttpClientFactory HttpFactory
 
-<!-- Header -->
+<!-- Header (sticky) -->
 <div style="background:var(--bg); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20;">
     <StatusBar />
     <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
-        <button @onclick="@(() => Nav.NavigateTo("/lista"))" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <button @onclick="@(() => Nav.NavigateTo("/lista"))"
+                style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
             <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
         </button>
-        <span style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; flex:1;">Bicicletário Central</span>
-        <button style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-            <i class="fa-solid fa-share-nodes" style="color:var(--text-3); font-size:14px;"></i>
-        </button>
-        <button style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-            <i class="fa-regular fa-bookmark" style="color:var(--text-3); font-size:14px;"></i>
-        </button>
+        <span style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            @(_isLoading ? "Carregando..." : (_item?.Nome ?? "Não encontrado"))
+        </span>
     </div>
 </div>
 
-<!-- Photo -->
-<ImgPH H="200" Label="Foto do local" />
-
-<!-- Content -->
-<div style="padding:20px 20px 100px;">
-
-    <!-- Rating + address -->
-    <div style="margin-bottom:20px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-            <Stars N="4" Size="15" />
-            <span style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font);">4,2</span>
-            <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">· 23 avaliações</span>
+<!-- ── LOADING ── -->
+@if (_isLoading)
+{
+    <div style="height:200px; background:var(--border); animation:pulse 1.4s ease-in-out infinite;"></div>
+    <div style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; gap:8px; align-items:center;">
+            <div style="height:14px; width:120px; background:var(--border); border-radius:4px;"></div>
+            <div style="height:12px; width:80px; background:var(--border); border-radius:4px;"></div>
         </div>
-        <div style="display:flex; align-items:center; gap:6px; color:var(--text-3); font-size:13px; font-family:var(--font);">
-            <i class="fa-solid fa-location-dot" style="color:var(--brand); font-size:12px;"></i>
-            Rua das Flores, 123 · Centro · 0,3 km
+        <div style="height:12px; width:70%; background:var(--border); border-radius:4px;"></div>
+        <div style="height:96px; background:var(--border); border-radius:var(--r-lg); margin-top:8px;"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div style="height:80px; background:var(--border); border-radius:var(--r-lg);"></div>
+            <div style="height:80px; background:var(--border); border-radius:var(--r-lg);"></div>
         </div>
+        <div style="height:90px; background:var(--border); border-radius:var(--r-lg);"></div>
+        <div style="height:90px; background:var(--border); border-radius:var(--r-lg);"></div>
     </div>
+}
 
-    <!-- Services -->
-    <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px; margin-bottom:12px;">
-        <SecLabel>Serviços</SecLabel>
-        <div style="display:flex; flex-wrap:wrap; gap:8px;">
-            @foreach (var s in _servicos)
+<!-- ── ERROR ── -->
+else if (_loadError != null)
+{
+    <div style="text-align:center; padding:60px 24px; font-family:var(--font);">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size:40px; color:var(--text-4); margin-bottom:16px; display:block;"></i>
+        <div style="font-size:16px; font-weight:600; color:var(--text); margin-bottom:8px;">Oops!</div>
+        <div style="font-size:14px; color:var(--text-3); margin-bottom:24px;">@_loadError</div>
+        <BtnO OnClick="@(() => Nav.NavigateTo("/lista"))">
+            <i class="fa-solid fa-arrow-left" style="margin-right:6px;"></i> Voltar à lista
+        </BtnO>
+    </div>
+}
+
+<!-- ── CONTENT ── -->
+else if (_item != null)
+{
+    @{
+        var servicos = GetServicos();
+        var veiculos = GetVeiculos();
+    }
+
+    <!-- Photo placeholder -->
+    <ImgPH H="200" Label="Foto do local" />
+
+    <!-- Scrollable body -->
+    <div style="padding:20px 20px 160px;">
+
+        <!-- Rating + address row -->
+        <div style="margin-bottom:20px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+                <Stars N="@((int)Math.Round(_item.NotaMedia))" Size="15" />
+                <span style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font);">
+                    @(_item.NotaMedia > 0
+                        ? _item.NotaMedia.ToString("F1", CultureInfo.InvariantCulture).Replace('.', ',')
+                        : "—")
+                </span>
+                <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">
+                    · @(_item.Avaliacoes.Length switch {
+                        0 => "Sem avaliações",
+                        1 => "1 avaliação",
+                        _ => $"{_item.Avaliacoes.Length} avaliações"
+                    })
+                </span>
+            </div>
+            @if (!string.IsNullOrEmpty(_address))
             {
-                <div style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:500; padding:5px 11px; border-radius:var(--r-full); background:@(s.Ok ? "var(--green-bg)" : "var(--bg-page)"); color:@(s.Ok ? "var(--green)" : "var(--text-4)"); font-family:var(--font);">
-                    <i class="fa-solid @s.Icon" style="font-size:10px;"></i>
-                    <span>@s.Label</span>
+                <div style="display:flex; align-items:flex-start; gap:6px; color:var(--text-3); font-size:13px; font-family:var(--font); line-height:1.4;">
+                    <i class="fa-solid fa-location-dot" style="color:var(--brand); font-size:12px; margin-top:2px; flex-shrink:0;"></i>
+                    <span>@_address</span>
                 </div>
             }
         </div>
-    </div>
 
-    <!-- Access + Vehicles -->
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
-        <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px;">
-            <SecLabel>Acesso</SecLabel>
-            <Chip Accent="true" Sm="true">Livre</Chip>
-        </div>
-        <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px;">
-            <SecLabel>Veículos</SecLabel>
-            <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                <Chip Sm="true"><i class="fa-solid fa-bicycle" style="font-size:10px;"></i></Chip>
-                <Chip Sm="true">Patinete</Chip>
+        <!-- Services card -->
+        <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px; margin-bottom:12px; box-shadow:var(--shadow-xs);">
+            <SecLabel>Serviços</SecLabel>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+                @foreach (var s in servicos)
+                {
+                    <div style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:500; padding:5px 11px; border-radius:var(--r-full); font-family:var(--font); border:1px solid @(s.Ok ? "#BBF7D0" : "var(--border)"); background:@(s.Ok ? "var(--green-bg)" : "var(--bg-page)"); color:@(s.Ok ? "var(--green)" : "var(--text-4)");">
+                        <i class="fa-solid @s.Icon" style="font-size:10px;"></i>
+                        <span>@s.Label</span>
+                    </div>
+                }
             </div>
         </div>
-    </div>
 
-    <!-- Reviews -->
-    <SecLabel>Avaliações recentes</SecLabel>
-    @foreach (var r in _avaliacoes)
-    {
-        <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px; margin-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                <div style="width:32px; height:32px; border-radius:var(--r-full); background:var(--bg-page); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <i class="fa-solid fa-user" style="font-size:13px; color:var(--text-4);"></i>
+        <!-- Access + Vehicles 2-col -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+
+            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px; box-shadow:var(--shadow-xs);">
+                <SecLabel>Acesso</SecLabel>
+                <div style="margin-top:8px;">
+                    @if (_item.AcessoLivre)
+                    {
+                        <Chip Accent="true" Sm="true">Livre</Chip>
+                    }
+                    else if (_item.AcessoPago)
+                    {
+                        <Chip Sm="true">Pago</Chip>
+                    }
+                    else if (_item.AcessoCadastro)
+                    {
+                        <Chip Sm="true">Cadastro</Chip>
+                    }
+                    else if (_item.AcessoMensal)
+                    {
+                        <Chip Sm="true">Mensal</Chip>
+                    }
+                    else
+                    {
+                        <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">—</span>
+                    }
                 </div>
-                <div style="flex:1;">
-                    <div style="font-size:13px; font-weight:600; color:var(--text); font-family:var(--font);">@r.User</div>
-                </div>
-                <Stars N="@r.Stars" Size="12" />
             </div>
-            <p style="font-size:13px; color:var(--text-2); font-family:var(--font); line-height:1.5; margin:0;">@r.Text</p>
-        </div>
-    }
-</div>
 
-<!-- CTA -->
-<div style="position:absolute; bottom:80px; left:16px; right:16px;">
-    <BtnP OnClick="@(() => Nav.NavigateTo("/avaliar/1"))">Avaliar este local</BtnP>
-</div>
+            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px; box-shadow:var(--shadow-xs);">
+                <SecLabel>Veículos</SecLabel>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+                    @if (veiculos.Count == 0)
+                    {
+                        <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">—</span>
+                    }
+                    @foreach (var v in veiculos)
+                    {
+                        <Chip Sm="true">
+                            <i class="fa-solid @v.Icon" style="font-size:10px;"></i>&nbsp;@v.Label
+                        </Chip>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Operator badge -->
+        @if (!string.IsNullOrEmpty(_item.NomeOperador))
+        {
+            <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--brand-soft); border-radius:var(--r-lg); border:1px solid #F5C6CB; margin-bottom:20px;">
+                <div style="width:36px; height:36px; border-radius:var(--r-full); background:var(--brand); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="fa-solid fa-store" style="color:white; font-size:14px;"></i>
+                </div>
+                <div>
+                    <div style="font-size:10px; color:var(--brand); font-weight:700; font-family:var(--font); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px;">Operador verificado</div>
+                    <div style="font-size:14px; color:var(--text-2); font-family:var(--font); font-weight:600;">@_item.NomeOperador</div>
+                </div>
+            </div>
+        }
+
+        <!-- Reviews -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <SecLabel>Avaliações (@(_item.Avaliacoes.Length))</SecLabel>
+        </div>
+
+        @if (_item.Avaliacoes.Length == 0)
+        {
+            <div style="text-align:center; padding:30px 20px; background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); margin-bottom:12px;">
+                <i class="fa-regular fa-comment-dots" style="font-size:30px; color:var(--text-4); display:block; margin-bottom:10px;"></i>
+                <div style="font-size:14px; color:var(--text-3); font-family:var(--font); line-height:1.5;">
+                    Nenhuma avaliação ainda.<br />
+                    <span style="color:var(--brand); font-weight:600;">Seja o primeiro!</span>
+                </div>
+            </div>
+        }
+
+        @foreach (var r in _item.Avaliacoes.OrderByDescending(x => x.CriadoEm).Take(10))
+        {
+            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px; margin-bottom:10px; box-shadow:var(--shadow-xs);">
+                <div style="display:flex; align-items:center; gap:10px; @(string.IsNullOrEmpty(r.Comentario) ? "" : "margin-bottom:8px;")">
+                    <div style="width:32px; height:32px; border-radius:var(--r-full); background:var(--bg-page); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i class="fa-solid fa-user" style="font-size:13px; color:var(--text-4);"></i>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:13px; font-weight:600; color:var(--text); font-family:var(--font); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@r.NomeUsuario</div>
+                        <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:1px;">@FormatDate(r.CriadoEm)</div>
+                    </div>
+                    <Stars N="@r.Nota" Size="12" />
+                </div>
+                @if (!string.IsNullOrEmpty(r.Comentario))
+                {
+                    <p style="font-size:13px; color:var(--text-2); font-family:var(--font); line-height:1.55; margin:0;">@r.Comentario</p>
+                }
+            </div>
+        }
+
+    </div><!-- /scrollable body -->
+
+    <!-- Sticky CTA above BottomNav -->
+    <div style="position:absolute; bottom:82px; left:16px; right:16px;">
+        <BtnP OnClick="@(() => Nav.NavigateTo($"/avaliar/{Id}?name={Uri.EscapeDataString(_item.Nome)}"))">
+            <i class="fa-regular fa-star" style="margin-right:8px;"></i>Avaliar este local
+        </BtnP>
+    </div>
+}
 
 <BottomNav Active="lista" />
 
 @code {
     [Parameter] public string? Id { get; set; }
 
-    private readonly (string Icon, string Label, bool Ok)[] _servicos =
+    private BicicletarioDetalheModel? _item;
+    private bool   _isLoading = true;
+    private string? _loadError;
+    private string? _address;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(Id))
+        {
+            _loadError = "ID inválido.";
+            _isLoading = false;
+            return;
+        }
+
+        _item = await BicicletarioSvc.GetByIdAsync(Id);
+        _isLoading = false;
+
+        if (_item == null)
+        {
+            _loadError = "Bicicletário não encontrado ou servidor indisponível.";
+            return;
+        }
+
+        // Fire-and-forget: reverse geocode to get human-readable address
+        _ = ReverseGeocodeAsync(_item.Latitude, _item.Longitude);
+    }
+
+    private async Task ReverseGeocodeAsync(double lat, double lng)
+    {
+        try
+        {
+            var geo = HttpFactory.CreateClient("geocoder");
+            var result = await geo.GetFromJsonAsync<NominatimReverseResult>(
+                $"reverse?format=json&lat={lat.ToString(CultureInfo.InvariantCulture)}&lon={lng.ToString(CultureInfo.InvariantCulture)}");
+
+            if (result?.Address is { } addr)
+            {
+                var parts = new List<string>(3);
+                if (!string.IsNullOrEmpty(addr.Road)) parts.Add(addr.Road);
+                var bairro = addr.Suburb ?? addr.CityDistrict;
+                if (!string.IsNullOrEmpty(bairro)) parts.Add(bairro);
+                if (!string.IsNullOrEmpty(addr.City)) parts.Add(addr.City);
+                _address = parts.Count > 0 ? string.Join(", ", parts) : result.DisplayName;
+            }
+            else if (!string.IsNullOrEmpty(result?.DisplayName))
+            {
+                _address = result.DisplayName.Length > 70
+                    ? result.DisplayName[..67] + "..."
+                    : result.DisplayName;
+            }
+
+            StateHasChanged();
+        }
+        catch { /* address stays null — harmless */ }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private (string Icon, string Label, bool Ok)[] GetServicos() =>
     [
-        ("fa-plug",   "Tomada",     true),
-        ("fa-gauge",  "Calibrador", true),
-        ("fa-box",    "Armário",    false),
-        ("fa-wrench", "Manutenção", true),
-        ("fa-lock",   "Cadeado",    false),
+        ("fa-plug",   "Tomada",     _item!.TemTomada),
+        ("fa-gauge",  "Calibrador", _item.TemCalibrador),
+        ("fa-shirt",  "Vestiário",  _item.TemVestiario),
+        ("fa-box",    "Armário",    _item.TemArmario),
+        ("fa-wrench", "Manutenção", _item.TemEspacoManutencao),
+        ("fa-lock",   "Cadeado",    _item.TemCadeado),
     ];
 
-    private readonly (string User, string Text, int Stars)[] _avaliacoes =
-    [
-        ("Ana P.",    "Ótimo local, sempre organizado!",          5),
-        ("Carlos M.", "Calibrador parou de funcionar na visita.", 3),
-    ];
+    private List<(string Icon, string Label)> GetVeiculos()
+    {
+        var list = new List<(string, string)>(4);
+        if ((_item!.VeiculosSuportados & 1) != 0) list.Add(("fa-bicycle",       "Bicicleta"));
+        if ((_item.VeiculosSuportados  & 2) != 0) list.Add(("fa-person-biking", "Scooter"));
+        if ((_item.VeiculosSuportados  & 4) != 0) list.Add(("fa-circle-dot",    "Monociclo"));
+        if ((_item.VeiculosSuportados  & 8) != 0) list.Add(("fa-bolt",          "Patinete"));
+        return list;
+    }
+
+    private static string FormatDate(DateTime dt)
+    {
+        var diff = DateTime.UtcNow - dt.ToUniversalTime();
+        if (diff.TotalMinutes < 2)  return "agora";
+        if (diff.TotalHours  < 1)   return $"há {(int)diff.TotalMinutes} min";
+        if (diff.TotalDays   < 1)   return $"há {(int)diff.TotalHours}h";
+        if (diff.TotalDays   < 2)   return "ontem";
+        if (diff.TotalDays   < 30)  return $"há {(int)diff.TotalDays} dias";
+        var meses = (int)(diff.TotalDays / 30);
+        if (diff.TotalDays   < 365) return $"há {meses} {(meses == 1 ? "mês" : "meses")}";
+        var anos = (int)(diff.TotalDays / 365);
+        return $"há {anos} ano{(anos > 1 ? "s" : "")}";
+    }
+
+    // ── Private Nominatim types ───────────────────────────────────────────────
+
+    private class NominatimReverseResult
+    {
+        [JsonPropertyName("display_name")] public string?          DisplayName { get; set; }
+        [JsonPropertyName("address")]      public NominatimAddress? Address     { get; set; }
+    }
+
+    private class NominatimAddress
+    {
+        [JsonPropertyName("road")]          public string? Road         { get; set; }
+        [JsonPropertyName("suburb")]        public string? Suburb       { get; set; }
+        [JsonPropertyName("city_district")] public string? CityDistrict { get; set; }
+        [JsonPropertyName("city")]          public string? City         { get; set; }
+    }
 }

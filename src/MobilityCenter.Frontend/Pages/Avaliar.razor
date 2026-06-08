@@ -5,34 +5,38 @@
 <div style="background:var(--bg); border-bottom:1px solid var(--border);">
     <StatusBar />
     <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
-        <button @onclick="@(() => Nav.NavigateTo("/bicicletario/1"))" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <button @onclick="@(() => Nav.NavigateTo($"/bicicletario/{Id}"))"
+                style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
             <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
         </button>
         <span style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">Avaliar Local</span>
     </div>
 </div>
 
-<div style="padding:20px;">
+<div style="padding:20px 20px 40px;">
+
     <!-- Location card -->
     <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px 16px; margin-bottom:24px; display:flex; gap:14px; align-items:center; box-shadow:var(--shadow-sm);">
         <div style="width:42px; height:42px; border-radius:var(--r); background:var(--brand-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
             <i class="fa-solid fa-bicycle" style="color:var(--brand); font-size:18px;"></i>
         </div>
-        <div>
-            <div style="font-weight:600; font-size:15px; color:var(--text); font-family:var(--font); letter-spacing:-0.01em;">Bicicletário Central</div>
-            <div style="font-size:13px; color:var(--text-4); font-family:var(--font); margin-top:2px;">Rua das Flores, 123 · 0,3 km</div>
+        <div style="min-width:0;">
+            <div style="font-weight:600; font-size:15px; color:var(--text); font-family:var(--font); letter-spacing:-0.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                @(string.IsNullOrEmpty(Name) ? "Bicicletário" : Uri.UnescapeDataString(Name))
+            </div>
+            <div style="font-size:13px; color:var(--text-4); font-family:var(--font); margin-top:2px;">Avalie sua experiência neste local</div>
         </div>
     </div>
 
     <!-- Star rating -->
     <div style="text-align:center; margin-bottom:28px; padding:24px 20px; background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border);">
-        <div style="font-size:13px; color:var(--text-4); font-weight:500; margin-bottom:16px; font-family:var(--font); letter-spacing:0.01em; text-transform:uppercase;">SUA AVALIAÇÃO</div>
+        <div style="font-size:13px; color:var(--text-4); font-weight:500; margin-bottom:16px; font-family:var(--font); letter-spacing:0.01em; text-transform:uppercase;">Sua avaliação</div>
         <div style="display:flex; justify-content:center; gap:12px; margin-bottom:12px;">
             @for (int i = 1; i <= 5; i++)
             {
                 var star = i;
                 <i class="@(star <= _rating ? "fa-solid fa-star" : "fa-regular fa-star")"
-                   style="font-size:44px; color:@(star <= _rating ? "var(--gold)" : "var(--border)"); cursor:pointer; transition:transform 0.1s, color 0.15s;"
+                   style="font-size:44px; color:@(star <= _rating ? "var(--gold)" : "var(--border-2)"); cursor:pointer; transition:transform 0.1s, color 0.15s;"
                    @onclick="@(() => _rating = star)"></i>
             }
         </div>
@@ -41,13 +45,16 @@
 
     <!-- Comment -->
     <div style="margin-bottom:14px;">
-        <div style="font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Comentário <span style="color:var(--text-4);">(opcional)</span></div>
-        <textarea placeholder="Descreva sua experiência..."
+        <div style="font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">
+            Comentário <span style="color:var(--text-4);">(opcional)</span>
+        </div>
+        <textarea @bind="_comentario"
+                  placeholder="Descreva sua experiência..."
                   rows="4"
-                  style="width:100%; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 14px; background:var(--bg); color:var(--text); font-size:15px; font-family:var(--font); line-height:1.5; resize:none; transition:border-color 0.15s;"></textarea>
+                  style="width:100%; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 14px; background:var(--bg); color:var(--text); font-size:15px; font-family:var(--font); line-height:1.5; resize:none; outline:none; transition:border-color 0.15s;"></textarea>
     </div>
 
-    <!-- Photo -->
+    <!-- Photo (placeholder) -->
     <div style="border:2px dashed var(--border-2); border-radius:var(--r-lg); padding:20px; text-align:center; color:var(--text-4); cursor:pointer; margin-bottom:28px; transition:border-color 0.15s; background:var(--bg);">
         <i class="fa-regular fa-image" style="font-size:28px; display:block; margin-bottom:8px; color:var(--text-4);"></i>
         <div style="font-size:14px; font-weight:500; font-family:var(--font);">Adicionar foto</div>
@@ -55,11 +62,15 @@
     </div>
 
     <BtnP>Enviar avaliação</BtnP>
+
 </div>
 
 @code {
     [Parameter] public string? Id { get; set; }
-    private int _rating = 4;
+    [SupplyParameterFromQuery(Name = "name")] [Parameter] public string? Name { get; set; }
+
+    private int    _rating    = 0;
+    private string _comentario = "";
 
     private string _ratingLabel => _rating switch
     {
@@ -68,6 +79,6 @@
         3 => "Regular",
         4 => "Muito bom",
         5 => "Excelente",
-        _ => ""
+        _ => "Toque nas estrelas para avaliar"
     };
 }
