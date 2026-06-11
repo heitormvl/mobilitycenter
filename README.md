@@ -4,14 +4,17 @@ Plataforma de mapa colaborativo para infraestrutura de micromobilidade (biciclet
 
 ## Funcionalidades
 
-### MVP (Fase 1)
-- **Mapa interativo** com filtros de localização (raio 5-50km)
-- **Operações CRUD** de bicicletários (colaborativo + moderação)
-- **Sistema de avaliações** (1-5 estrelas + comentários)
-- **Filtros granulares:**
+### MVP (Fase 1) — Em Desenvolvimento
+- ✅ **Mapa interativo** com renderização de localização
+- ✅ **Listagem de bicicletários** com filtragem básica
+- ✅ **Tela de detalhes** com informações completas, avaliações e comentários
+- ✅ **Criação de bicicletários** em 3 steps (localização → informações → serviços)
+- ✅ **Sistema de avaliações** (1-5 estrelas + comentários)
+- ✅ **Filtros granulares:**
   - Serviços: tomada, calibrador, armário, espaço de manutenção, cadeado próprio
   - Acesso: livre, pago, requer cadastro, mensal
   - Veículos: bicicleta, scooter, monociclo, patinete elétrico
+- 🔄 **Autenticação e Perfil** (páginas criadas, integração em progresso)
 
 ### Fase 2
 - Monetização freemium (operadores pagam por destaque/verificação)
@@ -41,10 +44,14 @@ Plataforma de mapa colaborativo para infraestrutura de micromobilidade (biciclet
 ```
 MobilityCenter/
 ├── src/
-│   ├── MobilityCenter.API/              # API ASP.NET Core
+│   ├── MobilityCenter.API/              # API ASP.NET Core (Controllers, Middleware)
 │   ├── MobilityCenter.Business/         # Serviços e lógica de negócio
 │   ├── MobilityCenter.Repositories/     # EF Core e acesso a dados
-│   └── MobilityCenter.Shared/           # Modelos, DTOs, enums
+│   ├── MobilityCenter.Shared/           # Modelos, DTOs, enums
+│   └── MobilityCenter.Frontend/         # Blazor WebAssembly
+│       ├── Pages/                       # Páginas: Mapa, Lista, Detalhe, Adicionar (Step1-3), Avaliar, Login, Perfil
+│       ├── Components/                  # Componentes reutilizáveis: BottomNav, Buttons, Stars, Chip, etc.
+│       └── Services/                    # Serviços HTTP e lógica do cliente
 ├── docker-compose.yml                   # PostgreSQL + PostGIS
 ├── MobilityCenter.slnx                  # Arquivo de solução
 └── CLAUDE.md                            # Guia de desenvolvimento para Claude Code
@@ -101,6 +108,34 @@ MobilityCenter/
    API estará disponível em:
    - HTTP: `http://localhost:5000`
    - HTTPS: `https://localhost:7000`
+
+7. **Inicie o Frontend (Blazor WASM)** (em outra janela do terminal)
+   ```bash
+   dotnet run --project ./src/MobilityCenter.Frontend
+   ```
+   
+   Frontend estará disponível em:
+   - `http://localhost:5173` ou `https://localhost:7001` (dependendo da configuração)
+
+## Frontend (Blazor WebAssembly)
+
+### Páginas Principais
+- **Mapa** (`/mapa`) — Mapa interativo com localização de bicicletários
+- **Lista** (`/lista`) — Listagem de bicicletários com filtros
+- **Detalhe** (`/bicicletario/{id}`) — Informações completas, avaliações e comentários
+- **Adicionar** (`/adicionar`) — Multi-step form para criar novo bicicletário (3 steps)
+- **Avaliar** (`/avaliar/{id}`) — Interface para adicionar avaliação/comentário
+- **Login** (`/login`) — Autenticação de usuários
+- **Perfil** (`/perfil`) — Dados do usuário e histórico
+
+### Componentes Reutilizáveis
+- `BottomNav` — Navegação inferior (móvel)
+- `BtnP` / `BtnO` — Botões primário e outline
+- `Stars` — Componente de avaliação por estrelas
+- `Chip` — Tags/labels para filtros e categorias
+- `CheckItem` / `RadioItem` — Itens de lista com seleção
+- `WfInput` — Input com estilo customizado
+- `MapGrid` — Grid para exibição de bicicletários
 
 ## Desenvolvimento
 
@@ -179,6 +214,23 @@ As configurações são carregadas nesta ordem (valores posteriores sobrescrevem
 - `Comment` (string, opcional)
 - `CreatedAt`
 
+## Integração Frontend-API
+
+### Status Atual
+- ✅ Listagem de bicicletários integrada com API
+- ✅ Detalhes de bicicletário e avaliações
+- ✅ Criação de bicicletários via formulário multi-step
+- ✅ DTOs alinhados entre frontend e backend (nomes em português)
+- 🔄 Autenticação e Perfil (em progresso)
+- 🔄 Filtros avançados (em progresso)
+
+### Próximas Etapas
+- Implementar autenticação JWT completa no frontend
+- Integrar filtros de serviços e tipos de acesso
+- Melhorar tratamento de erros e validações
+- Implementar cache e otimizações de performance
+- Adicionar PWA features (offline mode, instalação)
+
 ## Autenticação
 
 Autenticação baseada em JWT (configurada em `appsettings.{environment}.json`):
@@ -186,12 +238,29 @@ Autenticação baseada em JWT (configurada em `appsettings.{environment}.json`):
 - Audience: `MobilityCenter`
 - Secret: Deve ser definido via variável de ambiente em produção
 
+Frontend utiliza JWT token armazenado em localStorage para requisições autenticadas.
+
+## Status do Projeto
+
+🚀 **Em desenvolvimento ativo** — MVP em construção com foco em:
+1. Consolidar integração frontend-backend
+2. Implementar autenticação completa
+3. Adicionar filtros avançados
+4. Testes de integração
+5. Deploy em ambiente de staging
+
 ## Contribuindo
 
 1. Crie uma branch de feature: `git checkout -b feature/minha-feature`
-2. Commit as mudanças: `git commit -m "descrição"`
+2. Commit as mudanças: `git commit -m "feat/fix: descrição clara"`
 3. Push para o repositório remoto: `git push origin feature/minha-feature`
-4. Crie um pull request
+4. Crie um pull request com descrição detalhada
+
+### Dicas de Desenvolvimento
+- Use o arquivo `CLAUDE.md` para entender a arquitetura
+- Execute `dotnet format` antes de commits
+- Crie migrations incrementais para alterações de banco
+- Teste endpoints com Swagger UI em desenvolvimento
 
 ## Licença
 
@@ -199,4 +268,4 @@ Autenticação baseada em JWT (configurada em `appsettings.{environment}.json`):
 
 ## Autor
 
-[Seu nome/contato]
+Hector Vieira (heitormvl@gmail.com)

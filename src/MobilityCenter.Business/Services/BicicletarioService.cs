@@ -1,9 +1,11 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MobilityCenter.Business.Filters;
 using MobilityCenter.Business.Interfaces;
 using MobilityCenter.Repositories.Context;
 using MobilityCenter.Shared.DTOs.Avaliacao;
 using MobilityCenter.Shared.DTOs.Bicicletario;
+using MobilityCenter.Shared.DTOs.SugestaoEdicao;
 using MobilityCenter.Shared.Enums;
 using MobilityCenter.Shared.Exceptions;
 using MobilityCenter.Shared.Models;
@@ -118,38 +120,81 @@ public class BicicletarioService : IBicicletarioService
         return await ObterPorIdAsync(bicicletario.Id);
     }
 
-    public async Task<BicicletarioDetalheDto> AtualizarAsync(Guid id, AtualizarBicicletarioDto dto, Guid usuarioId)
+    public async Task<ResultadoAtualizacaoDto> AtualizarAsync(Guid id, AtualizarBicicletarioDto dto, Guid usuarioId)
     {
         var bicicletario = await _db.Bicicletarios.FirstOrDefaultAsync(b => b.Id == id)
             ?? throw new NotFoundException($"Bicicletário {id} não encontrado.");
 
-        if (bicicletario.OperadorId != usuarioId)
-            throw new UnauthorizedException("Sem permissão para atualizar este bicicletário.");
+        var usuario = await _db.Users.FindAsync(usuarioId)
+            ?? throw new NotFoundException("Usuário não encontrado.");
 
-        if (dto.Nome != null) bicicletario.Nome = dto.Nome;
-        if (dto.Latitude.HasValue) bicicletario.Latitude = dto.Latitude.Value;
-        if (dto.Longitude.HasValue) bicicletario.Longitude = dto.Longitude.Value;
-        if (dto.Latitude.HasValue || dto.Longitude.HasValue)
-            bicicletario.Location = new Point(bicicletario.Longitude, bicicletario.Latitude) { SRID = 4326 };
+        bool ehDono = bicicletario.OperadorId == usuarioId;
+        bool podeEditarDireto = usuario.Type == TipoUsuario.Admin
+            || (usuario.Type == TipoUsuario.Operador && ehDono);
 
-        if (dto.TemTomada.HasValue) bicicletario.TemTomada = dto.TemTomada.Value;
-        if (dto.TemCalibrador.HasValue) bicicletario.TemCalibrador = dto.TemCalibrador.Value;
-        if (dto.TemVestiario.HasValue) bicicletario.TemVestiario = dto.TemVestiario.Value;
-        if (dto.TemArmario.HasValue) bicicletario.TemArmario = dto.TemArmario.Value;
-        if (dto.TemEspacoManutencao.HasValue) bicicletario.TemEspacoManutencao = dto.TemEspacoManutencao.Value;
-        if (dto.TemCadeado.HasValue) bicicletario.TemCadeado = dto.TemCadeado.Value;
+        if (podeEditarDireto)
+        {
+            if (dto.Nome != null) bicicletario.Nome = dto.Nome;
+            if (dto.Latitude.HasValue) bicicletario.Latitude = dto.Latitude.Value;
+            if (dto.Longitude.HasValue) bicicletario.Longitude = dto.Longitude.Value;
+            if (dto.Latitude.HasValue || dto.Longitude.HasValue)
+                bicicletario.Location = new Point(bicicletario.Longitude, bicicletario.Latitude) { SRID = 4326 };
 
-        if (dto.AcessoLivre.HasValue) bicicletario.AcessoLivre = dto.AcessoLivre.Value;
-        if (dto.AcessoPago.HasValue) bicicletario.AcessoPago = dto.AcessoPago.Value;
-        if (dto.AcessoCadastro.HasValue) bicicletario.AcessoCadastro = dto.AcessoCadastro.Value;
-        if (dto.AcessoMensal.HasValue) bicicletario.AcessoMensal = dto.AcessoMensal.Value;
+            if (dto.TemTomada.HasValue) bicicletario.TemTomada = dto.TemTomada.Value;
+            if (dto.TemCalibrador.HasValue) bicicletario.TemCalibrador = dto.TemCalibrador.Value;
+            if (dto.TemVestiario.HasValue) bicicletario.TemVestiario = dto.TemVestiario.Value;
+            if (dto.TemArmario.HasValue) bicicletario.TemArmario = dto.TemArmario.Value;
+            if (dto.TemEspacoManutencao.HasValue) bicicletario.TemEspacoManutencao = dto.TemEspacoManutencao.Value;
+            if (dto.TemCadeado.HasValue) bicicletario.TemCadeado = dto.TemCadeado.Value;
 
-        if (dto.VeiculosSuportados.HasValue) bicicletario.VeiculosSuportados = dto.VeiculosSuportados.Value;
+            if (dto.AcessoLivre.HasValue) bicicletario.AcessoLivre = dto.AcessoLivre.Value;
+            if (dto.AcessoPago.HasValue) bicicletario.AcessoPago = dto.AcessoPago.Value;
+            if (dto.AcessoCadastro.HasValue) bicicletario.AcessoCadastro = dto.AcessoCadastro.Value;
+            if (dto.AcessoMensal.HasValue) bicicletario.AcessoMensal = dto.AcessoMensal.Value;
 
-        bicicletario.AtualizadoEm = DateTime.UtcNow;
+            if (dto.VeiculosSuportados.HasValue) bicicletario.VeiculosSuportados = dto.VeiculosSuportados.Value;
+
+            bicicletario.AtualizadoEm = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+
+            return new ResultadoAtualizacaoDto
+            {
+                EditadoDireto = true,
+                Bicicletario = await ObterPorIdAsync(id)
+            };
+        }
+
+        // Usuário comum ou Operador sem dono: cria sugestão na fila
+        var sugestao = new SugestaoEdicao
+        {
+            Id = Guid.NewGuid(),
+            BicicletarioId = id,
+            AutorId = usuarioId,
+            DadosEdicao = JsonSerializer.Serialize(dto),
+            CriadoEm = DateTime.UtcNow
+        };
+
+        _db.SugestoesEdicao.Add(sugestao);
         await _db.SaveChangesAsync();
 
-        return await ObterPorIdAsync(id);
+        await _db.Entry(sugestao).Reference(s => s.Autor).LoadAsync();
+        await _db.Entry(sugestao).Reference(s => s.Bicicletario).LoadAsync();
+
+        return new ResultadoAtualizacaoDto
+        {
+            EditadoDireto = false,
+            Sugestao = new SugestaoEdicaoDto
+            {
+                Id = sugestao.Id,
+                BicicletarioId = sugestao.BicicletarioId,
+                NomeBicicletario = sugestao.Bicicletario.Nome,
+                AutorId = sugestao.AutorId,
+                NomeAutor = sugestao.Autor.DisplayName,
+                Status = sugestao.Status,
+                DadosEdicao = dto,
+                CriadoEm = sugestao.CriadoEm
+            }
+        };
     }
 
     public async Task DeletarAsync(Guid id, Guid usuarioId)

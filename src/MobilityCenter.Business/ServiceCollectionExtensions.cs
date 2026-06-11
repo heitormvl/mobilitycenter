@@ -32,6 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBicicletarioService, BicicletarioService>();
         services.AddScoped<IAvaliacaoService, AvaliacaoService>();
         services.AddScoped<IUsuarioService, UsuarioService>();
+        services.AddScoped<ISugestaoEdicaoService, SugestaoEdicaoService>();
         return services;
     }
 }

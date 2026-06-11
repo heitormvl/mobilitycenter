@@ -12,4 +12,5 @@ public class Usuario : IdentityUser<Guid>
 
     public ICollection<Bicicletario> Bicicletarios { get; set; } = [];
     public ICollection<Avaliacao> Reviews { get; set; } = [];
+    public ICollection<SugestaoEdicao> SugestoesEnviadas { get; set; } = [];
 }
