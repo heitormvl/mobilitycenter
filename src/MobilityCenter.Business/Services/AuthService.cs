@@ -106,6 +106,11 @@ public class AuthService : IAuthService
                 throw new ValidationException(erros);
             }
         }
+        else if (!string.IsNullOrEmpty(payload.Picture) && usuario.FotoPerfilUrl != payload.Picture)
+        {
+            usuario.FotoPerfilUrl = payload.Picture;
+            await _userManager.UpdateAsync(usuario);
+        }
 
         return new AuthResponseDto
         {
