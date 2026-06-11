@@ -103,6 +103,53 @@ public class AuthService(
         }
     }
 
+    public async Task<string?> AtualizarPerfilAsync(string displayName, string email)
+    {
+        try
+        {
+            var response = await http.PutAsJsonAsync("api/usuarios/me", new { displayName, email });
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao salvar as alterações.";
+            }
+
+            var atualizado = await response.Content.ReadFromJsonAsync<UserInfo>();
+            var userInfo = await GetUserInfoAsync();
+            if (userInfo is not null)
+            {
+                userInfo.DisplayName = atualizado?.DisplayName ?? displayName;
+                userInfo.Email = atualizado?.Email ?? email;
+                await localStorage.SetItemAsync("userInfo", userInfo);
+            }
+
+            return null;
+        }
+        catch
+        {
+            return "Não foi possível conectar ao servidor.";
+        }
+    }
+
+    public async Task<string?> AlterarSenhaAsync(string senhaAtual, string novaSenha)
+    {
+        try
+        {
+            var response = await http.PutAsJsonAsync("api/usuarios/me/senha", new { senhaAtual, novaSenha });
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao alterar a senha.";
+            }
+
+            return null;
+        }
+        catch
+        {
+            return "Não foi possível conectar ao servidor.";
+        }
+    }
+
     public async Task<string?> UploadFotoAsync(MultipartFormDataContent content)
     {
         try
