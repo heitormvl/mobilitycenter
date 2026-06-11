@@ -28,6 +28,7 @@ public static class ServiceCollectionExtensions
             services.AddScoped<IFotoStorageService, FotoStorageService>();
         }
 
+        services.AddHttpClient();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IBicicletarioService, BicicletarioService>();
         services.AddScoped<IAvaliacaoService, AvaliacaoService>();
