@@ -1,12 +1,14 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using MobilityCenter.Business.Interfaces;
 using MobilityCenter.Shared.DTOs.Usuario;
 using MobilityCenter.Shared.Exceptions;
+using MobilityCenter.Shared.Enums;
 using MobilityCenter.Shared.Models;
 
 namespace MobilityCenter.Business.Services;
@@ -58,6 +60,51 @@ public class AuthService : IAuthService
         {
             var erros = string.Join(", ", resultado.Errors.Select(e => e.Description));
             throw new ValidationException(erros);
+        }
+
+        return new AuthResponseDto
+        {
+            Token = GerarToken(usuario),
+            Usuario = MapearUsuario(usuario)
+        };
+    }
+
+    public async Task<AuthResponseDto> LoginWithGoogleAsync(string idToken)
+    {
+        var clientId = _configuration["Google:ClientId"]!;
+
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            payload = await GoogleJsonWebSignature.ValidateAsync(idToken,
+                new GoogleJsonWebSignature.ValidationSettings { Audience = [clientId] });
+        }
+        catch (InvalidJwtException)
+        {
+            throw new AppException("Token Google inválido.", 401);
+        }
+
+        var usuario = await _userManager.FindByEmailAsync(payload.Email);
+
+        if (usuario is null)
+        {
+            usuario = new Usuario
+            {
+                DisplayName = payload.Name,
+                Email = payload.Email,
+                UserName = payload.Email,
+                EmailConfirmed = true,
+                FotoPerfilUrl = payload.Picture,
+                Type = TipoUsuario.Usuario,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var resultado = await _userManager.CreateAsync(usuario);
+            if (!resultado.Succeeded)
+            {
+                var erros = string.Join(", ", resultado.Errors.Select(e => e.Description));
+                throw new ValidationException(erros);
+            }
         }
 
         return new AuthResponseDto

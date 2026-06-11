@@ -59,6 +59,28 @@ public class AuthService(
         }
     }
 
+    public async Task<string?> LoginWithGoogleAsync(string idToken)
+    {
+        try
+        {
+            var response = await http.PostAsJsonAsync("api/auth/google", new { idToken });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao entrar com Google.";
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+            await PersistSession(result!);
+            return null;
+        }
+        catch
+        {
+            return "Não foi possível conectar ao servidor.";
+        }
+    }
+
     public async Task LogoutAsync()
     {
         await localStorage.RemoveItemAsync("authToken");
