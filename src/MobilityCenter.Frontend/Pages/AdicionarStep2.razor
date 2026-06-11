@@ -1,19 +1,9 @@
 @page "/adicionar/dados"
+@layout AdicionarLayout
 @inject NavigationManager Nav
 @inject AuthService AuthService
 
-<!-- Header -->
-<div style="background:var(--bg); border-bottom:1px solid var(--border);">
-    <StatusBar />
-    <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
-        <button @onclick="GoBack" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-            <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
-        </button>
-        <div style="flex:1;">
-            <div style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">Dados básicos</div>
-        </div>
-    </div>
-</div>
+<div class="@_slideClass">
 
 @if (!_isAuthenticated)
 {
@@ -29,12 +19,11 @@
             <i class="fa-solid fa-right-to-bracket" style="margin-right:8px;"></i> Fazer login
         </BtnP>
     </div>
-    return;
 }
+else
+{
 
 <div style="padding:20px 20px 110px;">
-    <ProgressBar Step="2" Total="3" />
-
     <div style="display:flex; flex-direction:column; gap:18px;">
 
         <!-- Nome -->
@@ -89,11 +78,7 @@
     </div>
 </div>
 
-<div style="position:absolute; bottom:24px; left:16px; right:16px; display:flex; flex-direction:column; gap:10px;">
-    <BtnP OnClick="GoNext">Próximo →</BtnP>
-    <BtnO OnClick="GoBack">
-        <i class="fa-solid fa-chevron-left" style="font-size:12px;"></i> Voltar
-    </BtnO>
+}
 </div>
 
 @code {
@@ -105,31 +90,38 @@
     [SupplyParameterFromQuery(Name = "lng")]
     public string? LngStr { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "dir")]
+    public string? Dir { get; set; }
+
+    [CascadingParameter] public AdicionarLayout Layout { get; set; } = default!;
+
     private string _name = "";
     private string _capacity = "";
     private int _accessType = 0;
     private string? _nameError;
     private bool _isAuthenticated;
+    private string _slideClass = "";
 
     protected override async Task OnInitializedAsync()
     {
+        _slideClass = Dir == "back" ? "page-slide-back" : "page-slide-forward";
+        Layout.SetNext("Próximo →", GoNext);
         var user = await AuthService.GetUserInfoAsync();
         _isAuthenticated = user is not null;
     }
 
-    private void GoBack() =>
-        Nav.NavigateTo($"/adicionar?lat={LatStr}&lng={LngStr}");
-
-    private void GoNext()
+    private Task GoNext()
     {
         if (string.IsNullOrWhiteSpace(_name))
         {
             _nameError = "O nome do bicicletário é obrigatório.";
-            return;
+            return Task.CompletedTask;
         }
 
         var name = Uri.EscapeDataString(_name.Trim());
         var cap = _capacity.Trim();
         Nav.NavigateTo($"/adicionar/servicos?lat={LatStr}&lng={LngStr}&name={name}&capacity={cap}&accessType={_accessType}");
+        return Task.CompletedTask;
     }
 }

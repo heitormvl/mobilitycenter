@@ -1,0 +1,60 @@
+@implements IDisposable
+@inject ToastService ToastSvc
+
+@if (_visible)
+{
+    <div class="@(_exiting ? "toast-exit" : "toast-enter")"
+         style="position:fixed; top:24px; left:50%; height:48px; max-width:calc(100vw - 32px);
+                border-radius:var(--r-full); overflow:hidden; background:#111827;
+                white-space:nowrap; box-shadow:0 8px 28px rgba(0,0,0,0.28); z-index:9000;">
+        <div style="display:flex; align-items:center; justify-content:center; gap:10px; padding:0 18px; height:100%;">
+            <div style="width:22px; height:22px; border-radius:var(--r-full); background:var(--green);
+                        display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <i class="fa-solid fa-check" style="font-size:10px; color:white;"></i>
+            </div>
+            <span style="color:white; font-family:var(--font); font-size:14px; font-weight:500;">@_message</span>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _visible;
+    private bool _exiting;
+    private string _message = "";
+    private CancellationTokenSource? _cts;
+
+    protected override void OnInitialized() =>
+        ToastSvc.OnShow += OnShow;
+
+    private void OnShow(string message)
+    {
+        _message = message;
+        _visible  = true;
+        _exiting  = false;
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        _ = DismissAsync(_cts.Token);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DismissAsync(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(2800, ct);
+            _exiting = true;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(620, ct);
+            _visible = false;
+            _exiting = false;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    public void Dispose()
+    {
+        ToastSvc.OnShow -= OnShow;
+        _cts?.Cancel();
+    }
+}

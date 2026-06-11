@@ -1,21 +1,11 @@
 @page "/adicionar"
+@layout AdicionarLayout
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject IHttpClientFactory HttpFactory
 @inject AuthService AuthService
 
-<!-- Header -->
-<div style="background:var(--bg); border-bottom:1px solid var(--border);">
-    <StatusBar />
-    <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
-        <button @onclick="@(() => Nav.NavigateTo("/"))" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-            <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
-        </button>
-        <div style="flex:1;">
-            <div style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">Adicionar bicicletário</div>
-        </div>
-    </div>
-</div>
+<div class="@_slideClass">
 
 @if (!_isAuthenticated)
 {
@@ -31,12 +21,11 @@
             <i class="fa-solid fa-right-to-bracket" style="margin-right:8px;"></i> Fazer login
         </BtnP>
     </div>
-    return;
 }
+else
+{
 
 <div style="padding:20px 20px 100px;">
-    <ProgressBar Step="1" Total="3" />
-
     <div style="margin-bottom:20px;">
         <h2 style="font-size:20px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:4px;">Localização</h2>
         <p style="font-size:14px; color:var(--text-3); font-family:var(--font);">Arraste o mapa para posicionar o marcador</p>
@@ -114,11 +103,16 @@
     </div>
 </div>
 
-<div style="position:absolute; bottom:24px; left:16px; right:16px;">
-    <BtnP OnClick="GoToNextAsync">Próximo →</BtnP>
+}
 </div>
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "dir")]
+    public string? Dir { get; set; }
+
+    [CascadingParameter] public AdicionarLayout Layout { get; set; } = default!;
+
     private MapGrid? _map;
     private string _searchText = "";
     private bool _isSearching;
@@ -126,9 +120,12 @@
     private string? _searchError;
     private string? _locationError;
     private bool _isAuthenticated;
+    private string _slideClass = "";
 
     protected override async Task OnInitializedAsync()
     {
+        _slideClass = Dir == "back" ? "page-slide-back" : "page-slide-forward";
+        Layout.SetNext("Próximo →", GoToNextAsync);
         var user = await AuthService.GetUserInfoAsync();
         _isAuthenticated = user is not null;
     }

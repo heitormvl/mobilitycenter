@@ -1,0 +1,115 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+
+<div style="background:var(--bg); border-bottom:1px solid var(--border);">
+    <StatusBar />
+    <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
+        <button @onclick="GoBack" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
+        </button>
+        <div style="flex:1;">
+            <div style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">@CurrentTitle</div>
+        </div>
+    </div>
+    <div style="padding:0 20px;">
+        <ProgressBar Step="@CurrentStep" Total="3" />
+    </div>
+</div>
+
+<CascadingValue Value="this">
+    @Body
+</CascadingValue>
+
+<div style="position:fixed; bottom:0; left:0; right:0; background:var(--bg); border-top:1px solid var(--border); padding:12px 16px 20px;">
+    <div style="display:flex; gap:10px;">
+        <div style="flex:1;">
+            <BtnO OnClick="GoBack">
+                <i class="fa-solid fa-chevron-left" style="font-size:12px;"></i> Voltar
+            </BtnO>
+        </div>
+        <div style="flex:1.5;">
+            <BtnP OnClick="RunNextAsync">
+                @if (_isNextLoading)
+                {
+                    <i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i>
+                    <span>@_nextLoadingLabel</span>
+                }
+                else
+                {
+                    <span>@_nextLabel</span>
+                }
+            </BtnP>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Func<Task>? _nextAction;
+    private string _nextLabel = "Próximo →";
+    private string _nextLoadingLabel = "Aguarde...";
+    private bool _isNextLoading;
+
+    private int CurrentStep =>
+        Nav.Uri.Contains("/servicos") ? 3 :
+        Nav.Uri.Contains("/dados")    ? 2 : 1;
+
+    private string CurrentTitle =>
+        Nav.Uri.Contains("/servicos") ? "Serviços e veículos" :
+        Nav.Uri.Contains("/dados")    ? "Dados básicos"       : "Adicionar bicicletário";
+
+    public void SetNext(string label, Func<Task> action, string loadingLabel = "Aguarde...")
+    {
+        _nextLabel       = label;
+        _nextAction      = action;
+        _nextLoadingLabel = loadingLabel;
+        StateHasChanged();
+    }
+
+    private async Task RunNextAsync()
+    {
+        if (_nextAction is null || _isNextLoading) return;
+        _isNextLoading = true;
+        StateHasChanged();
+        try   { await _nextAction(); }
+        finally
+        {
+            _isNextLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnInitialized() =>
+        Nav.LocationChanged += OnLocationChanged;
+
+    private void OnLocationChanged(object? _, LocationChangedEventArgs __)
+    {
+        _isNextLoading = false;
+        StateHasChanged();
+    }
+
+    public void Dispose() =>
+        Nav.LocationChanged -= OnLocationChanged;
+
+    private void GoBack()
+    {
+        if (Nav.Uri.Contains("/adicionar/servicos"))
+            Nav.NavigateTo($"/adicionar/dados?lat={Q("lat")}&lng={Q("lng")}&name={Q("name")}&capacity={Q("capacity")}&accessType={Q("accessType")}&dir=back");
+        else if (Nav.Uri.Contains("/adicionar/dados"))
+            Nav.NavigateTo($"/adicionar?lat={Q("lat")}&lng={Q("lng")}&dir=back");
+        else
+            Nav.NavigateTo("/");
+    }
+
+    private string Q(string key)
+    {
+        var raw = new Uri(Nav.Uri).Query.TrimStart('?');
+        foreach (var seg in raw.Split('&'))
+        {
+            var eq = seg.IndexOf('=');
+            if (eq > 0 && seg[..eq] == key)
+                return Uri.UnescapeDataString(seg[(eq + 1)..]);
+        }
+        return "";
+    }
+}
