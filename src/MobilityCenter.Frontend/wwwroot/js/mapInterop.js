@@ -1,6 +1,12 @@
 window.mapInterop = {
     _instances: {},
 
+    _tileOptions: {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+    },
+
     initMap: function (element, mapId) {
         if (this._instances[mapId]) {
             this._instances[mapId].map.remove();
@@ -8,11 +14,7 @@ window.mapInterop = {
 
         const map = L.map(element, { zoomControl: false }).setView([-23.5505, -46.6333], 13);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20
-        }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', this._tileOptions).addTo(map);
 
         const instance = { map, userMarker: null };
         this._instances[mapId] = instance;

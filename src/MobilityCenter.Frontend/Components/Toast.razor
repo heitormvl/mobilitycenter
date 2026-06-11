@@ -5,14 +5,14 @@
 {
     <div class="@(_exiting ? "toast-exit" : "toast-enter")"
          style="position:fixed; top:24px; left:50%; height:48px; max-width:calc(100vw - 32px);
-                border-radius:var(--r-full); overflow:hidden; background:#111827;
-                white-space:nowrap; box-shadow:0 8px 28px rgba(0,0,0,0.28); z-index:9000;">
+                border-radius:var(--r-full); overflow:hidden; background:var(--toast-bg);
+                white-space:nowrap; box-shadow:var(--shadow-lg); z-index:9000;">
         <div style="display:flex; align-items:center; justify-content:center; gap:10px; padding:0 18px; height:100%;">
             <div style="width:22px; height:22px; border-radius:var(--r-full); background:var(--green);
                         display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                 <i class="fa-solid fa-check" style="font-size:10px; color:white;"></i>
             </div>
-            <span style="color:white; font-family:var(--font); font-size:14px; font-weight:500;">@_message</span>
+            <span style="color:var(--toast-fg); font-family:var(--font); font-size:14px; font-weight:500;">@_message</span>
         </div>
     </div>
 }

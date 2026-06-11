@@ -36,7 +36,7 @@ else
                      ValueChanged="@((v) => { _name = v; _nameError = null; })" />
             @if (_nameError != null)
             {
-                <div style="font-size:12px; color:#c0392b; margin-top:6px; font-family:var(--font);">
+                <div style="font-size:12px; color:var(--red); margin-top:6px; font-family:var(--font);">
                     <i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>@_nameError
                 </div>
             }
