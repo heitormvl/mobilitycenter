@@ -46,7 +46,11 @@ public class BicicletariosController : ControllerBase
     {
         var usuarioId = ObterUsuarioId();
         var resultado = await _bicicletarioService.AtualizarAsync(id, dto, usuarioId);
-        return Ok(resultado);
+
+        if (resultado.EditadoDireto)
+            return Ok(resultado.Bicicletario);
+
+        return Accepted(resultado.Sugestao);
     }
 
     [HttpDelete("{id:guid}")]

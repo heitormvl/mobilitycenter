@@ -28,10 +28,12 @@ public static class ServiceCollectionExtensions
             services.AddScoped<IFotoStorageService, FotoStorageService>();
         }
 
+        services.AddHttpClient();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IBicicletarioService, BicicletarioService>();
         services.AddScoped<IAvaliacaoService, AvaliacaoService>();
         services.AddScoped<IUsuarioService, UsuarioService>();
+        services.AddScoped<ISugestaoEdicaoService, SugestaoEdicaoService>();
         return services;
     }
 }

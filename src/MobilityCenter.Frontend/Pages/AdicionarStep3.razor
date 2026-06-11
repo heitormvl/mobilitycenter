@@ -1,22 +1,31 @@
 @page "/adicionar/servicos"
+@layout AdicionarLayout
 @inject NavigationManager Nav
 @inject BicicletarioService BicicletarioSvc
+@inject AuthService AuthService
+@inject ToastService ToastSvc
 
-<!-- Header -->
-<div style="background:var(--bg); border-bottom:1px solid var(--border);">
-    <StatusBar />
-    <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
-        <button @onclick="GoBack" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-            <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
-        </button>
-        <div style="flex:1;">
-            <div style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">Serviços e veículos</div>
+<div class="@_slideClass">
+
+@if (!_isAuthenticated)
+{
+    <div style="padding:48px 28px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:16px;">
+        <div style="width:64px; height:64px; border-radius:var(--r-full); background:var(--bg-page); border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center;">
+            <i class="fa-solid fa-lock" style="font-size:24px; color:var(--text-4);"></i>
         </div>
+        <div>
+            <div style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:6px;">Acesso restrito</div>
+            <div style="font-size:14px; color:var(--text-3); font-family:var(--font); line-height:1.5;">Para adicionar um bicicletário você precisa estar logado.</div>
+        </div>
+        <BtnP Style="width:100%; margin-top:8px;" OnClick="@(() => Nav.NavigateTo("/login"))">
+            <i class="fa-solid fa-right-to-bracket" style="margin-right:8px;"></i> Fazer login
+        </BtnP>
     </div>
-</div>
+}
+else
+{
 
 <div style="padding:20px 20px 110px; overflow-y:auto;">
-    <ProgressBar Step="3" Total="3" />
 
     <!-- Serviços -->
     <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px; margin-bottom:14px;">
@@ -58,27 +67,13 @@
 
     @if (_publishError != null)
     {
-        <div style="font-size:13px; color:#c0392b; font-family:var(--font); padding:10px 14px; background:#fdf2f2; border-radius:var(--r); border:1px solid #f5c6c6;">
+        <div style="font-size:13px; color:var(--red); font-family:var(--font); padding:10px 14px; background:var(--red-bg); border-radius:var(--r); border:1px solid var(--red-border);">
             <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>@_publishError
         </div>
     }
 </div>
 
-<div style="position:absolute; bottom:24px; left:16px; right:16px; display:flex; flex-direction:column; gap:10px;">
-    <BtnP OnClick="PublishAsync">
-        @if (_isPublishing)
-        {
-            <i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i>
-            <span>Publicando...</span>
-        }
-        else
-        {
-            <span>Publicar bicicletário</span>
-        }
-    </BtnP>
-    <BtnO OnClick="GoBack">
-        <i class="fa-solid fa-chevron-left" style="font-size:12px;"></i> Voltar
-    </BtnO>
+}
 </div>
 
 @code {
@@ -87,9 +82,21 @@
     [Parameter] [SupplyParameterFromQuery(Name = "name")]       public string? Name        { get; set; }
     [Parameter] [SupplyParameterFromQuery(Name = "capacity")]   public string? Capacity    { get; set; }
     [Parameter] [SupplyParameterFromQuery(Name = "accessType")] public string? AccessType  { get; set; }
+    [Parameter] [SupplyParameterFromQuery(Name = "dir")]        public string? Dir         { get; set; }
 
-    private bool _isPublishing;
+    [CascadingParameter] public AdicionarLayout Layout { get; set; } = default!;
+
     private string? _publishError;
+    private bool _isAuthenticated;
+    private string _slideClass = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _slideClass = Dir == "back" ? "page-slide-back" : "page-slide-forward";
+        Layout.SetNext("Publicar bicicletário", PublishAsync, "Publicando...");
+        var user = await AuthService.GetUserInfoAsync();
+        _isAuthenticated = user is not null;
+    }
 
     private CheckOption[] _servicos =
     [
@@ -108,26 +115,17 @@
         new("fa-circle-dot",    "Monociclo",         false),
     ];
 
-    private void GoBack() =>
-        Nav.NavigateTo($"/adicionar/dados?lat={LatStr}&lng={LngStr}&name={Uri.EscapeDataString(Name ?? "")}&capacity={Capacity}&accessType={AccessType}");
-
     private async Task PublishAsync()
     {
-        if (_isPublishing) return;
-        _isPublishing = true;
         _publishError = null;
-        StateHasChanged();
-
         var (error, _) = await BicicletarioSvc.CreateAsync(BuildRequest());
-
         if (error != null)
         {
             _publishError = error;
-            _isPublishing = false;
             StateHasChanged();
             return;
         }
-
+        ToastSvc.Show("Bicicletário publicado com sucesso!");
         Nav.NavigateTo("/", forceLoad: false);
     }
 

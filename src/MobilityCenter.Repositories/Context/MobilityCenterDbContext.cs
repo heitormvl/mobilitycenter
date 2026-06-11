@@ -11,6 +11,7 @@ public class MobilityCenterDbContext : IdentityDbContext<Usuario, IdentityRole<G
 
     public DbSet<Bicicletario> Bicicletarios => Set<Bicicletario>();
     public DbSet<Avaliacao> Avaliacoes => Set<Avaliacao>();
+    public DbSet<SugestaoEdicao> SugestoesEdicao => Set<SugestaoEdicao>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -39,6 +40,27 @@ public class MobilityCenterDbContext : IdentityDbContext<Usuario, IdentityRole<G
              .WithOne(a => a.Bicicletario)
              .HasForeignKey(a => a.BicicletarioId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<SugestaoEdicao>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.DadosEdicao).IsRequired();
+
+            e.HasOne(s => s.Bicicletario)
+             .WithMany(b => b.Sugestoes)
+             .HasForeignKey(s => s.BicicletarioId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(s => s.Autor)
+             .WithMany(u => u.SugestoesEnviadas)
+             .HasForeignKey(s => s.AutorId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(s => s.Revisor)
+             .WithMany()
+             .HasForeignKey(s => s.RevisorId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<Avaliacao>(e =>

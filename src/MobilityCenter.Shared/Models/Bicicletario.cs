@@ -32,6 +32,7 @@ public class Bicicletario
     public Usuario? Operador { get; set; }
 
     public ICollection<Avaliacao> Avaliacoes { get; set; } = [];
+    public ICollection<SugestaoEdicao> Sugestoes { get; set; } = [];
 
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
     public DateTime AtualizadoEm { get; set; } = DateTime.UtcNow;
