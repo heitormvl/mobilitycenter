@@ -2,6 +2,7 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject IHttpClientFactory HttpFactory
+@inject AuthService AuthService
 
 <!-- Header -->
 <div style="background:var(--bg); border-bottom:1px solid var(--border);">
@@ -15,6 +16,23 @@
         </div>
     </div>
 </div>
+
+@if (!_isAuthenticated)
+{
+    <div style="padding:48px 28px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:16px;">
+        <div style="width:64px; height:64px; border-radius:var(--r-full); background:var(--bg-page); border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center;">
+            <i class="fa-solid fa-lock" style="font-size:24px; color:var(--text-4);"></i>
+        </div>
+        <div>
+            <div style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:6px;">Acesso restrito</div>
+            <div style="font-size:14px; color:var(--text-3); font-family:var(--font); line-height:1.5;">Para adicionar um bicicletário você precisa estar logado.</div>
+        </div>
+        <BtnP Style="width:100%; margin-top:8px;" OnClick="@(() => Nav.NavigateTo("/login"))">
+            <i class="fa-solid fa-right-to-bracket" style="margin-right:8px;"></i> Fazer login
+        </BtnP>
+    </div>
+    return;
+}
 
 <div style="padding:20px 20px 100px;">
     <ProgressBar Step="1" Total="3" />
@@ -107,6 +125,13 @@
     private bool _isLocating;
     private string? _searchError;
     private string? _locationError;
+    private bool _isAuthenticated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await AuthService.GetUserInfoAsync();
+        _isAuthenticated = user is not null;
+    }
 
     private async Task OnSearchKeyDown(KeyboardEventArgs e)
     {
