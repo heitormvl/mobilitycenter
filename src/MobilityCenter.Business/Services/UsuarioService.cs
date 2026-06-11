@@ -61,6 +61,68 @@ public class UsuarioService : IUsuarioService
         return url;
     }
 
+    public async Task<UsuarioDto> AtualizarPerfilAsync(Guid usuarioId, AtualizarPerfilDto dto)
+    {
+        var usuario = await _userManager.FindByIdAsync(usuarioId.ToString())
+            ?? throw new NotFoundException("Usuário não encontrado.");
+
+        var displayName = dto.DisplayName?.Trim() ?? string.Empty;
+        var email = dto.Email?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(displayName))
+            throw new ValidationException("O nome é obrigatório.");
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ValidationException("O e-mail é obrigatório.");
+
+        if (!string.Equals(email, usuario.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            var existente = await _userManager.FindByEmailAsync(email);
+            if (existente != null && existente.Id != usuarioId)
+                throw new ConflictException("E-mail já cadastrado.");
+
+            var setEmail = await _userManager.SetEmailAsync(usuario, email);
+            if (!setEmail.Succeeded)
+                throw new ValidationException(string.Join(", ", setEmail.Errors.Select(e => e.Description)));
+
+            var setUserName = await _userManager.SetUserNameAsync(usuario, email);
+            if (!setUserName.Succeeded)
+                throw new ValidationException(string.Join(", ", setUserName.Errors.Select(e => e.Description)));
+        }
+
+        usuario.DisplayName = displayName;
+        var resultado = await _userManager.UpdateAsync(usuario);
+        if (!resultado.Succeeded)
+            throw new ValidationException(string.Join(", ", resultado.Errors.Select(e => e.Description)));
+
+        return new UsuarioDto
+        {
+            Id = usuario.Id,
+            DisplayName = usuario.DisplayName,
+            Email = usuario.Email!,
+            Type = usuario.Type,
+            CreatedAt = usuario.CreatedAt,
+            FotoPerfilUrl = usuario.FotoPerfilUrl
+        };
+    }
+
+    public async Task AlterarSenhaAsync(Guid usuarioId, AlterarSenhaDto dto)
+    {
+        var usuario = await _userManager.FindByIdAsync(usuarioId.ToString())
+            ?? throw new NotFoundException("Usuário não encontrado.");
+
+        if (string.IsNullOrWhiteSpace(dto.NovaSenha))
+            throw new ValidationException("A nova senha é obrigatória.");
+
+        var resultado = await _userManager.ChangePasswordAsync(usuario, dto.SenhaAtual, dto.NovaSenha);
+        if (!resultado.Succeeded)
+        {
+            if (resultado.Errors.Any(e => e.Code == "PasswordMismatch"))
+                throw new ValidationException("Senha atual incorreta.");
+
+            throw new ValidationException(string.Join(", ", resultado.Errors.Select(e => e.Description)));
+        }
+    }
+
     public async Task<IEnumerable<AvaliacaoDto>> ObterAvaliacoesAsync(Guid usuarioId)
     {
         return await _db.Avaliacoes

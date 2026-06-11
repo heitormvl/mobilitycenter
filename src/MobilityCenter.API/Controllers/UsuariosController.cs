@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MobilityCenter.Business.Interfaces;
+using MobilityCenter.Shared.DTOs.Usuario;
 using MobilityCenter.Shared.Exceptions;
 
 namespace MobilityCenter.API.Controllers;
@@ -37,6 +38,22 @@ public class UsuariosController : ControllerBase
         var usuarioId = ObterUsuarioId();
         var resultado = await _usuarioService.ObterBicicletariosAsync(usuarioId);
         return Ok(resultado);
+    }
+
+    [HttpPut("me")]
+    public async Task<IActionResult> AtualizarPerfil([FromBody] AtualizarPerfilDto dto)
+    {
+        var usuarioId = ObterUsuarioId();
+        var resultado = await _usuarioService.AtualizarPerfilAsync(usuarioId, dto);
+        return Ok(resultado);
+    }
+
+    [HttpPut("me/senha")]
+    public async Task<IActionResult> AlterarSenha([FromBody] AlterarSenhaDto dto)
+    {
+        var usuarioId = ObterUsuarioId();
+        await _usuarioService.AlterarSenhaAsync(usuarioId, dto);
+        return NoContent();
     }
 
     [HttpPost("me/foto")]
