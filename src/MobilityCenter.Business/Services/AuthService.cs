@@ -17,11 +17,19 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<Usuario> _userManager;
     private readonly IConfiguration _configuration;
+    private readonly IFotoStorageService _fotoStorage;
+    private readonly IHttpClientFactory _httpFactory;
 
-    public AuthService(UserManager<Usuario> userManager, IConfiguration configuration)
+    public AuthService(
+        UserManager<Usuario> userManager,
+        IConfiguration configuration,
+        IFotoStorageService fotoStorage,
+        IHttpClientFactory httpFactory)
     {
         _userManager = userManager;
         _configuration = configuration;
+        _fotoStorage = fotoStorage;
+        _httpFactory = httpFactory;
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
@@ -94,7 +102,6 @@ public class AuthService : IAuthService
                 Email = payload.Email,
                 UserName = payload.Email,
                 EmailConfirmed = true,
-                FotoPerfilUrl = payload.Picture,
                 Type = TipoUsuario.Usuario,
                 CreatedAt = DateTime.UtcNow
             };
@@ -106,9 +113,12 @@ public class AuthService : IAuthService
                 throw new ValidationException(erros);
             }
         }
-        else if (!string.IsNullOrEmpty(payload.Picture) && usuario.FotoPerfilUrl != payload.Picture)
+
+        // Baixa a foto do Google e armazena no nosso storage para evitar restrições de CORS/acesso
+        var novaFoto = await BaixarEArmazenarFotoGoogleAsync(usuario.Id, payload.Picture);
+        if (!string.IsNullOrEmpty(novaFoto) && usuario.FotoPerfilUrl != novaFoto)
         {
-            usuario.FotoPerfilUrl = payload.Picture;
+            usuario.FotoPerfilUrl = novaFoto;
             await _userManager.UpdateAsync(usuario);
         }
 
@@ -117,6 +127,25 @@ public class AuthService : IAuthService
             Token = GerarToken(usuario),
             Usuario = MapearUsuario(usuario)
         };
+    }
+
+    private async Task<string?> BaixarEArmazenarFotoGoogleAsync(Guid usuarioId, string? googleUrl)
+    {
+        if (string.IsNullOrEmpty(googleUrl)) return null;
+        try
+        {
+            var http = _httpFactory.CreateClient();
+            using var response = await http.GetAsync(googleUrl);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            return await _fotoStorage.UploadFotoPerfilAsync(usuarioId, stream, contentType);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private string GerarToken(Usuario usuario)

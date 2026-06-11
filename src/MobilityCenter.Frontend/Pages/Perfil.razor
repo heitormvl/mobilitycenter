@@ -61,9 +61,10 @@
             <div style="position:relative; display:inline-block; margin-bottom:14px;">
                 <label for="fotoInput" style="cursor:pointer; display:block;">
                     <div style="width:80px; height:80px; border-radius:var(--r-full); background:var(--bg-page); border:3px solid var(--brand); display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        @if (!string.IsNullOrEmpty(_user.FotoPerfilUrl))
+                        @if (!string.IsNullOrEmpty(_user.FotoPerfilUrl) && !_fotoErro)
                         {
                             <img src="@_user.FotoPerfilUrl" alt="Foto de perfil"
+                                 @onerror="() => { _fotoErro = true; StateHasChanged(); }"
                                  style="width:100%; height:100%; object-fit:cover;" />
                         }
                         else
@@ -119,6 +120,7 @@
     private int _totalAdicionados;
     private bool _loading = true;
 
+    private bool _fotoErro;
     private ElementReference _canvasRef;
     private bool _showCropModal;
     private bool _canvasReady;
