@@ -16,10 +16,63 @@ window.mapInterop = {
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', this._tileOptions).addTo(map);
 
-        const instance = { map, userMarker: null };
+        const instance = { map, userMarker: null, markers: [], markerLayer: L.layerGroup().addTo(map), dotNetRef: null };
         this._instances[mapId] = instance;
 
         this._locateUser(instance);
+    },
+
+    // Register a .NET callback fired (debounced) whenever the visible area changes.
+    onViewChange: function (mapId, dotNetRef) {
+        const inst = this._instances[mapId];
+        if (!inst) return;
+        inst.dotNetRef = dotNetRef;
+
+        let t = null;
+        const notify = () => {
+            clearTimeout(t);
+            t = setTimeout(() => {
+                if (inst.dotNetRef) inst.dotNetRef.invokeMethodAsync('OnViewChangedJs');
+            }, 250);
+        };
+        inst.map.on('moveend zoomend', notify);
+    },
+
+    // markers: [{ id, lat, lng, accent, popupHtml }]
+    setMarkers: function (mapId, markers) {
+        const inst = this._instances[mapId];
+        if (!inst) return;
+
+        inst.markerLayer.clearLayers();
+        inst.markers = [];
+
+        markers.forEach(m => {
+            const icon = L.divIcon({
+                className: 'mc-pin',
+                html: `<div class="mc-pin-dot${m.accent ? ' mc-pin-dot--accent' : ''}"><i class="fa-solid fa-bicycle"></i></div>`,
+                iconSize: [34, 34],
+                iconAnchor: [17, 34],
+                popupAnchor: [0, -32]
+            });
+
+            const marker = L.marker([m.lat, m.lng], { icon })
+                .bindPopup(m.popupHtml, { closeButton: true, minWidth: 268, maxWidth: 300, className: 'mc-popup' });
+
+            marker.addTo(inst.markerLayer);
+            inst.markers.push(marker);
+        });
+    },
+
+    getBounds: function (mapId) {
+        const inst = this._instances[mapId];
+        if (!inst) return null;
+        const b = inst.map.getBounds();
+        return [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()];
+    },
+
+    fitBounds: function (mapId, south, west, north, east) {
+        const inst = this._instances[mapId];
+        if (inst) inst.map.fitBounds([[south, west], [north, east]], { padding: [50, 50], maxZoom: 16 });
     },
 
     _locateUser: function (instance) {
@@ -104,6 +157,8 @@ window.mapInterop = {
     destroy: function (mapId) {
         const inst = this._instances[mapId];
         if (inst) {
+            inst.dotNetRef = null;
+            inst.map.off('moveend zoomend');
             inst.map.remove();
             delete this._instances[mapId];
         }

@@ -1,11 +1,17 @@
 @page "/avaliar/{Id}"
+@using System.Net.Http.Headers
+@using Microsoft.AspNetCore.Components.Forms
+@using MobilityCenter.Frontend.Models
 @inject NavigationManager Nav
+@inject AuthService AuthSvc
+@inject AvaliacaoService AvaliacaoSvc
+@inject BicicletarioService BicicletarioSvc
 
 <!-- Header -->
 <div style="background:var(--bg); border-bottom:1px solid var(--border);">
     <StatusBar />
     <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
-        <button @onclick="@(() => Nav.NavigateTo($"/bicicletario/{Id}"))"
+        <button @onclick="GoBack"
                 style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
             <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
         </button>
@@ -13,66 +19,251 @@
     </div>
 </div>
 
-<div style="padding:20px 20px 40px;">
-
-    <!-- Location card -->
-    <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px 16px; margin-bottom:24px; display:flex; gap:14px; align-items:center; box-shadow:var(--shadow-sm);">
-        <div style="width:42px; height:42px; border-radius:var(--r); background:var(--brand-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-            <i class="fa-solid fa-bicycle" style="color:var(--brand); font-size:18px;"></i>
-        </div>
-        <div style="min-width:0;">
-            <div style="font-weight:600; font-size:15px; color:var(--text); font-family:var(--font); letter-spacing:-0.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                @(string.IsNullOrEmpty(Name) ? "Bicicletário" : Uri.UnescapeDataString(Name))
-            </div>
-            <div style="font-size:13px; color:var(--text-4); font-family:var(--font); margin-top:2px;">Avalie sua experiência neste local</div>
-        </div>
+@if (_isLoading)
+{
+    <div style="padding:60px 20px; text-align:center; font-family:var(--font);">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:28px; color:var(--text-4);"></i>
     </div>
-
-    <!-- Star rating -->
-    <div style="text-align:center; margin-bottom:28px; padding:24px 20px; background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border);">
-        <div style="font-size:13px; color:var(--text-4); font-weight:500; margin-bottom:16px; font-family:var(--font); letter-spacing:0.01em; text-transform:uppercase;">Sua avaliação</div>
-        <div style="display:flex; justify-content:center; gap:12px; margin-bottom:12px;">
-            @for (int i = 1; i <= 5; i++)
+}
+else if (_needsAuth)
+{
+    <!-- Auth gate -->
+    <div style="padding:60px 28px; text-align:center; font-family:var(--font);">
+        <div style="width:64px; height:64px; border-radius:var(--r-full); background:var(--brand-soft); display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
+            <i class="fa-solid fa-lock" style="font-size:24px; color:var(--brand);"></i>
+        </div>
+        <div style="font-size:18px; font-weight:700; color:var(--text); margin-bottom:8px;">Entre para avaliar</div>
+        <div style="font-size:14px; color:var(--text-3); margin-bottom:28px; line-height:1.5;">
+            Você precisa estar logado para compartilhar sua experiência neste local.
+        </div>
+        <BtnP OnClick="GoLogin">
+            <i class="fa-solid fa-arrow-right-to-bracket" style="margin-right:8px;"></i>Entrar
+        </BtnP>
+    </div>
+}
+else if (_alreadyReviewed)
+{
+    <!-- Already reviewed -->
+    <div style="padding:48px 28px; text-align:center; font-family:var(--font);">
+        <div style="width:64px; height:64px; border-radius:var(--r-full); background:var(--green-bg); display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
+            <i class="fa-solid fa-circle-check" style="font-size:26px; color:var(--green);"></i>
+        </div>
+        <div style="font-size:18px; font-weight:700; color:var(--text); margin-bottom:8px;">Você já avaliou este local</div>
+        <div style="font-size:14px; color:var(--text-3); margin-bottom:20px;">@_nome</div>
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px; margin-bottom:28px; box-shadow:var(--shadow-xs); text-align:left;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:@(string.IsNullOrEmpty(_myComment) ? "0" : "10px");">
+                <Stars N="@_myNota" Size="16" />
+                <span style="font-size:13px; color:var(--text-4);">@RatingLabel(_myNota)</span>
+            </div>
+            @if (!string.IsNullOrEmpty(_myComment))
             {
-                var star = i;
-                <i class="@(star <= _rating ? "fa-solid fa-star" : "fa-regular fa-star")"
-                   style="font-size:44px; color:@(star <= _rating ? "var(--gold)" : "var(--border-2)"); cursor:pointer; transition:transform 0.1s, color 0.15s;"
-                   @onclick="@(() => _rating = star)"></i>
+                <p style="font-size:14px; color:var(--text-2); line-height:1.55; margin:0;">@_myComment</p>
             }
         </div>
-        <div style="font-size:15px; color:var(--text-3); font-weight:500; font-family:var(--font);">@_ratingLabel</div>
+        <BtnP OnClick="@(() => Nav.NavigateTo($"/bicicletario/{Id}"))">Ver o local</BtnP>
     </div>
+}
+else
+{
+    <!-- Rating form -->
+    <div style="padding:20px 20px 40px;">
 
-    <!-- Comment -->
-    <div style="margin-bottom:14px;">
-        <div style="font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">
-            Comentário <span style="color:var(--text-4);">(opcional)</span>
+        <!-- Location card -->
+        <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px 16px; margin-bottom:24px; display:flex; gap:14px; align-items:center; box-shadow:var(--shadow-sm);">
+            <div style="width:42px; height:42px; border-radius:var(--r); background:var(--brand-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <i class="fa-solid fa-bicycle" style="color:var(--brand); font-size:18px;"></i>
+            </div>
+            <div style="min-width:0;">
+                <div style="font-weight:600; font-size:15px; color:var(--text); font-family:var(--font); letter-spacing:-0.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    @_nome
+                </div>
+                <div style="font-size:13px; color:var(--text-4); font-family:var(--font); margin-top:2px;">Avalie sua experiência neste local</div>
+            </div>
         </div>
-        <textarea @bind="_comentario"
-                  placeholder="Descreva sua experiência..."
-                  rows="4"
-                  style="width:100%; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 14px; background:var(--bg); color:var(--text); font-size:15px; font-family:var(--font); line-height:1.5; resize:none; outline:none; transition:border-color 0.15s;"></textarea>
+
+        <!-- Star rating -->
+        <div style="text-align:center; margin-bottom:28px; padding:24px 20px; background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border);">
+            <div style="font-size:13px; color:var(--text-4); font-weight:500; margin-bottom:16px; font-family:var(--font); letter-spacing:0.01em; text-transform:uppercase;">Sua avaliação</div>
+            <div style="display:flex; justify-content:center; gap:12px; margin-bottom:12px;">
+                @for (int i = 1; i <= 5; i++)
+                {
+                    var star = i;
+                    <i class="@(star <= _rating ? "fa-solid fa-star" : "fa-regular fa-star")"
+                       style="font-size:44px; color:@(star <= _rating ? "var(--gold)" : "var(--border-2)"); cursor:pointer; transition:transform 0.1s, color 0.15s;"
+                       @onclick="@(() => SetRating(star))"></i>
+                }
+            </div>
+            <div style="font-size:15px; color:var(--text-3); font-weight:500; font-family:var(--font);">@RatingLabel(_rating)</div>
+        </div>
+
+        <!-- Comment -->
+        <div style="margin-bottom:14px;">
+            <div style="font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">
+                Comentário <span style="color:var(--text-4);">(opcional)</span>
+            </div>
+            <textarea @bind="_comentario" @bind:event="oninput" maxlength="500"
+                      placeholder="Descreva sua experiência..."
+                      rows="4"
+                      style="width:100%; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 14px; background:var(--bg); color:var(--text); font-size:15px; font-family:var(--font); line-height:1.5; resize:none; outline:none; transition:border-color 0.15s; box-sizing:border-box;"></textarea>
+            <div style="text-align:right; font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:4px;">@_comentario.Length/500</div>
+        </div>
+
+        <!-- Photo (optional) -->
+        <label style="display:block; border:2px dashed @(_photo != null ? "var(--brand)" : "var(--border-2)"); border-radius:var(--r-lg); padding:20px; text-align:center; color:var(--text-4); cursor:pointer; margin-bottom:28px; transition:border-color 0.15s; background:var(--bg);">
+            @if (_photo == null)
+            {
+                <i class="fa-regular fa-image" style="font-size:28px; display:block; margin-bottom:8px; color:var(--text-4);"></i>
+                <div style="font-size:14px; font-weight:500; font-family:var(--font); color:var(--text-3);">Adicionar foto do local</div>
+                <div style="font-size:12px; color:var(--text-4); margin-top:3px; font-family:var(--font);">opcional · webp, png, jpg · máx 5MB</div>
+            }
+            else
+            {
+                <i class="fa-solid fa-circle-check" style="font-size:28px; display:block; margin-bottom:8px; color:var(--brand);"></i>
+                <div style="font-size:14px; font-weight:500; font-family:var(--font); color:var(--text-2); word-break:break-all;">@_photo.Name</div>
+                <div style="font-size:12px; color:var(--brand); margin-top:3px; font-family:var(--font);">Toque para trocar</div>
+            }
+            <InputFile OnChange="OnPhotoSelected" accept="image/webp,image/png,image/jpeg" style="display:none;" disabled="@_submitting" />
+        </label>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div style="background:#FEF2F2; border:1px solid #FCA5A5; border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:#DC2626;">
+                @_error
+            </div>
+        }
+
+        <BtnP OnClick="Submit" Style="@(_submitting ? "opacity:0.6; pointer-events:none;" : "")">
+            @if (_submitting) { <span><i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i>Enviando...</span> }
+            else { <span>Enviar avaliação</span> }
+        </BtnP>
+
     </div>
-
-    <!-- Photo (placeholder) -->
-    <div style="border:2px dashed var(--border-2); border-radius:var(--r-lg); padding:20px; text-align:center; color:var(--text-4); cursor:pointer; margin-bottom:28px; transition:border-color 0.15s; background:var(--bg);">
-        <i class="fa-regular fa-image" style="font-size:28px; display:block; margin-bottom:8px; color:var(--text-4);"></i>
-        <div style="font-size:14px; font-weight:500; font-family:var(--font);">Adicionar foto</div>
-        <div style="font-size:12px; color:var(--text-4); margin-top:3px; font-family:var(--font);">opcional</div>
-    </div>
-
-    <BtnP>Enviar avaliação</BtnP>
-
-</div>
+}
 
 @code {
     [Parameter] public string? Id { get; set; }
     [SupplyParameterFromQuery(Name = "name")] [Parameter] public string? Name { get; set; }
 
-    private int    _rating    = 0;
-    private string _comentario = "";
+    private bool _isLoading = true;
+    private bool _needsAuth;
+    private bool _alreadyReviewed;
+    private string _nome = "Bicicletário";
 
-    private string _ratingLabel => _rating switch
+    private int _myNota;
+    private string? _myComment;
+
+    private int _rating;
+    private string _comentario = "";
+    private IBrowserFile? _photo;
+    private bool _submitting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(Id))
+        {
+            _error = "Local inválido.";
+            _isLoading = false;
+            return;
+        }
+
+        // Sensible fallback name from the query string (passed by the detail page).
+        if (!string.IsNullOrEmpty(Name))
+            _nome = Uri.UnescapeDataString(Name);
+
+        var userInfo = await AuthSvc.GetUserInfoAsync();
+        if (userInfo == null)
+        {
+            _needsAuth = true;
+            _isLoading = false;
+            return;
+        }
+
+        // Load the place to get its real name and detect a prior review by this user.
+        var item = await BicicletarioSvc.GetByIdAsync(Id);
+        if (item != null)
+        {
+            _nome = item.Nome;
+            var mine = item.Avaliacoes.FirstOrDefault(a =>
+                string.Equals(a.UsuarioId, userInfo.Id.ToString(), StringComparison.OrdinalIgnoreCase));
+            if (mine != null)
+            {
+                _alreadyReviewed = true;
+                _myNota = mine.Nota;
+                _myComment = mine.Comentario;
+            }
+        }
+
+        _isLoading = false;
+    }
+
+    private void SetRating(int star)
+    {
+        _rating = star;
+        _error = null;
+    }
+
+    private void OnPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            _error = "A foto é muito grande. Máximo 5MB.";
+            _photo = null;
+            return;
+        }
+        _photo = file;
+        _error = null;
+    }
+
+    private async Task Submit()
+    {
+        if (_rating < 1)
+        {
+            _error = "Selecione uma nota de 1 a 5 estrelas.";
+            return;
+        }
+
+        _submitting = true;
+        _error = null;
+
+        var comentario = string.IsNullOrWhiteSpace(_comentario) ? null : _comentario.Trim();
+        var err = await AvaliacaoSvc.CreateAsync(Id!, _rating, comentario);
+        if (err != null)
+        {
+            _error = err;
+            _submitting = false;
+            return;
+        }
+
+        // Review created — upload the optional photo on a best-effort basis.
+        if (_photo != null)
+        {
+            try
+            {
+                using var content = new MultipartFormDataContent();
+                using var stream = _photo.OpenReadStream(5 * 1024 * 1024);
+                using var sc = new StreamContent(stream);
+                sc.Headers.ContentType = new MediaTypeHeaderValue(_photo.ContentType);
+                content.Add(sc, "foto", _photo.Name);
+                await BicicletarioSvc.UploadFotoAsync(Id!, content);
+            }
+            catch { /* photo is optional — don't block the review on it */ }
+        }
+
+        Nav.NavigateTo($"/bicicletario/{Id}");
+    }
+
+    private void GoBack() => Nav.NavigateTo($"/bicicletario/{Id}");
+
+    private void GoLogin()
+    {
+        var ret = Uri.EscapeDataString($"/avaliar/{Id}" +
+            (string.IsNullOrEmpty(Name) ? "" : $"?name={Name}"));
+        Nav.NavigateTo($"/login?returnUrl={ret}");
+    }
+
+    private static string RatingLabel(int rating) => rating switch
     {
         1 => "Muito ruim",
         2 => "Ruim",

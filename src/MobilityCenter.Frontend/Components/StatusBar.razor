@@ -1,3 +1,10 @@
+@* Top spacer that keeps header content clear of the screen edge / device notch.
+   Height = device safe-area inset (notches on real phones) + a desktop baseline. *@
+<div style="height:calc(env(safe-area-inset-top, 0px) + @(Height)px); background:@(Dark ? "transparent" : "var(--bg)"); flex-shrink:0;"></div>
+
 @code {
     [Parameter] public bool Dark { get; set; }
+
+    /// <summary>Baseline spacing in px added on top of the device safe-area inset.</summary>
+    [Parameter] public int Height { get; set; } = 18;
 }

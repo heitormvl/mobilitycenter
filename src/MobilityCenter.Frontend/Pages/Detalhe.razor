@@ -1,8 +1,13 @@
 @page "/bicicletario/{Id}"
 @using System.Text.Json.Serialization
 @using System.Globalization
+@using System.Net.Http.Headers
+@using Microsoft.AspNetCore.Components.Forms
+@using MobilityCenter.Frontend.Models
 @inject NavigationManager Nav
 @inject BicicletarioService BicicletarioSvc
+@inject AuthService AuthSvc
+@inject IJSRuntime JS
 @inject IHttpClientFactory HttpFactory
 
 @* Sticky header *@
@@ -16,6 +21,13 @@
         <span style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
             @(_isLoading ? "Carregando..." : (_item?.Nome ?? "Não encontrado"))
         </span>
+        @if (_isAdmin && !_isLoading && _item != null)
+        {
+            <div style="display:flex; align-items:center; gap:6px; padding:4px 10px; border-radius:var(--r-full); background:#FEE2E2; border:1px solid #FCA5A5;">
+                <i class="fa-solid fa-shield-halved" style="font-size:10px; color:#DC2626;"></i>
+                <span style="font-size:11px; font-weight:700; color:#DC2626; font-family:var(--font); letter-spacing:0.04em;">ADMIN</span>
+            </div>
+        }
     </div>
 </div>
 
@@ -52,8 +64,60 @@ else if (_loadError != null)
 }
 else if (_item != null)
 {
-    @* Photo placeholder *@
-    <ImgPH H="200" Label="Foto do local" />
+    @* Lightbox *@
+    @if (_lightboxOpen && _fotoUrl != null)
+    {
+        <div @onclick="@(() => _lightboxOpen = false)"
+             style="position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.92); display:flex; align-items:center; justify-content:center; padding:24px; cursor:zoom-out;">
+            <img src="@_fotoUrl"
+                 style="max-width:min(90vw,800px); max-height:80vh; object-fit:contain; border-radius:var(--r-lg); box-shadow:0 24px 64px rgba(0,0,0,0.6);"
+                 alt="Foto do local"
+                 @onclick:stopPropagation="true" />
+            <button @onclick="@(() => _lightboxOpen = false)"
+                    style="position:absolute; top:16px; right:16px; width:40px; height:40px; border-radius:var(--r-full); background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                <i class="fa-solid fa-xmark" style="color:white; font-size:15px;"></i>
+            </button>
+        </div>
+    }
+
+    @* Photo section *@
+    <div style="position:relative; background:#111;">
+        @if (!_fotoFalhou && _fotoUrl != null)
+        {
+            <img src="@_fotoUrl"
+                 style="width:100%; max-height:320px; object-fit:contain; display:block; cursor:zoom-in;"
+                 alt="Foto do local"
+                 @onclick="@(() => _lightboxOpen = true)"
+                 @onerror="@(() => _fotoFalhou = true)" />
+        }
+        else
+        {
+            <ImgPH H="200" Label="Foto do local" />
+        }
+        @if (_isAdmin)
+        {
+            <button @onclick="@(() => { _editingFoto = !_editingFoto; _saveError = null; })"
+                    style="position:absolute; top:12px; right:12px; width:36px; height:36px; border-radius:var(--r-full); background:rgba(0,0,0,0.5); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                <i class="fa-solid @(_editingFoto ? "fa-xmark" : "fa-pen")" style="font-size:13px; color:white;"></i>
+            </button>
+        }
+        @if (_isAdmin && _editingFoto)
+        {
+            <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.75); padding:14px 16px; display:flex; align-items:center; gap:10px;">
+                <label style="flex:1; display:flex; align-items:center; gap:8px; cursor:pointer; color:white; font-size:14px; font-family:var(--font); font-weight:500;">
+                    <i class="fa-solid fa-image"></i>
+                    @if (_isSaving) { <span>Enviando...</span> } else { <span>Escolher foto (webp, png, jpg · max 5MB)</span> }
+                    <InputFile OnChange="HandleFotoUpload" accept="image/webp,image/png,image/jpeg" style="display:none;" disabled="@_isSaving" />
+                </label>
+            </div>
+            @if (!string.IsNullOrEmpty(_saveError))
+            {
+                <div style="position:absolute; top:0; left:0; right:0; background:rgba(220,38,38,0.85); padding:8px 14px; font-size:12px; color:white; font-family:var(--font);">
+                    @_saveError
+                </div>
+            }
+        }
+    </div>
 
     @* Scrollable body *@
     <div style="padding:20px 20px 160px;">
@@ -85,61 +149,187 @@ else if (_item != null)
         </div>
 
         @* Services card *@
-        <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px; margin-bottom:12px; box-shadow:var(--shadow-xs);">
-            <SecLabel>Serviços</SecLabel>
-            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
-                @foreach (var s in _servicos)
+        <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid @(_editingServicos ? "var(--brand)" : "var(--border)"); padding:16px; margin-bottom:12px; box-shadow:var(--shadow-xs); transition:border-color 0.15s;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div style="font-family:var(--font); font-size:11px; font-weight:600; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase;">Serviços</div>
+                @if (_isAdmin && !_editingServicos)
                 {
-                    <div style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:500; padding:5px 11px; border-radius:var(--r-full); font-family:var(--font); border:1px solid @(s.Ok ? "#BBF7D0" : "var(--border)"); background:@(s.Ok ? "var(--green-bg)" : "var(--bg-page)"); color:@(s.Ok ? "var(--green)" : "var(--text-4)");">
-                        <i class="fa-solid @s.Icon" style="font-size:10px;"></i>
-                        <span>@s.Label</span>
+                    <button @onclick="StartEditServicos"
+                            style="width:28px; height:28px; border-radius:var(--r-full); border:1px solid var(--border); background:var(--bg-page); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i class="fa-solid fa-pen" style="font-size:10px; color:var(--text-3);"></i>
+                    </button>
+                }
+            </div>
+
+            @if (!_editingServicos)
+            {
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    @foreach (var s in _servicos)
+                    {
+                        <div style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:500; padding:5px 11px; border-radius:var(--r-full); font-family:var(--font); border:1px solid @(s.Ok ? "#BBF7D0" : "var(--border)"); background:@(s.Ok ? "var(--green-bg)" : "var(--bg-page)"); color:@(s.Ok ? "var(--green)" : "var(--text-4)");">
+                            <i class="fa-solid @s.Icon" style="font-size:10px;"></i>
+                            <span>@s.Label</span>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button @onclick="@(() => _eTemTomada = !_eTemTomada)" style="@ChipToggleStyle(_eTemTomada)">
+                        <i class="fa-solid fa-plug" style="font-size:10px;"></i> Tomada
+                    </button>
+                    <button @onclick="@(() => _eTemCalibrador = !_eTemCalibrador)" style="@ChipToggleStyle(_eTemCalibrador)">
+                        <i class="fa-solid fa-gauge" style="font-size:10px;"></i> Calibrador
+                    </button>
+                    <button @onclick="@(() => _eTemVestiario = !_eTemVestiario)" style="@ChipToggleStyle(_eTemVestiario)">
+                        <i class="fa-solid fa-shirt" style="font-size:10px;"></i> Vestiário
+                    </button>
+                    <button @onclick="@(() => _eTemArmario = !_eTemArmario)" style="@ChipToggleStyle(_eTemArmario)">
+                        <i class="fa-solid fa-box" style="font-size:10px;"></i> Armário
+                    </button>
+                    <button @onclick="@(() => _eTemEspacoManutencao = !_eTemEspacoManutencao)" style="@ChipToggleStyle(_eTemEspacoManutencao)">
+                        <i class="fa-solid fa-wrench" style="font-size:10px;"></i> Manutenção
+                    </button>
+                    <button @onclick="@(() => _eTemCadeado = !_eTemCadeado)" style="@ChipToggleStyle(_eTemCadeado)">
+                        <i class="fa-solid fa-lock" style="font-size:10px;"></i> Cadeado
+                    </button>
+                </div>
+                @if (!string.IsNullOrEmpty(_saveError))
+                {
+                    <div style="font-size:12px; color:#DC2626; margin-top:8px; font-family:var(--font);">@_saveError</div>
+                }
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
+                    <BtnP OnClick="SaveServicos" Style="@(_isSaving ? "opacity:0.6; pointer-events:none;" : "")">
+                        @(_isSaving ? "Salvando..." : "Salvar")
+                    </BtnP>
+                    <BtnO OnClick="@(() => { _editingServicos = false; _saveError = null; })">Cancelar</BtnO>
+                </div>
+            }
+        </div>
+
+        @* Access + Vehicles 2-col (stacks to 1-col when editing either) *@
+        <div style="display:grid; grid-template-columns:@(_editingAcesso || _editingVeiculos ? "1fr" : "1fr 1fr"); gap:10px; margin-bottom:20px; transition:grid-template-columns 0.15s;">
+
+            @* Acesso card *@
+            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid @(_editingAcesso ? "var(--brand)" : "var(--border)"); padding:14px; box-shadow:var(--shadow-xs); transition:border-color 0.15s;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <div style="font-family:var(--font); font-size:11px; font-weight:600; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase;">Acesso</div>
+                    @if (_isAdmin && !_editingAcesso)
+                    {
+                        <button @onclick="StartEditAcesso"
+                                style="width:28px; height:28px; border-radius:var(--r-full); border:1px solid var(--border); background:var(--bg-page); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i class="fa-solid fa-pen" style="font-size:10px; color:var(--text-3);"></i>
+                        </button>
+                    }
+                </div>
+
+                @if (!_editingAcesso)
+                {
+                    <div>
+                        @if (_item.AcessoLivre)
+                        {
+                            <Chip Accent="true" Sm="true">Livre</Chip>
+                        }
+                        else if (_item.AcessoPago)
+                        {
+                            <Chip Sm="true">Pago</Chip>
+                        }
+                        else if (_item.AcessoCadastro)
+                        {
+                            <Chip Sm="true">Cadastro</Chip>
+                        }
+                        else if (_item.AcessoMensal)
+                        {
+                            <Chip Sm="true">Mensal</Chip>
+                        }
+                        else
+                        {
+                            <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">—</span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        @foreach (var (key, label) in new[] { ("livre","Livre"), ("pago","Pago"), ("cadastro","Cadastro"), ("mensal","Mensal") })
+                        {
+                            var isSelected = _eAcesso == key;
+                            <button @onclick="@(() => _eAcesso = isSelected ? "" : key)"
+                                    style="display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:var(--r); border:1px solid @(isSelected ? "var(--brand)" : "var(--border)"); background:@(isSelected ? "var(--brand-soft)" : "var(--bg-page)"); cursor:pointer; font-family:var(--font); font-size:13px; font-weight:@(isSelected ? "600" : "400"); color:@(isSelected ? "var(--brand)" : "var(--text-3)"); text-align:left; -webkit-appearance:none; width:100%;">
+                                <i class="fa-solid @(isSelected ? "fa-circle-dot" : "fa-circle")" style="font-size:11px;"></i>
+                                @label
+                            </button>
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(_saveError))
+                    {
+                        <div style="font-size:12px; color:#DC2626; margin-top:8px; font-family:var(--font);">@_saveError</div>
+                    }
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
+                        <BtnP OnClick="SaveAcesso" Style="@(_isSaving ? "opacity:0.6; pointer-events:none;" : "")">
+                            @(_isSaving ? "Salvando..." : "Salvar")
+                        </BtnP>
+                        <BtnO OnClick="@(() => { _editingAcesso = false; _saveError = null; })">Cancelar</BtnO>
                     </div>
                 }
             </div>
-        </div>
 
-        @* Access + Vehicles 2-col *@
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
-            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px; box-shadow:var(--shadow-xs);">
-                <SecLabel>Acesso</SecLabel>
-                <div style="margin-top:8px;">
-                    @if (_item.AcessoLivre)
+            @* Veículos card *@
+            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid @(_editingVeiculos ? "var(--brand)" : "var(--border)"); padding:14px; box-shadow:var(--shadow-xs); transition:border-color 0.15s;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <div style="font-family:var(--font); font-size:11px; font-weight:600; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase;">Veículos</div>
+                    @if (_isAdmin && !_editingVeiculos)
                     {
-                        <Chip Accent="true" Sm="true">Livre</Chip>
-                    }
-                    else if (_item.AcessoPago)
-                    {
-                        <Chip Sm="true">Pago</Chip>
-                    }
-                    else if (_item.AcessoCadastro)
-                    {
-                        <Chip Sm="true">Cadastro</Chip>
-                    }
-                    else if (_item.AcessoMensal)
-                    {
-                        <Chip Sm="true">Mensal</Chip>
-                    }
-                    else
-                    {
-                        <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">—</span>
+                        <button @onclick="StartEditVeiculos"
+                                style="width:28px; height:28px; border-radius:var(--r-full); border:1px solid var(--border); background:var(--bg-page); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i class="fa-solid fa-pen" style="font-size:10px; color:var(--text-3);"></i>
+                        </button>
                     }
                 </div>
-            </div>
 
-            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px; box-shadow:var(--shadow-xs);">
-                <SecLabel>Veículos</SecLabel>
-                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-                    @if (_veiculos.Count == 0)
+                @if (!_editingVeiculos)
+                {
+                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                        @if (_veiculos.Count == 0)
+                        {
+                            <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">—</span>
+                        }
+                        @foreach (var v in _veiculos)
+                        {
+                            <Chip Sm="true">
+                                <i class="fa-solid @v.Icon" style="font-size:10px;"></i>&nbsp;@v.Label
+                            </Chip>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
+                        <button @onclick="@(() => _eVeicBicicleta = !_eVeicBicicleta)" style="@ChipToggleStyle(_eVeicBicicleta)">
+                            <i class="fa-solid fa-bicycle" style="font-size:10px;"></i> Bicicleta
+                        </button>
+                        <button @onclick="@(() => _eVeicScooter = !_eVeicScooter)" style="@ChipToggleStyle(_eVeicScooter)">
+                            <i class="fa-solid fa-person-biking" style="font-size:10px;"></i> Scooter
+                        </button>
+                        <button @onclick="@(() => _eVeicMonociclo = !_eVeicMonociclo)" style="@ChipToggleStyle(_eVeicMonociclo)">
+                            <i class="fa-solid fa-circle-dot" style="font-size:10px;"></i> Monociclo
+                        </button>
+                        <button @onclick="@(() => _eVeicPatinete = !_eVeicPatinete)" style="@ChipToggleStyle(_eVeicPatinete)">
+                            <i class="fa-solid fa-bolt" style="font-size:10px;"></i> Patinete
+                        </button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(_saveError))
                     {
-                        <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">—</span>
+                        <div style="font-size:12px; color:#DC2626; margin-top:8px; font-family:var(--font);">@_saveError</div>
                     }
-                    @foreach (var v in _veiculos)
-                    {
-                        <Chip Sm="true">
-                            <i class="fa-solid @v.Icon" style="font-size:10px;"></i>&nbsp;@v.Label
-                        </Chip>
-                    }
-                </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
+                        <BtnP OnClick="SaveVeiculos" Style="@(_isSaving ? "opacity:0.6; pointer-events:none;" : "")">
+                            @(_isSaving ? "Salvando..." : "Salvar")
+                        </BtnP>
+                        <BtnO OnClick="@(() => { _editingVeiculos = false; _saveError = null; })">Cancelar</BtnO>
+                    </div>
+                }
             </div>
         </div>
 
@@ -159,7 +349,9 @@ else if (_item != null)
 
         @* Reviews *@
         <div style="margin-bottom:12px;">
-            <SecLabel>Avaliações (@(_item.Avaliacoes.Length))</SecLabel>
+            <div style="font-family:var(--font); font-size:11px; font-weight:600; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase;">
+                Avaliações (@(_item.Avaliacoes.Length))
+            </div>
         </div>
 
         @if (_item.Avaliacoes.Length == 0)
@@ -193,6 +385,34 @@ else if (_item != null)
             </div>
         }
 
+        @* Admin danger zone *@
+        @if (_isAdmin)
+        {
+            <div style="margin-top:24px; padding:16px; border:1px solid #FCA5A5; border-radius:var(--r-lg); background:#FFF5F5;">
+                <div style="font-size:11px; font-weight:700; color:#DC2626; font-family:var(--font); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:4px;">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>
+                    Zona Admin
+                </div>
+                <div style="font-size:12px; color:#9B1C1C; font-family:var(--font); margin-bottom:14px; line-height:1.4;">
+                    Ocultar faz soft delete (reversível). Excluir apaga permanentemente todos os dados.
+                </div>
+                @if (!string.IsNullOrEmpty(_deleteError))
+                {
+                    <div style="font-size:12px; color:#DC2626; margin-bottom:10px; font-family:var(--font);">@_deleteError</div>
+                }
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <button @onclick="SoftDelete"
+                            style="padding:11px 8px; border-radius:var(--r-lg); border:1px solid #F59E0B; background:#FEF3C7; color:#92400E; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; -webkit-appearance:none;">
+                        <i class="fa-solid fa-eye-slash" style="font-size:12px;"></i> Ocultar
+                    </button>
+                    <button @onclick="HardDelete"
+                            style="padding:11px 8px; border-radius:var(--r-lg); border:1px solid #EF4444; background:#FEE2E2; color:#DC2626; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; -webkit-appearance:none;">
+                        <i class="fa-solid fa-trash" style="font-size:12px;"></i> Excluir
+                    </button>
+                </div>
+            </div>
+        }
+
     </div>@* /scrollable body *@
 
     @* Sticky CTA above BottomNav *@
@@ -213,7 +433,32 @@ else if (_item != null)
     private string? _loadError;
     private string? _address;
 
-    // Pre-computed from _item so template never calls helpers with _item == null
+    private UserInfo? _userInfo;
+    private bool      _isAdmin;
+    private string?   _fotoUrl;
+    private bool      _fotoFalhou;
+    private bool      _lightboxOpen;
+
+    // Edit mode flags (only one section active at a time)
+    private bool _editingFoto;
+    private bool _editingServicos;
+    private bool _editingAcesso;
+    private bool _editingVeiculos;
+
+    // Edit state — serviços
+    private bool _eTemTomada, _eTemCalibrador, _eTemVestiario, _eTemArmario, _eTemEspacoManutencao, _eTemCadeado;
+
+    // Edit state — acesso (single selection key: "livre" | "pago" | "cadastro" | "mensal" | "")
+    private string _eAcesso = "";
+
+    // Edit state — veículos (bitmask flags)
+    private bool _eVeicBicicleta, _eVeicScooter, _eVeicMonociclo, _eVeicPatinete;
+
+    private bool    _isSaving;
+    private string? _saveError;
+    private string? _deleteError;
+
+    // Pre-computed display data
     private (string Icon, string Label, bool Ok)[] _servicos = [];
     private List<(string Icon, string Label)>       _veiculos = [];
 
@@ -226,7 +471,13 @@ else if (_item != null)
             return;
         }
 
-        _item = await BicicletarioSvc.GetByIdAsync(Id);
+        var userTask = AuthSvc.GetUserInfoAsync();
+        var itemTask = BicicletarioSvc.GetByIdAsync(Id);
+        await Task.WhenAll(userTask, itemTask);
+
+        _userInfo = userTask.Result;
+        _isAdmin  = _userInfo?.Type == 2;
+        _item     = itemTask.Result;
         _isLoading = false;
 
         if (_item == null)
@@ -235,26 +486,204 @@ else if (_item != null)
             return;
         }
 
-        // Pre-compute display data — template reads fields, never calls methods with _item
+        RecomputeDisplayData();
+
+        _ = ReverseGeocodeAsync(_item.Latitude, _item.Longitude);
+        _fotoUrl = BicicletarioSvc.GetFotoBicicletarioUrl(Id!);
+    }
+
+    private void RecomputeDisplayData()
+    {
         _servicos =
         [
-            ("fa-plug",   "Tomada",     _item.TemTomada),
-            ("fa-gauge",  "Calibrador", _item.TemCalibrador),
-            ("fa-shirt",  "Vestiário",  _item.TemVestiario),
-            ("fa-box",    "Armário",    _item.TemArmario),
-            ("fa-wrench", "Manutenção", _item.TemEspacoManutencao),
-            ("fa-lock",   "Cadeado",    _item.TemCadeado),
+            ("fa-plug",   "Tomada",     _item!.TemTomada),
+            ("fa-gauge",  "Calibrador", _item!.TemCalibrador),
+            ("fa-shirt",  "Vestiário",  _item!.TemVestiario),
+            ("fa-box",    "Armário",    _item!.TemArmario),
+            ("fa-wrench", "Manutenção", _item!.TemEspacoManutencao),
+            ("fa-lock",   "Cadeado",    _item!.TemCadeado),
         ];
 
         _veiculos = [];
-        if ((_item.VeiculosSuportados & 1) != 0) _veiculos.Add(("fa-bicycle",       "Bicicleta"));
-        if ((_item.VeiculosSuportados & 2) != 0) _veiculos.Add(("fa-person-biking", "Scooter"));
-        if ((_item.VeiculosSuportados & 4) != 0) _veiculos.Add(("fa-circle-dot",    "Monociclo"));
-        if ((_item.VeiculosSuportados & 8) != 0) _veiculos.Add(("fa-bolt",          "Patinete"));
-
-        // Reverse geocode without blocking render
-        _ = ReverseGeocodeAsync(_item.Latitude, _item.Longitude);
+        if ((_item!.VeiculosSuportados & 1) != 0) _veiculos.Add(("fa-bicycle",       "Bicicleta"));
+        if ((_item!.VeiculosSuportados & 2) != 0) _veiculos.Add(("fa-person-biking", "Scooter"));
+        if ((_item!.VeiculosSuportados & 4) != 0) _veiculos.Add(("fa-circle-dot",    "Monociclo"));
+        if ((_item!.VeiculosSuportados & 8) != 0) _veiculos.Add(("fa-bolt",          "Patinete"));
     }
+
+    // ─── Edit initiators ────────────────────────────────────────────────────
+
+    private void StartEditServicos()
+    {
+        _eTemTomada           = _item!.TemTomada;
+        _eTemCalibrador       = _item!.TemCalibrador;
+        _eTemVestiario        = _item!.TemVestiario;
+        _eTemArmario          = _item!.TemArmario;
+        _eTemEspacoManutencao = _item!.TemEspacoManutencao;
+        _eTemCadeado          = _item!.TemCadeado;
+        _editingServicos = true;
+        _editingAcesso   = false;
+        _editingVeiculos = false;
+        _editingFoto     = false;
+        _saveError       = null;
+    }
+
+    private void StartEditAcesso()
+    {
+        _eAcesso = _item!.AcessoLivre    ? "livre"    :
+                   _item!.AcessoPago     ? "pago"     :
+                   _item!.AcessoCadastro ? "cadastro" :
+                   _item!.AcessoMensal   ? "mensal"   : "";
+        _editingAcesso   = true;
+        _editingServicos = false;
+        _editingVeiculos = false;
+        _editingFoto     = false;
+        _saveError       = null;
+    }
+
+    private void StartEditVeiculos()
+    {
+        _eVeicBicicleta = (_item!.VeiculosSuportados & 1) != 0;
+        _eVeicScooter   = (_item!.VeiculosSuportados & 2) != 0;
+        _eVeicMonociclo = (_item!.VeiculosSuportados & 4) != 0;
+        _eVeicPatinete  = (_item!.VeiculosSuportados & 8) != 0;
+        _editingVeiculos = true;
+        _editingServicos = false;
+        _editingAcesso   = false;
+        _editingFoto     = false;
+        _saveError       = null;
+    }
+
+    // ─── Save handlers ──────────────────────────────────────────────────────
+
+    private async Task SaveServicos()
+    {
+        _isSaving  = true;
+        _saveError = null;
+        var err = await BicicletarioSvc.UpdateAsync(Id!, new AdminUpdateRequest
+        {
+            TemTomada           = _eTemTomada,
+            TemCalibrador       = _eTemCalibrador,
+            TemVestiario        = _eTemVestiario,
+            TemArmario          = _eTemArmario,
+            TemEspacoManutencao = _eTemEspacoManutencao,
+            TemCadeado          = _eTemCadeado,
+        });
+        if (err == null)
+        {
+            _item!.TemTomada           = _eTemTomada;
+            _item!.TemCalibrador       = _eTemCalibrador;
+            _item!.TemVestiario        = _eTemVestiario;
+            _item!.TemArmario          = _eTemArmario;
+            _item!.TemEspacoManutencao = _eTemEspacoManutencao;
+            _item!.TemCadeado          = _eTemCadeado;
+            RecomputeDisplayData();
+            _editingServicos = false;
+        }
+        else _saveError = err;
+        _isSaving = false;
+    }
+
+    private async Task SaveAcesso()
+    {
+        _isSaving  = true;
+        _saveError = null;
+        var err = await BicicletarioSvc.UpdateAsync(Id!, new AdminUpdateRequest
+        {
+            AcessoLivre     = _eAcesso == "livre",
+            AcessoPago      = _eAcesso == "pago",
+            AcessoCadastro  = _eAcesso == "cadastro",
+            AcessoMensal    = _eAcesso == "mensal",
+        });
+        if (err == null)
+        {
+            _item!.AcessoLivre    = _eAcesso == "livre";
+            _item!.AcessoPago     = _eAcesso == "pago";
+            _item!.AcessoCadastro = _eAcesso == "cadastro";
+            _item!.AcessoMensal   = _eAcesso == "mensal";
+            _editingAcesso = false;
+        }
+        else _saveError = err;
+        _isSaving = false;
+    }
+
+    private async Task SaveVeiculos()
+    {
+        _isSaving  = true;
+        _saveError = null;
+        var flags = (_eVeicBicicleta ? 1 : 0) | (_eVeicScooter ? 2 : 0)
+                  | (_eVeicMonociclo ? 4 : 0) | (_eVeicPatinete ? 8 : 0);
+        var err = await BicicletarioSvc.UpdateAsync(Id!, new AdminUpdateRequest
+        {
+            VeiculosSuportados = flags,
+        });
+        if (err == null)
+        {
+            _item!.VeiculosSuportados = flags;
+            RecomputeDisplayData();
+            _editingVeiculos = false;
+        }
+        else _saveError = err;
+        _isSaving = false;
+    }
+
+    private async Task HandleFotoUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            _saveError = "Arquivo muito grande. Máximo 5MB.";
+            return;
+        }
+        _isSaving  = true;
+        _saveError = null;
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var stream  = file.OpenReadStream(5 * 1024 * 1024);
+            using var sc      = new StreamContent(stream);
+            sc.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            content.Add(sc, "foto", file.Name);
+            var err = await BicicletarioSvc.UploadFotoAsync(Id!, content);
+            if (err == null)
+            {
+                _fotoFalhou = false;
+                _fotoUrl = BicicletarioSvc.GetFotoBicicletarioUrl(Id!, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                _editingFoto = false;
+            }
+            else _saveError = err;
+        }
+        finally { _isSaving = false; }
+    }
+
+    // ─── Delete handlers ─────────────────────────────────────────────────────
+
+    private async Task SoftDelete()
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Ocultar '{_item?.Nome}'?\nEle ficará invisível na listagem mas os dados são preservados."))
+            return;
+        _deleteError = null;
+        var err = await BicicletarioSvc.SoftDeleteAsync(Id!);
+        if (err == null) Nav.NavigateTo("/lista");
+        else _deleteError = err;
+    }
+
+    private async Task HardDelete()
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"⚠️ EXCLUIR PERMANENTEMENTE '{_item?.Nome}'?\nTodos os dados e avaliações serão apagados. Isso não pode ser desfeito."))
+            return;
+        if (!await JS.InvokeAsync<bool>("confirm", "Tem certeza absoluta? Esta ação é irreversível."))
+            return;
+        _deleteError = null;
+        var err = await BicicletarioSvc.HardDeleteAsync(Id!);
+        if (err == null) Nav.NavigateTo("/lista");
+        else _deleteError = err;
+    }
+
+    // ─── Utilities ───────────────────────────────────────────────────────────
+
+    private static string ChipToggleStyle(bool active) =>
+        $"display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:500; padding:5px 11px; border-radius:var(--r-full); font-family:var(--font); border:1px solid {(active ? "#BBF7D0" : "var(--border)")}; background:{(active ? "var(--green-bg)" : "var(--bg-page)")}; color:{(active ? "var(--green)" : "var(--text-4)")}; cursor:pointer; -webkit-appearance:none; gap:6px;";
 
     private async Task ReverseGeocodeAsync(double lat, double lng)
     {

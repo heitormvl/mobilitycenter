@@ -73,7 +73,17 @@ public class BicicletarioService : IBicicletarioService
                 Longitude = b.Longitude,
                 NotaMedia = b.Avaliacoes.Select(a => (double?)a.Nota).Average() ?? 0,
                 TotalAvaliacoes = b.Avaliacoes.Count,
-                VeiculosSuportados = b.VeiculosSuportados
+                VeiculosSuportados = b.VeiculosSuportados,
+                TemTomada = b.TemTomada,
+                TemCalibrador = b.TemCalibrador,
+                TemVestiario = b.TemVestiario,
+                TemArmario = b.TemArmario,
+                TemEspacoManutencao = b.TemEspacoManutencao,
+                TemCadeado = b.TemCadeado,
+                AcessoLivre = b.AcessoLivre,
+                AcessoPago = b.AcessoPago,
+                AcessoCadastro = b.AcessoCadastro,
+                AcessoMensal = b.AcessoMensal
             })
             .ToListAsync();
     }
@@ -197,16 +207,28 @@ public class BicicletarioService : IBicicletarioService
         };
     }
 
-    public async Task DeletarAsync(Guid id, Guid usuarioId)
+    public async Task DeletarAsync(Guid id, Guid usuarioId, TipoUsuario tipoUsuario)
     {
         var bicicletario = await _db.Bicicletarios.FirstOrDefaultAsync(b => b.Id == id)
             ?? throw new NotFoundException($"Bicicletário {id} não encontrado.");
 
-        if (bicicletario.OperadorId != usuarioId)
+        if (tipoUsuario != TipoUsuario.Admin && bicicletario.OperadorId != usuarioId)
             throw new UnauthorizedException("Sem permissão para deletar este bicicletário.");
 
         bicicletario.Deletado = true;
         bicicletario.AtualizadoEm = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DeletarPermanenteAsync(Guid id, Guid usuarioId, TipoUsuario tipoUsuario)
+    {
+        if (tipoUsuario != TipoUsuario.Admin)
+            throw new UnauthorizedException("Apenas administradores podem excluir permanentemente.");
+
+        var bicicletario = await _db.Bicicletarios.FirstOrDefaultAsync(b => b.Id == id)
+            ?? throw new NotFoundException($"Bicicletário {id} não encontrado.");
+
+        _db.Bicicletarios.Remove(bicicletario);
         await _db.SaveChangesAsync();
     }
 

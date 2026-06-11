@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using MobilityCenter.Business.Filters;
 using MobilityCenter.Business.Interfaces;
 using MobilityCenter.Shared.DTOs.Bicicletario;
+using MobilityCenter.Shared.Enums;
 using MobilityCenter.Shared.Exceptions;
 
 namespace MobilityCenter.API.Controllers;
@@ -58,7 +59,18 @@ public class BicicletariosController : ControllerBase
     public async Task<IActionResult> Deletar(Guid id)
     {
         var usuarioId = ObterUsuarioId();
-        await _bicicletarioService.DeletarAsync(id, usuarioId);
+        var tipo = ObterTipoUsuario();
+        await _bicicletarioService.DeletarAsync(id, usuarioId, tipo);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/permanente")]
+    [Authorize]
+    public async Task<IActionResult> DeletarPermanente(Guid id)
+    {
+        var usuarioId = ObterUsuarioId();
+        var tipo = ObterTipoUsuario();
+        await _bicicletarioService.DeletarPermanenteAsync(id, usuarioId, tipo);
         return NoContent();
     }
 
@@ -67,5 +79,11 @@ public class BicicletariosController : ControllerBase
         var valor = User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new AppException("Usuário não autenticado.", 401);
         return Guid.Parse(valor);
+    }
+
+    private TipoUsuario ObterTipoUsuario()
+    {
+        var valor = User.FindFirstValue("tipo") ?? "0";
+        return int.TryParse(valor, out var n) ? (TipoUsuario)n : TipoUsuario.Usuario;
     }
 }

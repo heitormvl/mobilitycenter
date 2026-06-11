@@ -10,8 +10,8 @@
     {
       "name": "frontend",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "src/MobilityCenter.Frontend/MobilityCenter.Frontend.csproj", "--urls", "http://localhost:5200"],
-      "port": 5200
+      "runtimeArgs": ["run", "--project", "src/MobilityCenter.Frontend/MobilityCenter.Frontend.csproj", "--urls", "http://localhost:5293"],
+      "port": 5293
     }
   ]
 }

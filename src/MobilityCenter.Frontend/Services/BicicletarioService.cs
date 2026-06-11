@@ -51,6 +51,93 @@ public class BicicletarioService(HttpClient http)
         }
     }
 
+    public async Task<string?> UpdateAsync(string id, AdminUpdateRequest req)
+    {
+        try
+        {
+            var response = await http.PutAsJsonAsync($"api/bicicletarios/{id}", req);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao atualizar.";
+            }
+            return null;
+        }
+        catch
+        {
+            return "Erro de conexão.";
+        }
+    }
+
+    public async Task<string?> SoftDeleteAsync(string id)
+    {
+        try
+        {
+            var response = await http.DeleteAsync($"api/bicicletarios/{id}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao ocultar.";
+            }
+            return null;
+        }
+        catch
+        {
+            return "Erro de conexão.";
+        }
+    }
+
+    public async Task<string?> HardDeleteAsync(string id)
+    {
+        try
+        {
+            var response = await http.DeleteAsync($"api/bicicletarios/{id}/permanente");
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao excluir.";
+            }
+            return null;
+        }
+        catch
+        {
+            return "Erro de conexão.";
+        }
+    }
+
+    public async Task<string?> UploadFotoAsync(string bicicletarioId, MultipartFormDataContent content)
+    {
+        try
+        {
+            var response = await http.PostAsync($"api/fotos?bicicletarioId={bicicletarioId}", content);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao enviar foto.";
+            }
+            return null;
+        }
+        catch
+        {
+            return "Erro de conexão.";
+        }
+    }
+
+    public async Task<bool> FotoExisteAsync(string bicicletarioId)
+    {
+        try
+        {
+            var response = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, $"api/fotos/bicicletario/{bicicletarioId}"));
+            return response.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
+    public string GetFotoBicicletarioUrl(string bicicletarioId, long? cacheBust = null) =>
+        http.BaseAddress is { } b
+            ? $"{b}api/fotos/bicicletario/{bicicletarioId}{(cacheBust.HasValue ? $"?t={cacheBust}" : "")}"
+            : $"api/fotos/bicicletario/{bicicletarioId}";
+
     private record ApiError(string Message);
     private record CreatedResponse(string Id);
 }
@@ -65,6 +152,18 @@ public class BicicletarioDto
     public double NotaMedia { get; set; }
     public int TotalAvaliacoes { get; set; }
     public int VeiculosSuportados { get; set; }
+
+    public bool TemTomada { get; set; }
+    public bool TemCalibrador { get; set; }
+    public bool TemVestiario { get; set; }
+    public bool TemArmario { get; set; }
+    public bool TemEspacoManutencao { get; set; }
+    public bool TemCadeado { get; set; }
+
+    public bool AcessoLivre { get; set; }
+    public bool AcessoPago { get; set; }
+    public bool AcessoCadastro { get; set; }
+    public bool AcessoMensal { get; set; }
 }
 
 // Matches BicicletarioDetalheDto (full detail with reviews)
@@ -100,6 +199,22 @@ public class AvaliacaoModel
     public int Nota { get; set; }
     public string? Comentario { get; set; }
     public DateTime CriadoEm { get; set; }
+}
+
+// Partial update DTO for admin edits — all fields nullable, send only the section being changed
+public class AdminUpdateRequest
+{
+    public bool? TemTomada           { get; set; }
+    public bool? TemCalibrador       { get; set; }
+    public bool? TemVestiario        { get; set; }
+    public bool? TemArmario          { get; set; }
+    public bool? TemEspacoManutencao { get; set; }
+    public bool? TemCadeado          { get; set; }
+    public bool? AcessoLivre         { get; set; }
+    public bool? AcessoPago          { get; set; }
+    public bool? AcessoCadastro      { get; set; }
+    public bool? AcessoMensal        { get; set; }
+    public int?  VeiculosSuportados  { get; set; }
 }
 
 // Matches CriarBicicletarioDto (Portuguese names)

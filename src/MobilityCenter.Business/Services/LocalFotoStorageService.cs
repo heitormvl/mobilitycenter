@@ -63,4 +63,50 @@ public class LocalFotoStorageService : IFotoStorageService
         Stream stream = File.OpenRead(filePath);
         return Task.FromResult<(Stream, string)?>((stream, "image/webp"));
     }
+
+    public async Task<string> UploadFotoBicicletarioAsync(Guid bicicletarioId, Stream imageStream, string contentType)
+    {
+        using var ms = new MemoryStream();
+        await imageStream.CopyToAsync(ms);
+        var inputBytes = ms.ToArray();
+
+        using var bitmap = SKBitmap.Decode(inputBytes)
+            ?? throw new InvalidOperationException("Não foi possível decodificar a imagem.");
+
+        SKBitmap? resized = null;
+        try
+        {
+            const int maxDim = 1200;
+            if (bitmap.Width > maxDim || bitmap.Height > maxDim)
+            {
+                var scale = Math.Min((float)maxDim / bitmap.Width, (float)maxDim / bitmap.Height);
+                resized = bitmap.Resize(new SKImageInfo((int)(bitmap.Width * scale), (int)(bitmap.Height * scale)), SKFilterQuality.High);
+            }
+
+            var source = resized ?? bitmap;
+            using var skImage = SKImage.FromBitmap(source);
+            using var encoded = skImage.Encode(SKEncodedImageFormat.Webp, 85);
+
+            var dir = Path.Combine(_basePath, "bicicletarios");
+            Directory.CreateDirectory(dir);
+            await File.WriteAllBytesAsync(Path.Combine(dir, $"{bicicletarioId}.webp"), encoded.ToArray());
+
+            return $"/api/fotos/bicicletario/{bicicletarioId}";
+        }
+        finally
+        {
+            resized?.Dispose();
+        }
+    }
+
+    public Task<(Stream stream, string contentType)?> DownloadFotoBicicletarioAsync(Guid bicicletarioId)
+    {
+        var filePath = Path.Combine(_basePath, "bicicletarios", $"{bicicletarioId}.webp");
+
+        if (!File.Exists(filePath))
+            return Task.FromResult<(Stream, string)?>(null);
+
+        Stream stream = File.OpenRead(filePath);
+        return Task.FromResult<(Stream, string)?>((stream, "image/webp"));
+    }
 }

@@ -70,4 +70,59 @@ public class FotoStorageService : IFotoStorageService
         var download = await blob.DownloadStreamingAsync();
         return (download.Value.Content, "image/webp");
     }
+
+    public async Task<string> UploadFotoBicicletarioAsync(Guid bicicletarioId, Stream imageStream, string contentType)
+    {
+        using var ms = new MemoryStream();
+        await imageStream.CopyToAsync(ms);
+        var inputBytes = ms.ToArray();
+
+        using var bitmap = SKBitmap.Decode(inputBytes)
+            ?? throw new InvalidOperationException("Não foi possível decodificar a imagem.");
+
+        SKBitmap? resized = null;
+        try
+        {
+            const int maxDim = 1200;
+            if (bitmap.Width > maxDim || bitmap.Height > maxDim)
+            {
+                var scale = Math.Min((float)maxDim / bitmap.Width, (float)maxDim / bitmap.Height);
+                resized = bitmap.Resize(new SKImageInfo((int)(bitmap.Width * scale), (int)(bitmap.Height * scale)), SKFilterQuality.High);
+            }
+
+            var source = resized ?? bitmap;
+            using var skImage = SKImage.FromBitmap(source);
+            using var encoded = skImage.Encode(SKEncodedImageFormat.Webp, 85);
+            using var output = new MemoryStream(encoded.ToArray());
+
+            const string bicicletariosContainer = "fotos-bicicletarios";
+            var container = _blobService.GetBlobContainerClient(bicicletariosContainer);
+            await container.CreateIfNotExistsAsync(PublicAccessType.None);
+
+            var blob = container.GetBlobClient($"{bicicletarioId}.webp");
+            await blob.UploadAsync(output, new BlobUploadOptions
+            {
+                HttpHeaders = new BlobHttpHeaders { ContentType = "image/webp" }
+            });
+
+            return $"/api/fotos/bicicletario/{bicicletarioId}";
+        }
+        finally
+        {
+            resized?.Dispose();
+        }
+    }
+
+    public async Task<(Stream stream, string contentType)?> DownloadFotoBicicletarioAsync(Guid bicicletarioId)
+    {
+        const string bicicletariosContainer = "fotos-bicicletarios";
+        var container = _blobService.GetBlobContainerClient(bicicletariosContainer);
+        var blob = container.GetBlobClient($"{bicicletarioId}.webp");
+
+        if (!await blob.ExistsAsync())
+            return null;
+
+        var download = await blob.DownloadStreamingAsync();
+        return (download.Value.Content, "image/webp");
+    }
 }

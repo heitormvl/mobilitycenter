@@ -1,24 +1,38 @@
 @page "/"
+@using System.Net
+@using System.Numerics
+@using System.Globalization
 @inject NavigationManager Nav
+@inject BicicletarioService BicicletarioSvc
+@inject IJSRuntime JS
 
-<StatusBar />
-
-<!-- Map full-width -->
+<!-- Map full-width (full-bleed to the top edge; floating controls clear the notch) -->
 <div style="position:relative;">
-    <MapGrid @ref="_map" H="500" />
+    <MapGrid @ref="_map" H="500" OnReady="OnMapReady" OnViewChanged="OnViewChanged" />
 
     <!-- Floating search bar over map -->
-    <div style="position:absolute; top:10px; left:16px; right:16px; z-index:10;">
+    <div style="position:absolute; top:calc(env(safe-area-inset-top, 0px) + 10px); left:16px; right:16px; z-index:10;">
         <div style="background:var(--bg); border-radius:var(--r-xl); box-shadow:var(--shadow-lg); display:flex; align-items:center; gap:10px; padding:0 16px; height:50px;">
             <i class="fa-solid fa-magnifying-glass" style="color:var(--text-4); font-size:14px;"></i>
-            <span style="flex:1; font-size:15px; color:var(--text-4); font-family:var(--font);">Buscar bicicletários...</span>
+            <input value="@_search" @oninput="OnSearchInput" placeholder="Buscar bicicletários..."
+                   style="flex:1; border:none; outline:none; background:transparent; font-size:15px; color:var(--text); font-family:var(--font); min-width:0;" />
+            @if (!string.IsNullOrEmpty(_search))
+            {
+                <i class="fa-solid fa-xmark" style="color:var(--text-4); font-size:14px; cursor:pointer;" @onclick="ClearSearch"></i>
+            }
             <div style="width:1px; height:18px; background:var(--border);"></div>
-            <i class="fa-solid fa-sliders" style="color:var(--brand); font-size:14px;"></i>
+            <div style="position:relative; cursor:pointer;" @onclick="@(() => _showFilters = true)">
+                <i class="fa-solid fa-sliders" style="color:var(--brand); font-size:14px;"></i>
+                @if (ActiveFilterCount > 0)
+                {
+                    <span style="position:absolute; top:-8px; right:-9px; min-width:15px; height:15px; padding:0 3px; border-radius:var(--r-full); background:var(--brand); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; font-family:var(--font);">@ActiveFilterCount</span>
+                }
+            </div>
         </div>
     </div>
 
     <!-- Zoom controls -->
-    <div style="position:absolute; right:16px; top:76px; z-index:10; border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow);">
+    <div style="position:absolute; right:16px; top:calc(env(safe-area-inset-top, 0px) + 76px); z-index:10; border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow);">
         <div @onclick="() => _map!.ZoomInAsync()" style="width:36px; height:36px; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:20px; color:var(--text-2); cursor:pointer; font-weight:300; border-bottom:1px solid var(--border);">+</div>
         <div @onclick="() => _map!.ZoomOutAsync()" style="width:36px; height:36px; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:20px; color:var(--text-2); cursor:pointer; font-weight:300;">−</div>
     </div>
@@ -35,22 +49,314 @@
 
     <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
         <div>
-            <span style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">14 bicicletários</span>
-            <span style="font-size:14px; color:var(--text-3); font-family:var(--font); margin-left:4px;">próximos</span>
+            @if (_isLoading)
+            {
+                <span style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">Carregando...</span>
+            }
+            else if (_loadError != null)
+            {
+                <span style="font-size:15px; font-weight:600; color:var(--text-3); font-family:var(--font);">@_loadError</span>
+            }
+            else
+            {
+                <span style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">@_visibleCount @(_visibleCount == 1 ? "bicicletário" : "bicicletários")</span>
+                <span style="font-size:14px; color:var(--text-3); font-family:var(--font); margin-left:4px;">nesta área</span>
+            }
         </div>
         <span style="font-size:13px; color:var(--brand); font-weight:600; font-family:var(--font); cursor:pointer;" @onclick="@(() => Nav.NavigateTo("/lista"))">Ver lista →</span>
     </div>
 
+    <!-- Quick filters -->
     <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:2px;">
-        <Chip Accent="true" Sm="true"><i class="fa-solid fa-clock" style="font-size:10px;"></i> &lt;0.5 km · 3</Chip>
-        <Chip Sm="true">Com tomada · 6</Chip>
-        <Chip Sm="true">Acesso livre · 9</Chip>
-        <Chip Sm="true">Scooter · 4</Chip>
+        <div @onclick="@(() => _showFilters = true)" style="flex-shrink:0;">
+            <Chip Accent="@(ActiveFilterCount > 0)" Sm="true"><i class="fa-solid fa-sliders" style="font-size:10px;"></i> Filtros@(ActiveFilterCount > 0 ? $" · {ActiveFilterCount}" : "")</Chip>
+        </div>
+        <div @onclick="@(() => ToggleVeiculoAsync(1))" style="flex-shrink:0;"><Chip Accent="@((_selVeiculos & 1) != 0)" Sm="true">Bicicleta</Chip></div>
+        <div @onclick="@(() => ToggleVeiculoAsync(2))" style="flex-shrink:0;"><Chip Accent="@((_selVeiculos & 2) != 0)" Sm="true">Scooter</Chip></div>
+        <div @onclick="@(() => ToggleServiceAsync("tomada"))" style="flex-shrink:0;"><Chip Accent="@_fTomada" Sm="true">Com tomada</Chip></div>
+        <div @onclick="@(() => ToggleAccessAsync("livre"))" style="flex-shrink:0;"><Chip Accent="@_fLivre" Sm="true">Acesso livre</Chip></div>
     </div>
 </div>
+
+<!-- Filter modal -->
+@if (_showFilters)
+{
+    <div @onclick="@(() => _showFilters = false)"
+         style="position:fixed; inset:0; z-index:300; background:rgba(0,0,0,0.4); display:flex; align-items:flex-end; justify-content:center;">
+        <div @onclick:stopPropagation="true"
+             style="background:var(--bg); width:100%; max-width:520px; max-height:85vh; overflow-y:auto; border-radius:var(--r-2xl) var(--r-2xl) 0 0; padding:8px 20px 24px;">
+            <div style="width:32px; height:3px; background:var(--border-2); border-radius:var(--r-full); margin:8px auto 16px;"></div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+                <span style="font-size:19px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">Filtros</span>
+                <span @onclick="ClearFiltersAsync" style="font-size:13px; color:var(--brand); font-weight:600; font-family:var(--font); cursor:pointer;">Limpar tudo</span>
+            </div>
+
+            @* Veículos *@
+            <div style="margin-bottom:20px;">
+                <div style="font-family:var(--font); font-size:11px; font-weight:700; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:10px;">Tipo de veículo</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button @onclick="@(() => ToggleVeiculoAsync(1))" style="@ChipStyle((_selVeiculos & 1) != 0)"><i class="fa-solid fa-bicycle"></i> Bicicleta</button>
+                    <button @onclick="@(() => ToggleVeiculoAsync(2))" style="@ChipStyle((_selVeiculos & 2) != 0)"><i class="fa-solid fa-person-biking"></i> Scooter</button>
+                    <button @onclick="@(() => ToggleVeiculoAsync(4))" style="@ChipStyle((_selVeiculos & 4) != 0)"><i class="fa-solid fa-circle-dot"></i> Monociclo</button>
+                    <button @onclick="@(() => ToggleVeiculoAsync(8))" style="@ChipStyle((_selVeiculos & 8) != 0)"><i class="fa-solid fa-bolt"></i> Patinete</button>
+                </div>
+            </div>
+
+            @* Serviços *@
+            <div style="margin-bottom:20px;">
+                <div style="font-family:var(--font); font-size:11px; font-weight:700; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:10px;">Serviços</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button @onclick="@(() => ToggleServiceAsync("tomada"))" style="@ChipStyle(_fTomada)"><i class="fa-solid fa-plug"></i> Tomada</button>
+                    <button @onclick="@(() => ToggleServiceAsync("calibrador"))" style="@ChipStyle(_fCalibrador)"><i class="fa-solid fa-gauge"></i> Calibrador</button>
+                    <button @onclick="@(() => ToggleServiceAsync("vestiario"))" style="@ChipStyle(_fVestiario)"><i class="fa-solid fa-shirt"></i> Vestiário</button>
+                    <button @onclick="@(() => ToggleServiceAsync("armario"))" style="@ChipStyle(_fArmario)"><i class="fa-solid fa-box"></i> Armário</button>
+                    <button @onclick="@(() => ToggleServiceAsync("manutencao"))" style="@ChipStyle(_fManutencao)"><i class="fa-solid fa-wrench"></i> Manutenção</button>
+                    <button @onclick="@(() => ToggleServiceAsync("cadeado"))" style="@ChipStyle(_fCadeado)"><i class="fa-solid fa-lock"></i> Cadeado</button>
+                </div>
+            </div>
+
+            @* Acesso *@
+            <div style="margin-bottom:20px;">
+                <div style="font-family:var(--font); font-size:11px; font-weight:700; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:10px;">Acesso</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button @onclick="@(() => ToggleAccessAsync("livre"))" style="@ChipStyle(_fLivre)"><i class="fa-solid fa-unlock"></i> Livre</button>
+                    <button @onclick="@(() => ToggleAccessAsync("pago"))" style="@ChipStyle(_fPago)"><i class="fa-solid fa-coins"></i> Pago</button>
+                    <button @onclick="@(() => ToggleAccessAsync("cadastro"))" style="@ChipStyle(_fCadastro)"><i class="fa-solid fa-id-card"></i> Cadastro</button>
+                    <button @onclick="@(() => ToggleAccessAsync("mensal"))" style="@ChipStyle(_fMensal)"><i class="fa-solid fa-calendar"></i> Mensal</button>
+                </div>
+            </div>
+
+            @* Avaliação mínima *@
+            <div style="margin-bottom:24px;">
+                <div style="font-family:var(--font); font-size:11px; font-weight:700; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:10px;">Avaliação mínima</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button @onclick="@(() => SetMinNotaAsync(0))" style="@ChipStyle(_minNota == 0)">Todas</button>
+                    <button @onclick="@(() => SetMinNotaAsync(3))" style="@ChipStyle(_minNota == 3)"><i class="fa-solid fa-star" style="color:var(--gold);"></i> 3+</button>
+                    <button @onclick="@(() => SetMinNotaAsync(4))" style="@ChipStyle(_minNota == 4)"><i class="fa-solid fa-star" style="color:var(--gold);"></i> 4+</button>
+                    <button @onclick="@(() => SetMinNotaAsync(4.5))" style="@ChipStyle(_minNota == 4.5)"><i class="fa-solid fa-star" style="color:var(--gold);"></i> 4,5+</button>
+                </div>
+            </div>
+
+            <BtnP OnClick="@(() => _showFilters = false)">
+                Ver @_filtered.Count @(_filtered.Count == 1 ? "resultado" : "resultados")
+            </BtnP>
+        </div>
+    </div>
+}
 
 <BottomNav Active="mapa" />
 
 @code {
     private MapGrid? _map;
+    private BicicletarioDto[] _all = [];
+    private List<BicicletarioDto> _filtered = [];
+
+    private bool _isLoading = true;
+    private string? _loadError;
+    private bool _mapReady;
+    private bool _dataLoaded;
+    private int _visibleCount;
+
+    // Filter state
+    private bool _showFilters;
+    private string _search = "";
+    private int _selVeiculos;                       // TipoVeiculo bitmask: Bicicleta=1, Scooter=2, Monociclo=4, Patinete=8
+    private bool _fTomada, _fCalibrador, _fVestiario, _fArmario, _fManutencao, _fCadeado;
+    private bool _fLivre, _fPago, _fCadastro, _fMensal;
+    private double _minNota;
+
+    private int ActiveFilterCount =>
+        BitOperations.PopCount((uint)_selVeiculos)
+        + (_fTomada ? 1 : 0) + (_fCalibrador ? 1 : 0) + (_fVestiario ? 1 : 0)
+        + (_fArmario ? 1 : 0) + (_fManutencao ? 1 : 0) + (_fCadeado ? 1 : 0)
+        + (_fLivre ? 1 : 0) + (_fPago ? 1 : 0) + (_fCadastro ? 1 : 0) + (_fMensal ? 1 : 0)
+        + (_minNota > 0 ? 1 : 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        double? lat = null, lng = null;
+        try
+        {
+            var arr = await JS.InvokeAsync<double[]>("mapInterop.getUserLocation");
+            lat = arr[0];
+            lng = arr[1];
+        }
+        catch { /* no geolocation — load without distance filter */ }
+
+        var result = await BicicletarioSvc.GetAllAsync(lat, lng);
+        if (result == null)
+            _loadError = "Não foi possível carregar os bicicletários.";
+        else
+            _all = result;
+
+        _isLoading = false;
+        _dataLoaded = true;
+        await TryRenderMarkersAsync();
+    }
+
+    private async Task OnMapReady()
+    {
+        _mapReady = true;
+        await TryRenderMarkersAsync();
+    }
+
+    private async Task TryRenderMarkersAsync()
+    {
+        if (!_mapReady || !_dataLoaded || _map == null) return;
+        await RenderMarkersAsync();
+    }
+
+    private async Task RenderMarkersAsync()
+    {
+        _filtered = _all.Where(Matches).ToList();
+
+        var markers = _filtered.Select(b => new MapGrid.MapMarker(
+            b.Id, b.Latitude, b.Longitude, b.NotaMedia >= 4.5, BuildPopup(b)));
+
+        await _map!.SetMarkersAsync(markers);
+        await UpdateVisibleCountAsync();
+    }
+
+    private async Task UpdateVisibleCountAsync()
+    {
+        if (_map == null) return;
+        var b = await _map.GetBoundsAsync();
+        _visibleCount = b == null
+            ? _filtered.Count
+            : _filtered.Count(x => x.Latitude >= b.South && x.Latitude <= b.North
+                                && x.Longitude >= b.West && x.Longitude <= b.East);
+        StateHasChanged();
+    }
+
+    private async Task OnViewChanged() => await UpdateVisibleCountAsync();
+
+    // ─── Filter predicate ────────────────────────────────────────────────────
+    private bool Matches(BicicletarioDto b)
+    {
+        if (!string.IsNullOrWhiteSpace(_search)
+            && !b.Nome.Contains(_search, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (_selVeiculos != 0 && (b.VeiculosSuportados & _selVeiculos) == 0)
+            return false;
+
+        if (_fTomada && !b.TemTomada) return false;
+        if (_fCalibrador && !b.TemCalibrador) return false;
+        if (_fVestiario && !b.TemVestiario) return false;
+        if (_fArmario && !b.TemArmario) return false;
+        if (_fManutencao && !b.TemEspacoManutencao) return false;
+        if (_fCadeado && !b.TemCadeado) return false;
+
+        if (_fLivre || _fPago || _fCadastro || _fMensal)
+        {
+            var ok = (_fLivre && b.AcessoLivre) || (_fPago && b.AcessoPago)
+                  || (_fCadastro && b.AcessoCadastro) || (_fMensal && b.AcessoMensal);
+            if (!ok) return false;
+        }
+
+        if (b.NotaMedia < _minNota) return false;
+
+        return true;
+    }
+
+    // ─── Filter toggles (each re-renders markers) ────────────────────────────
+    private async Task ToggleVeiculoAsync(int bit)
+    {
+        _selVeiculos ^= bit;
+        await RenderMarkersAsync();
+    }
+
+    private async Task ToggleServiceAsync(string key)
+    {
+        switch (key)
+        {
+            case "tomada": _fTomada = !_fTomada; break;
+            case "calibrador": _fCalibrador = !_fCalibrador; break;
+            case "vestiario": _fVestiario = !_fVestiario; break;
+            case "armario": _fArmario = !_fArmario; break;
+            case "manutencao": _fManutencao = !_fManutencao; break;
+            case "cadeado": _fCadeado = !_fCadeado; break;
+        }
+        await RenderMarkersAsync();
+    }
+
+    private async Task ToggleAccessAsync(string key)
+    {
+        switch (key)
+        {
+            case "livre": _fLivre = !_fLivre; break;
+            case "pago": _fPago = !_fPago; break;
+            case "cadastro": _fCadastro = !_fCadastro; break;
+            case "mensal": _fMensal = !_fMensal; break;
+        }
+        await RenderMarkersAsync();
+    }
+
+    private async Task SetMinNotaAsync(double n)
+    {
+        _minNota = n;
+        await RenderMarkersAsync();
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        if (_mapReady && _dataLoaded) await RenderMarkersAsync();
+    }
+
+    private async Task ClearSearch()
+    {
+        _search = "";
+        if (_mapReady && _dataLoaded) await RenderMarkersAsync();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _selVeiculos = 0;
+        _fTomada = _fCalibrador = _fVestiario = _fArmario = _fManutencao = _fCadeado = false;
+        _fLivre = _fPago = _fCadastro = _fMensal = false;
+        _minNota = 0;
+        await RenderMarkersAsync();
+    }
+
+    // ─── Popup HTML ──────────────────────────────────────────────────────────
+    private static string BuildPopup(BicicletarioDto b)
+    {
+        var name = WebUtility.HtmlEncode(b.Nome);
+        var full = (int)Math.Round(b.NotaMedia);
+        var stars = new string('★', full) + new string('☆', 5 - full);
+        var ratingTxt = b.TotalAvaliacoes > 0
+            ? $"{b.NotaMedia.ToString("F1", CultureInfo.InvariantCulture).Replace('.', ',')} · {b.TotalAvaliacoes} {(b.TotalAvaliacoes == 1 ? "avaliação" : "avaliações")}"
+            : "Sem avaliações";
+
+        var chips = new List<string>(5);
+        if ((b.VeiculosSuportados & 1) != 0) chips.Add(Chip("fa-bicycle", "Bike"));
+        if ((b.VeiculosSuportados & 2) != 0) chips.Add(Chip("fa-person-biking", "Scooter"));
+        if ((b.VeiculosSuportados & 4) != 0) chips.Add(Chip("fa-circle-dot", "Mono"));
+        if ((b.VeiculosSuportados & 8) != 0) chips.Add(Chip("fa-bolt", "Patinete"));
+        if (b.AcessoLivre) chips.Add(Chip("fa-unlock", "Livre"));
+        else if (b.AcessoPago) chips.Add(Chip("fa-coins", "Pago"));
+        if (b.TemTomada) chips.Add(Chip("fa-plug", "Tomada"));
+        var chipsHtml = string.Concat(chips.Take(4));
+
+        return $@"<div class=""mc-pop"">
+            <div class=""mc-pop-title"">{name}</div>
+            <div class=""mc-pop-rating""><span class=""mc-pop-stars"">{stars}</span><span class=""mc-pop-rating-txt"">{ratingTxt}</span></div>
+            <div class=""mc-pop-chips"">{chipsHtml}</div>
+            <a href=""/bicicletario/{b.Id}"" class=""mc-pop-link"">Ver detalhes <i class=""fa-solid fa-arrow-right""></i></a>
+        </div>";
+    }
+
+    private static string Chip(string icon, string label) =>
+        $@"<span class=""mc-pop-chip""><i class=""fa-solid {icon}""></i>{WebUtility.HtmlEncode(label)}</span>";
+
+    // ─── Filter chip button style ────────────────────────────────────────────
+    private static string ChipStyle(bool active) =>
+        "display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:500; padding:8px 14px; "
+        + "border-radius:var(--r-full); font-family:var(--font); cursor:pointer; -webkit-appearance:none; "
+        + $"border:1px solid {(active ? "var(--brand)" : "var(--border)")}; "
+        + $"background:{(active ? "var(--brand-soft)" : "var(--bg-page)")}; "
+        + $"color:{(active ? "var(--brand)" : "var(--text-3)")}; "
+        + $"font-weight:{(active ? "600" : "500")};";
 }

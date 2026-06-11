@@ -6,6 +6,7 @@
 @inject IConfiguration Config
 
 <div style="min-height:100vh; display:flex; flex-direction:column; background:linear-gradient(160deg, var(--brand) 0%, var(--brand-dark) 100%);">
+
     <StatusBar />
 
     <!-- Hero -->
@@ -193,7 +194,7 @@
         var erro = await AuthService.LoginAsync(_email, _password);
 
         if (erro is null)
-            Nav.NavigateTo("/");
+            Nav.NavigateTo(Destination);
         else
             _error = erro;
 
@@ -216,7 +217,7 @@
         var erro = await AuthService.RegisterAsync(_displayName, _email, _password);
 
         if (erro is null)
-            Nav.NavigateTo("/");
+            Nav.NavigateTo(Destination);
         else
             _error = erro;
 
