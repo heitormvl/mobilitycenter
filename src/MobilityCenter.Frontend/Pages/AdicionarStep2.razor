@@ -2,6 +2,8 @@
 @layout AdicionarLayout
 @inject NavigationManager Nav
 @inject AuthService AuthService
+@inject AdicionarStateService AdicionarState
+@using Microsoft.AspNetCore.Components.Forms
 
 <div class="@_slideClass">
 
@@ -75,6 +77,42 @@ else
             </div>
         </div>
 
+        <!-- Foto -->
+        <div>
+            <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">
+                Foto <span style="color:var(--text-4); font-weight:400;">(opcional)</span>
+            </label>
+            <label for="fotoInput" style="cursor:pointer; display:block;">
+                <div style="border:1.5px dashed var(--border-2); border-radius:var(--r-lg); overflow:hidden; height:160px; display:flex; align-items:center; justify-content:center; background:var(--bg-page); position:relative;">
+                    @if (_fotoPreview != null)
+                    {
+                        <img src="@_fotoPreview" alt="Preview"
+                             style="width:100%; height:100%; object-fit:cover;" />
+                        <button type="button" @onclick:stopPropagation="true" @onclick="RemoverFoto"
+                                style="position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(0,0,0,0.5); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                            <i class="fa-solid fa-xmark" style="color:white; font-size:12px;"></i>
+                        </button>
+                    }
+                    else
+                    {
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--text-4);">
+                            <i class="fa-solid fa-camera" style="font-size:24px;"></i>
+                            <span style="font-size:13px; font-family:var(--font);">Toque para adicionar uma foto</span>
+                        </div>
+                    }
+                </div>
+            </label>
+            <InputFile id="fotoInput" OnChange="OnFotoSelecionada"
+                       accept="image/webp,image/png,image/jpeg"
+                       style="display:none;" />
+            @if (_fotoError != null)
+            {
+                <div style="font-size:12px; color:var(--red); margin-top:6px; font-family:var(--font);">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>@_fotoError
+                </div>
+            }
+        </div>
+
     </div>
 </div>
 
@@ -102,6 +140,8 @@ else
     private string? _nameError;
     private bool _isAuthenticated;
     private string _slideClass = "";
+    private string? _fotoPreview;
+    private string? _fotoError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -109,6 +149,48 @@ else
         Layout.SetNext("Próximo →", GoNext);
         var user = await AuthService.GetUserInfoAsync();
         _isAuthenticated = user is not null;
+
+        if (AdicionarState.HasFoto)
+            _fotoPreview = $"data:{AdicionarState.FotoContentType};base64,{Convert.ToBase64String(AdicionarState.FotoBytes!)}";
+    }
+
+    private async Task OnFotoSelecionada(InputFileChangeEventArgs e)
+    {
+        _fotoError = null;
+        var file = e.File;
+
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            _fotoError = "A foto deve ter no máximo 5 MB.";
+            return;
+        }
+
+        var tiposPermitidos = new[] { "image/webp", "image/png", "image/jpeg" };
+        if (!tiposPermitidos.Contains(file.ContentType.ToLowerInvariant()))
+        {
+            _fotoError = "Use WEBP, PNG ou JPG.";
+            return;
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            var buffer = new byte[file.Size];
+            await stream.ReadExactlyAsync(buffer);
+            AdicionarState.FotoBytes = buffer;
+            AdicionarState.FotoContentType = file.ContentType;
+            _fotoPreview = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+        }
+        catch
+        {
+            _fotoError = "Não foi possível ler o arquivo.";
+        }
+    }
+
+    private void RemoverFoto()
+    {
+        AdicionarState.ClearFoto();
+        _fotoPreview = null;
     }
 
     private Task GoNext()

@@ -28,6 +28,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<BicicletarioService>();
 builder.Services.AddScoped<ToastService>();
 builder.Services.AddScoped<AvaliacaoService>();
+builder.Services.AddScoped<AdicionarStateService>();
 
 builder.Services.AddHttpClient("geocoder", client =>
 {

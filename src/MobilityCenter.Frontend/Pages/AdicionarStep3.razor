@@ -4,6 +4,8 @@
 @inject BicicletarioService BicicletarioSvc
 @inject AuthService AuthService
 @inject ToastService ToastSvc
+@inject AdicionarStateService AdicionarState
+@using System.Net.Http.Headers
 
 <div class="@_slideClass">
 
@@ -118,13 +120,26 @@ else
     private async Task PublishAsync()
     {
         _publishError = null;
-        var (error, _) = await BicicletarioSvc.CreateAsync(BuildRequest());
+        var (error, id) = await BicicletarioSvc.CreateAsync(BuildRequest());
         if (error != null)
         {
             _publishError = error;
             StateHasChanged();
             return;
         }
+
+        if (AdicionarState.HasFoto && id is not null)
+        {
+            using var ms = new MemoryStream(AdicionarState.FotoBytes!);
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(ms);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(AdicionarState.FotoContentType!);
+            var ext = AdicionarState.FotoContentType switch { "image/webp" => ".webp", "image/png" => ".png", _ => ".jpg" };
+            content.Add(fileContent, "foto", $"foto{ext}");
+            await BicicletarioSvc.UploadFotoAsync(id, content);
+            AdicionarState.ClearFoto();
+        }
+
         ToastSvc.Show("Bicicletário publicado com sucesso!");
         Nav.NavigateTo("/", forceLoad: false);
     }
