@@ -1,3 +1,43 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject IJSRuntime JS
+@inject NavigationManager Nav
 
-@Body
+<div id="page-host">
+    @Body
+</div>
+
+@{var activeTab = GetActiveTab();}
+@if (activeTab != "")
+{
+    <BottomNav Active="@activeTab" />
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? _, LocationChangedEventArgs __)
+        => StateHasChanged();
+
+    public void Dispose()
+        => Nav.LocationChanged -= OnLocationChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("navTransition.onPageRender");
+    }
+
+    private string GetActiveTab()
+    {
+        var path = new Uri(Nav.Uri).AbsolutePath;
+        if (path == "/") return "mapa";
+        if (path.StartsWith("/lista"))          return "lista";
+        if (path.StartsWith("/bicicletario"))   return "lista";
+        if (path.StartsWith("/perfil"))         return "perfil";
+        if (path.StartsWith("/configuracoes"))  return "perfil";
+        return "";
+    }
+}

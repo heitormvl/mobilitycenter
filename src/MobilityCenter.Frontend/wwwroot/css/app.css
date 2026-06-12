@@ -176,8 +176,26 @@ html, body {
 }
 
 #app {
+    position: relative;
     min-height: 100vh;
     background: var(--bg-page);
+    overflow: hidden;
+}
+
+/* ── Navbar page transitions ─────────────────────────────── */
+#page-host[data-nav-enter="rtl"] {
+    animation: navFromRight 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+#page-host[data-nav-enter="ltr"] {
+    animation: navFromLeft  0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@keyframes navFromRight {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0);    }
+}
+@keyframes navFromLeft {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(0);     }
 }
 
 /* Splash */
@@ -321,10 +339,10 @@ input:focus, textarea:focus {
 /* ── Map popups ──────────────────────────────────────────────── */
 .mc-popup .leaflet-popup-content-wrapper {
     border-radius: 18px; box-shadow: var(--shadow-lg);
-    padding: 0; overflow: hidden;
+    padding: 0; overflow: hidden; background: var(--bg);
 }
 .mc-popup .leaflet-popup-content { margin: 0; }
-.mc-popup .leaflet-popup-tip { box-shadow: var(--shadow-lg); }
+.mc-popup .leaflet-popup-tip { box-shadow: var(--shadow-lg); background: var(--bg); }
 .mc-popup a.leaflet-popup-close-button {
     top: 14px; right: 14px; width: 26px; height: 26px; padding: 0;
     display: flex; align-items: center; justify-content: center;

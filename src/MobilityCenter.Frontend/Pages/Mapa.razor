@@ -78,12 +78,33 @@
     </div>
 </div>
 
+<style>
+    .filter-backdrop {
+        animation: fltrFadeIn 0.28s ease both;
+    }
+    .filter-backdrop--out {
+        animation: fltrFadeOut 0.22s ease both;
+    }
+    .filter-sheet {
+        animation: fltrSlideUp 0.38s cubic-bezier(0.32, 0.72, 0, 1) both;
+    }
+    .filter-sheet--out {
+        animation: fltrSlideDown 0.22s cubic-bezier(0.32, 0.72, 0, 1) both;
+    }
+    @@keyframes fltrFadeIn   { from { opacity:0; } to { opacity:1; } }
+    @@keyframes fltrFadeOut  { from { opacity:1; } to { opacity:0; } }
+    @@keyframes fltrSlideUp  { from { transform:translateY(100%); } to { transform:translateY(0); } }
+    @@keyframes fltrSlideDown{ from { transform:translateY(0); }    to { transform:translateY(100%); } }
+</style>
+
 <!-- Filter modal -->
-@if (_showFilters)
+@if (_showFilters || _closingFilters)
 {
-    <div @onclick="@(() => _showFilters = false)"
+    <div @onclick="CloseFilters"
+         class="@(_closingFilters ? "filter-backdrop filter-backdrop--out" : "filter-backdrop")"
          style="position:fixed; inset:0; z-index:300; background:rgba(0,0,0,0.4); display:flex; align-items:flex-end; justify-content:center;">
         <div @onclick:stopPropagation="true"
+             class="@(_closingFilters ? "filter-sheet filter-sheet--out" : "filter-sheet")"
              style="background:var(--bg); width:100%; max-width:520px; max-height:85vh; overflow-y:auto; border-radius:var(--r-2xl) var(--r-2xl) 0 0; padding:8px 20px 24px;">
             <div style="width:32px; height:3px; background:var(--border-2); border-radius:var(--r-full); margin:8px auto 16px;"></div>
 
@@ -138,14 +159,12 @@
                 </div>
             </div>
 
-            <BtnP OnClick="@(() => _showFilters = false)">
+            <BtnP OnClick="CloseFilters">
                 Ver @_filtered.Count @(_filtered.Count == 1 ? "resultado" : "resultados")
             </BtnP>
         </div>
     </div>
 }
-
-<BottomNav Active="mapa" />
 
 @code {
     private MapGrid? _map;
@@ -160,6 +179,7 @@
 
     // Filter state
     private bool _showFilters;
+    private bool _closingFilters;
     private string _search = "";
     private int _selVeiculos;                       // TipoVeiculo bitmask: Bicicleta=1, Scooter=2, Monociclo=4, Patinete=8
     private bool _fTomada, _fCalibrador, _fVestiario, _fArmario, _fManutencao, _fCadeado;
@@ -309,6 +329,16 @@
     {
         _search = "";
         if (_mapReady && _dataLoaded) await RenderMarkersAsync();
+    }
+
+    private async Task CloseFilters()
+    {
+        if (_closingFilters) return;
+        _closingFilters = true;
+        StateHasChanged();
+        await Task.Delay(240);
+        _showFilters = false;
+        _closingFilters = false;
     }
 
     private async Task ClearFiltersAsync()

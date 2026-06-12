@@ -1,4 +1,5 @@
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <div style="position:absolute; bottom:0; left:0; right:0; background:var(--nav-bg); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-around; padding:8px 8px 20px; font-family:var(--font);">
     @foreach (var item in _items)
@@ -6,7 +7,7 @@
         var on = item.Id == Active;
         if (item.Fab)
         {
-            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;" @onclick="@(() => Nav.NavigateTo(item.Route))">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;" @onclick="@(() => NavigateTo(item.Id, item.Route))">
                 <div style="width:50px; height:50px; border-radius:var(--r-full); background:var(--brand); display:flex; align-items:center; justify-content:center; color:white; margin-top:-26px; box-shadow:var(--shadow-lg), 0 0 0 4px var(--bg-page);">
                     <i class="fa-solid @item.Icon" style="font-size:19px;"></i>
                 </div>
@@ -15,7 +16,7 @@
         }
         else
         {
-            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:0 14px;" @onclick="@(() => Nav.NavigateTo(item.Route))">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:0 14px;" @onclick="@(() => NavigateTo(item.Id, item.Route))">
                 <i class="fa-solid @item.Icon" style="font-size:21px; color:@(on ? "var(--brand)" : "var(--text-4)");"></i>
                 <span style="font-size:10px; color:@(on ? "var(--brand)" : "var(--text-4)"); font-weight:@(on ? "600" : "400"); letter-spacing:0.01em;">@item.Label</span>
             </div>
@@ -33,4 +34,11 @@
         ("add",    "fa-plus",             "Adicionar", true,  "/adicionar"),
         ("perfil", "fa-user",             "Perfil",    false, "/perfil"),
     ];
+
+    private async Task NavigateTo(string targetId, string route)
+    {
+        if (targetId == Active) return;
+        await JS.InvokeVoidAsync("navTransition.prepare", Active, targetId);
+        Nav.NavigateTo(route);
+    }
 }

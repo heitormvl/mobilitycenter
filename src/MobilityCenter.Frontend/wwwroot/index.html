@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script>
         (function() {
-            var saved = localStorage.getItem('theme');
+            var saved = localStorage.getItem('tema');
             if (saved === 'dark' || saved === 'light') {
                 document.getElementById('html-root').setAttribute('data-theme', saved);
             }
@@ -43,6 +43,7 @@
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://accounts.google.com/gsi/client" async></script>
+    <script src="js/navTransition.js"></script>
     <script src="js/fotoCropper.js"></script>
     <script src="js/mapInterop.js"></script>
     <script src="js/googleAuth.js"></script>

@@ -43,7 +43,7 @@
     <StatusBar />
     <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 20px 14px;">
         <h1 style="font-size:24px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em;">Perfil</h1>
-        <button @onclick="@(() => Nav.NavigateTo("/configuracoes"))" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+        <button @onclick="@(() => _showConfig = true)" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
             <i class="fa-solid fa-gear" style="color:var(--text-3); font-size:15px;"></i>
         </button>
     </div>
@@ -112,9 +112,14 @@
     }
 </div>
 
-<BottomNav Active="perfil" />
+@if (_showConfig)
+{
+    <ConfiguracoesSheet User="_user" OnClose="@(() => _showConfig = false)" />
+}
+
 
 @code {
+    private bool _showConfig;
     private UserInfo? _user;
     private int _totalAvaliacoes;
     private int _totalAdicionados;

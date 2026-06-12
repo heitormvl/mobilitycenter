@@ -1,6 +1,20 @@
 @page "/configuracoes"
 @inject NavigationManager Nav
 @inject AuthService AuthService
+@inject LocalStorageService LocalStorage
+@inject IJSRuntime JS
+
+<style>
+    .configuracoes-page {
+        animation: cfgPageIn 0.38s cubic-bezier(0.32, 0.72, 0, 1) both;
+    }
+    @@keyframes cfgPageIn {
+        from { transform: translateY(100%); opacity: 0; }
+        to   { transform: translateY(0);    opacity: 1; }
+    }
+</style>
+
+<div class="configuracoes-page" style="display:flex; flex-direction:column; min-height:100%;">
 
 <!-- Header -->
 <div style="background:var(--bg); border-bottom:1px solid var(--border);">
@@ -14,13 +28,30 @@
     </div>
 </div>
 
-<div style="padding:20px 20px 88px; overflow-y:auto;">
+<div style="padding:20px 20px 88px; overflow-y:auto; flex:1;">
     @if (_loading)
     {
         <div style="text-align:center; padding:40px; color:var(--text-4); font-family:var(--font);">Carregando...</div>
     }
     else
     {
+        <!-- Aparência -->
+        <SecLabel>Aparência</SecLabel>
+        <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:16px 20px; margin:8px 0 24px; box-shadow:var(--shadow-sm);">
+            <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0 0 12px;">Escolha o tema da interface</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                @foreach (var opt in _temaOpcoes)
+                {
+                    var ativo = _tema == opt.Value;
+                    <button @onclick="@(() => AplicarTema(opt.Value))"
+                            style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 8px; border-radius:var(--r-lg); border:2px solid @(ativo ? "var(--brand)" : "var(--border)"); background:@(ativo ? "var(--brand-soft)" : "var(--bg-page)"); cursor:pointer; transition:all .15s;">
+                        <i class="fa-solid @opt.Icon" style="font-size:18px; color:@(ativo ? "var(--brand)" : "var(--text-3)");"></i>
+                        <span style="font-size:12px; font-weight:@(ativo ? "700" : "500"); color:@(ativo ? "var(--brand)" : "var(--text-3)"); font-family:var(--font);">@opt.Label</span>
+                    </button>
+                }
+            </div>
+        </div>
+
         <!-- Dados da conta -->
         <SecLabel>Dados da conta</SecLabel>
         <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; margin:8px 0 24px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:16px;">
@@ -87,11 +118,22 @@
     }
 </div>
 
-<BottomNav Active="perfil" />
+</div><!-- /configuracoes-page -->
+
 
 @code {
     private UserInfo? _user;
     private bool _loading = true;
+
+    private string _tema = "system";
+
+    private record TemaOpcao(string Value, string Label, string Icon);
+    private readonly TemaOpcao[] _temaOpcoes =
+    [
+        new("light",  "Claro",   "fa-sun"),
+        new("system", "Sistema", "fa-circle-half-stroke"),
+        new("dark",   "Escuro",  "fa-moon"),
+    ];
 
     private string _nome = "";
     private string _email = "";
@@ -117,7 +159,26 @@
 
         _nome = _user.DisplayName;
         _email = _user.Email;
+
+        _tema = await LocalStorage.GetItemAsync("tema") ?? "system";
+        await AplicarTemaNoDocumento(_tema);
+
         _loading = false;
+    }
+
+    private async Task AplicarTema(string valor)
+    {
+        _tema = valor;
+        await LocalStorage.SetItemAsync("tema", valor);
+        await AplicarTemaNoDocumento(valor);
+    }
+
+    private async Task AplicarTemaNoDocumento(string valor)
+    {
+        if (valor == "system")
+            await JS.InvokeVoidAsync("document.documentElement.removeAttribute", "data-theme");
+        else
+            await JS.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", valor);
     }
 
     private async Task SalvarDados()
