@@ -21,6 +21,20 @@ public class BicicletariosController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Listar([FromQuery] BicicletarioFiltros filtros)
     {
+        filtros.IncluirOcultas = false;
+        var resultado = await _bicicletarioService.ListarAsync(filtros);
+        return Ok(resultado);
+    }
+
+    [HttpGet("admin")]
+    [Authorize]
+    public async Task<IActionResult> ListarAdmin([FromQuery] BicicletarioFiltros filtros)
+    {
+        var tipo = ObterTipoUsuario();
+        if (tipo != TipoUsuario.Admin)
+            return Forbid();
+
+        filtros.IncluirOcultas = true;
         var resultado = await _bicicletarioService.ListarAsync(filtros);
         return Ok(resultado);
     }
@@ -64,6 +78,15 @@ public class BicicletariosController : ControllerBase
         return NoContent();
     }
 
+    [HttpPatch("{id:guid}/restaurar")]
+    [Authorize]
+    public async Task<IActionResult> Restaurar(Guid id)
+    {
+        var tipo = ObterTipoUsuario();
+        await _bicicletarioService.RestaurarAsync(id, tipo);
+        return NoContent();
+    }
+
     [HttpDelete("{id:guid}/permanente")]
     [Authorize]
     public async Task<IActionResult> DeletarPermanente(Guid id)
@@ -85,5 +108,12 @@ public class BicicletariosController : ControllerBase
     {
         var valor = User.FindFirstValue("tipo") ?? "0";
         return int.TryParse(valor, out var n) ? (TipoUsuario)n : TipoUsuario.Usuario;
+    }
+
+    private TipoUsuario? ObterTipoUsuarioOuNulo()
+    {
+        var valor = User.FindFirstValue("tipo");
+        if (valor == null) return null;
+        return int.TryParse(valor, out var n) ? (TipoUsuario)n : null;
     }
 }

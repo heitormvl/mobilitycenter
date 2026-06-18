@@ -1,6 +1,7 @@
 @page "/lista"
 @inject NavigationManager Nav
 @inject BicicletarioService BicicletarioSvc
+@inject AuthService AuthSvc
 @inject IJSRuntime JS
 
 <!-- Header -->
@@ -9,6 +10,14 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
         <h1 style="font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.03em; font-family:var(--font);">Bicicletários</h1>
         <div style="display:flex; gap:14px; align-items:center;">
+            @if (_isAdmin)
+            {
+                <button @onclick="ToggleOcultas"
+                        style="display:flex; align-items:center; gap:5px; padding:5px 10px; border-radius:var(--r-full); border:1px solid @(_showHidden ? "var(--brand)" : "var(--border)"); background:@(_showHidden ? "var(--brand-soft)" : "var(--bg)"); cursor:pointer; font-size:12px; font-family:var(--font); font-weight:600; color:@(_showHidden ? "var(--brand)" : "var(--text-3)"); transition:all .15s;">
+                    <i class="fa-solid @(_showHidden ? "fa-eye" : "fa-eye-slash")" style="font-size:11px;"></i>
+                    Ocultas
+                </button>
+            }
             <i class="fa-solid fa-map" style="color:var(--brand); font-size:19px; cursor:pointer;" @onclick="@(() => Nav.NavigateTo("/"))"></i>
         </div>
     </div>
@@ -82,10 +91,16 @@
             var chips = GetChips(item);
             var dist = _hasLocation ? FormatDist(HaversineDist(_userLat, _userLng, item.Latitude, item.Longitude)) : "";
 
-            <div style="background:var(--bg); border-radius:var(--r-lg); padding:16px; border:1px solid var(--border); box-shadow:var(--shadow-sm); cursor:pointer;"
+            <div style="background:var(--bg); border-radius:var(--r-lg); padding:16px; border:1px solid @(item.IsDeleted ? "var(--border-2)" : "var(--border)"); box-shadow:var(--shadow-sm); cursor:pointer; opacity:@(item.IsDeleted ? "0.65" : "1");"
                  @onclick="@(() => Nav.NavigateTo($"/bicicletario/{id}"))">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                    <span style="font-size:15px; font-weight:600; color:var(--text); font-family:var(--font); letter-spacing:-0.01em;">@item.Nome</span>
+                    <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+                        <span style="font-size:15px; font-weight:600; color:var(--text); font-family:var(--font); letter-spacing:-0.01em;">@item.Nome</span>
+                        @if (item.IsDeleted)
+                        {
+                            <span style="font-size:10px; font-weight:700; font-family:var(--font); background:#f3e8e8; color:#b91c1c; padding:2px 7px; border-radius:var(--r-full); letter-spacing:.02em;">OCULTO</span>
+                        }
+                    </div>
                     @if (!string.IsNullOrEmpty(dist))
                     {
                         <div style="display:flex; align-items:center; gap:4px; background:var(--bg-page); padding:3px 8px; border-radius:var(--r-full); flex-shrink:0; margin-left:8px;">
@@ -123,21 +138,36 @@
     private double _userLat;
     private double _userLng;
     private bool _hasLocation;
+    private bool _isAdmin;
+    private bool _showHidden;
 
     protected override async Task OnInitializedAsync()
     {
+        var userInfo = await AuthSvc.GetUserInfoAsync();
+        _isAdmin = userInfo?.Type == 2;
+
         try
         {
-            var arr = await JS.InvokeAsync<double[]>("mapInterop.getUserLocation");
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var arr = await JS.InvokeAsync<double[]>("mapInterop.getUserLocation", cts.Token);
             _userLat = arr[0];
             _userLng = arr[1];
             _hasLocation = true;
         }
         catch { }
 
+        await CarregarAsync();
+    }
+
+    private async Task CarregarAsync()
+    {
+        _isLoading = true;
+        _loadError = null;
+
         var result = await BicicletarioSvc.GetAllAsync(
             _hasLocation ? _userLat : null,
-            _hasLocation ? _userLng : null);
+            _hasLocation ? _userLng : null,
+            incluirOcultas: _showHidden);
 
         if (result == null)
             _loadError = "Não foi possível carregar os bicicletários.";
@@ -145,6 +175,12 @@
             _allItems = result;
 
         _isLoading = false;
+    }
+
+    private async Task ToggleOcultas()
+    {
+        _showHidden = !_showHidden;
+        await CarregarAsync();
     }
 
     private IEnumerable<BicicletarioDto> Filtered

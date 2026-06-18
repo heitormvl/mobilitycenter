@@ -5,11 +5,12 @@ namespace MobilityCenter.Frontend.Services;
 
 public class BicicletarioService(HttpClient http)
 {
-    public async Task<BicicletarioDto[]?> GetAllAsync(double? lat = null, double? lng = null)
+    public async Task<BicicletarioDto[]?> GetAllAsync(double? lat = null, double? lng = null, bool incluirOcultas = false)
     {
         try
         {
-            var url = "api/bicicletarios?take=100";
+            var baseRoute = incluirOcultas ? "api/bicicletarios/admin" : "api/bicicletarios";
+            var url = $"{baseRoute}?take=100";
             if (lat.HasValue && lng.HasValue)
                 url += $"&latitude={lat.Value.ToString(CultureInfo.InvariantCulture)}&longitude={lng.Value.ToString(CultureInfo.InvariantCulture)}&radiusKm=50";
             return await http.GetFromJsonAsync<BicicletarioDto[]>(url);
@@ -60,6 +61,24 @@ public class BicicletarioService(HttpClient http)
             {
                 var err = await response.Content.ReadFromJsonAsync<ApiError>();
                 return err?.Message ?? "Erro ao atualizar.";
+            }
+            return null;
+        }
+        catch
+        {
+            return "Erro de conexão.";
+        }
+    }
+
+    public async Task<string?> RestaurarAsync(string id)
+    {
+        try
+        {
+            var response = await http.PatchAsync($"api/bicicletarios/{id}/restaurar", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao restaurar.";
             }
             return null;
         }
@@ -164,6 +183,7 @@ public class BicicletarioDto
     public bool AcessoPago { get; set; }
     public bool AcessoCadastro { get; set; }
     public bool AcessoMensal { get; set; }
+    public bool IsDeleted { get; set; }
 }
 
 // Matches BicicletarioDetalheDto (full detail with reviews)
@@ -189,6 +209,7 @@ public class BicicletarioDetalheModel
     public double NotaMedia { get; set; }
     public AvaliacaoModel[] Avaliacoes { get; set; } = [];
     public DateTime CriadoEm { get; set; }
+    public bool IsDeleted { get; set; }
 }
 
 public class AvaliacaoModel

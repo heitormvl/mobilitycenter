@@ -27,6 +27,7 @@ builder.Services.AddScoped(sp =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<BicicletarioService>();
 builder.Services.AddScoped<ToastService>();
+builder.Services.AddScoped<ConfirmService>();
 builder.Services.AddScoped<AvaliacaoService>();
 builder.Services.AddScoped<AdicionarStateService>();
 

@@ -11,5 +11,6 @@ public interface IBicicletarioService
     Task<BicicletarioDetalheDto> CriarAsync(CriarBicicletarioDto dto, Guid usuarioId);
     Task<ResultadoAtualizacaoDto> AtualizarAsync(Guid id, AtualizarBicicletarioDto dto, Guid usuarioId);
     Task DeletarAsync(Guid id, Guid usuarioId, TipoUsuario tipoUsuario);
+    Task RestaurarAsync(Guid id, TipoUsuario tipoUsuario);
     Task DeletarPermanenteAsync(Guid id, Guid usuarioId, TipoUsuario tipoUsuario);
 }

@@ -21,7 +21,9 @@ public class BicicletarioService : IBicicletarioService
 
     public async Task<IEnumerable<BicicletarioResumoDto>> ListarAsync(BicicletarioFiltros filtros)
     {
-        var query = _db.Bicicletarios.AsQueryable();
+        var query = filtros.IncluirOcultas
+            ? _db.Bicicletarios.IgnoreQueryFilters().AsQueryable()
+            : _db.Bicicletarios.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(filtros.Q))
             query = query.Where(b => b.Nome.Contains(filtros.Q));
@@ -83,7 +85,8 @@ public class BicicletarioService : IBicicletarioService
                 AcessoLivre = b.AcessoLivre,
                 AcessoPago = b.AcessoPago,
                 AcessoCadastro = b.AcessoCadastro,
-                AcessoMensal = b.AcessoMensal
+                AcessoMensal = b.AcessoMensal,
+                IsDeleted = b.Deletado
             })
             .ToListAsync();
     }
@@ -91,6 +94,7 @@ public class BicicletarioService : IBicicletarioService
     public async Task<BicicletarioDetalheDto> ObterPorIdAsync(Guid id)
     {
         var b = await _db.Bicicletarios
+            .IgnoreQueryFilters()
             .Include(b => b.Avaliacoes).ThenInclude(a => a.Usuario)
             .Include(b => b.Operador)
             .FirstOrDefaultAsync(b => b.Id == id)
@@ -220,6 +224,20 @@ public class BicicletarioService : IBicicletarioService
         await _db.SaveChangesAsync();
     }
 
+    public async Task RestaurarAsync(Guid id, TipoUsuario tipoUsuario)
+    {
+        if (tipoUsuario != TipoUsuario.Admin)
+            throw new UnauthorizedException("Apenas administradores podem restaurar bicicletários.");
+
+        var bicicletario = await _db.Bicicletarios.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(b => b.Id == id)
+            ?? throw new NotFoundException($"Bicicletário {id} não encontrado.");
+
+        bicicletario.Deletado = false;
+        bicicletario.AtualizadoEm = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+    }
+
     public async Task DeletarPermanenteAsync(Guid id, Guid usuarioId, TipoUsuario tipoUsuario)
     {
         if (tipoUsuario != TipoUsuario.Admin)
@@ -262,6 +280,7 @@ public class BicicletarioService : IBicicletarioService
             CriadoEm = a.CriadoEm
         }).ToList(),
         CriadoEm = b.CriadoEm,
-        AtualizadoEm = b.AtualizadoEm
+        AtualizadoEm = b.AtualizadoEm,
+        IsDeleted = b.Deletado
     };
 }

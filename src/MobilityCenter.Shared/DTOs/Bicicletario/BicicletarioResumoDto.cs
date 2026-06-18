@@ -23,4 +23,5 @@ public class BicicletarioResumoDto
     public bool AcessoPago { get; set; }
     public bool AcessoCadastro { get; set; }
     public bool AcessoMensal { get; set; }
+    public bool IsDeleted { get; set; }
 }

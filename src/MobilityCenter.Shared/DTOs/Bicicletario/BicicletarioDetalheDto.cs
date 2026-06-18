@@ -32,4 +32,5 @@ public class BicicletarioDetalheDto
 
     public DateTime CriadoEm { get; set; }
     public DateTime AtualizadoEm { get; set; }
+    public bool IsDeleted { get; set; }
 }
