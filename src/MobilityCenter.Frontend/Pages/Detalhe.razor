@@ -15,7 +15,7 @@
 <div style="background:var(--bg); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20;">
     <StatusBar />
     <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
-        <button @onclick="@(() => Nav.NavigateTo("/lista"))"
+        <button @onclick="GoBack"
                 style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
             <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
         </button>
@@ -82,7 +82,7 @@ else if (_item != null)
     }
 
     @* Photo section *@
-    <div style="position:relative; background:#111;">
+    <div class="mc-detail-rise" style="position:relative; background:#111;">
         @if (!_fotoFalhou && _fotoUrl != null)
         {
             <img src="@_fotoUrl"
@@ -121,7 +121,7 @@ else if (_item != null)
     </div>
 
     @* Scrollable body *@
-    <div style="padding:20px 20px 160px;">
+    <div class="mc-detail-body" style="padding:20px 20px 160px;">
 
         @* Rating + address *@
         <div style="margin-bottom:20px;">
@@ -444,6 +444,9 @@ else if (_item != null)
 @code {
     [Parameter] public string? Id { get; set; }
 
+    // "mapa" when arrived from a map popup — enables the collapse-back-to-map animation.
+    [Parameter, SupplyParameterFromQuery] public string? From { get; set; }
+
     private BicicletarioDetalheModel? _item;
     private bool    _isLoading = true;
     private string? _loadError;
@@ -506,6 +509,21 @@ else if (_item != null)
 
         _ = ReverseGeocodeAsync(_item.Latitude, _item.Longitude);
         _fotoUrl = BicicletarioSvc.GetFotoBicicletarioUrl(Id!);
+    }
+
+    private async Task GoBack()
+    {
+        if (From == "mapa")
+        {
+            // Collapse the detail into the center, then return to the map with
+            // this bicicletário's popup re-opened.
+            await JS.InvokeVoidAsync("navTransition.collapse");
+            Nav.NavigateTo($"/?focus={Uri.EscapeDataString(Id!)}");
+        }
+        else
+        {
+            Nav.NavigateTo("/lista");
+        }
     }
 
     private void RecomputeDisplayData()

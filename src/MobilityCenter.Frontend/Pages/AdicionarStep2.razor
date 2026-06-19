@@ -132,6 +132,18 @@ else
     [SupplyParameterFromQuery(Name = "dir")]
     public string? Dir { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "name")]
+    public string? NameParam { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "capacity")]
+    public string? CapacityParam { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "accessType")]
+    public string? AccessTypeParam { get; set; }
+
     [CascadingParameter] public AdicionarLayout Layout { get; set; } = default!;
 
     private string _name = "";
@@ -149,6 +161,10 @@ else
         Layout.SetNext("Próximo →", GoNext);
         var user = await AuthService.GetUserInfoAsync();
         _isAuthenticated = user is not null;
+
+        if (!string.IsNullOrEmpty(NameParam)) _name = NameParam;
+        if (!string.IsNullOrEmpty(CapacityParam)) _capacity = CapacityParam;
+        if (int.TryParse(AccessTypeParam, out var at)) _accessType = at;
 
         if (AdicionarState.HasFoto)
             _fotoPreview = $"data:{AdicionarState.FotoContentType};base64,{Convert.ToBase64String(AdicionarState.FotoBytes!)}";

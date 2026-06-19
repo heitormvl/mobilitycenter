@@ -1,5 +1,56 @@
 window.mapInterop = {
     _instances: {},
+    _navRef: null,
+
+    setNavRef: function (dotNetRef) {
+        this._navRef = dotNetRef;
+    },
+
+    // Expand the clicked popup into the detail screen, then navigate.
+    // lat/lng are persisted so initMap can position the map instantly on return.
+    navigateTo: function (ev, path, lat, lng) {
+        if (ev) ev.preventDefault();
+        if (lat != null && lng != null) {
+            try { sessionStorage.setItem('mc-focus-pos', JSON.stringify({ lat, lng })); } catch (_) {}
+        }
+
+        const go = () => {
+            if (this._navRef) this._navRef.invokeMethodAsync('NavigateTo', path);
+        };
+
+        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const popup = ev && ev.currentTarget ? ev.currentTarget.closest('.leaflet-popup') : null;
+        if (reduce || !popup) { go(); return; }
+
+        const rect = popup.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        const ov = document.createElement('div');
+        ov.className = 'mc-expand';
+        ov.style.left = rect.left + 'px';
+        ov.style.top = rect.top + 'px';
+        ov.style.width = rect.width + 'px';
+        ov.style.height = rect.height + 'px';
+        document.body.appendChild(ov);
+
+        // Force reflow so the starting geometry is committed before expanding.
+        void ov.offsetWidth;
+
+        ov.style.left = '0px';
+        ov.style.top = '0px';
+        ov.style.width = vw + 'px';
+        ov.style.height = vh + 'px';
+        ov.style.borderRadius = '0px';
+
+        // Swap the page underneath while the overlay still covers it, then
+        // fade the overlay out to reveal the freshly-rendered detail screen.
+        setTimeout(() => {
+            go();
+            requestAnimationFrame(() => ov.classList.add('mc-expand--fade'));
+            setTimeout(() => ov.remove(), 280);
+        }, 320);
+    },
 
     _tileOptions: {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
@@ -12,11 +63,24 @@ window.mapInterop = {
             this._instances[mapId].map.remove();
         }
 
-        const map = L.map(element, { zoomControl: false }).setView([-23.5505, -46.6333], 13);
+        // If returning from a detail page, jump directly to the cached position
+        // so the map never shows the default SP centre.
+        const focusId  = new URLSearchParams(location.search).get('focus');
+        let initLat = -23.5505, initLng = -46.6333, initZoom = 13;
+        let cachedFocus = null;
+        if (focusId) {
+            try {
+                const raw = sessionStorage.getItem('mc-focus-pos');
+                if (raw) { cachedFocus = JSON.parse(raw); sessionStorage.removeItem('mc-focus-pos'); }
+            } catch (_) {}
+            if (cachedFocus) { initLat = cachedFocus.lat; initLng = cachedFocus.lng; initZoom = 16; }
+        }
+
+        const map = L.map(element, { zoomControl: false }).setView([initLat, initLng], initZoom);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', this._tileOptions).addTo(map);
 
-        const instance = { map, userMarker: null, markers: [], markerLayer: L.layerGroup().addTo(map), dotNetRef: null };
+        const instance = { map, userMarker: null, markers: [], markersById: {}, pendingFocus: focusId ?? null, focused: false, markerLayer: L.layerGroup().addTo(map), dotNetRef: null };
         this._instances[mapId] = instance;
 
         this._locateUser(instance);
@@ -45,6 +109,7 @@ window.mapInterop = {
 
         inst.markerLayer.clearLayers();
         inst.markers = [];
+        inst.markersById = {};
 
         markers.forEach(m => {
             const icon = L.divIcon({
@@ -60,7 +125,43 @@ window.mapInterop = {
 
             marker.addTo(inst.markerLayer);
             inst.markers.push(marker);
+            inst.markersById[m.id] = marker;
         });
+
+        // A focus request may have arrived before the markers existed.
+        this._applyFocus(inst);
+    },
+
+    // Center on a marker by id and open its popup. Stored as pending if the
+    // markers haven't rendered yet (re-applied from setMarkers).
+    focusMarker: function (mapId, id) {
+        const inst = this._instances[mapId];
+        if (!inst) return;
+        inst.pendingFocus = id;
+        this._applyFocus(inst);
+    },
+
+    _applyFocus: function (inst) {
+        if (!inst.pendingFocus) return;
+        const marker = inst.markersById[inst.pendingFocus];
+        if (!marker) return;
+
+        inst.focused = true;
+        inst.pendingFocus = null;
+
+        const zoom = 16;
+        const latlng = marker.getLatLng();
+
+        // Center the map so the pin sits in the lower half of the viewport,
+        // leaving room for the popup above the pin and the search bar at the top.
+        // We shift the map center upward by ~140px (in pixel space at zoom 16),
+        // which moves the pin proportionally downward on screen.
+        const pinPx = inst.map.project(latlng, zoom);
+        const centerPx = pinPx.subtract([0, 140]);
+        const centerLatLng = inst.map.unproject(centerPx, zoom);
+
+        inst.map.setView(centerLatLng, zoom, { animate: false });
+        marker.openPopup();
     },
 
     getBounds: function (mapId) {
@@ -81,7 +182,10 @@ window.mapInterop = {
         navigator.geolocation.getCurrentPosition(
             pos => {
                 const { latitude: lat, longitude: lng } = pos.coords;
-                instance.map.setView([lat, lng], 15);
+                // Don't steal the view from an active focus request (back-from-detail).
+                if (!instance.focused && !instance.pendingFocus) {
+                    instance.map.setView([lat, lng], 15);
+                }
                 this._setUserMarker(instance, lat, lng);
             },
             err => console.warn('Geolocalização indisponível:', err.message)

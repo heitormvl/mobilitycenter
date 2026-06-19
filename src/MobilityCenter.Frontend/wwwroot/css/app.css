@@ -198,6 +198,70 @@ html, body {
     to   { transform: translateX(0);     }
 }
 
+/* ── Back-to-map collapse / grow ─────────────────────────── */
+#page-host[data-nav-collapse] {
+    animation: navCollapse 0.42s cubic-bezier(0.4, 0, 0.6, 1) both;
+    transform-origin: 50% 50%;
+}
+#page-host[data-nav-grow-in] {
+    animation: navGrowIn 0.42s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@keyframes navCollapse {
+    from { clip-path: circle(150% at 50% 50%); opacity: 1;   transform: scale(1);   }
+    to   { clip-path: circle(0%   at 50% 50%); opacity: 0.5; transform: scale(0.9); }
+}
+@keyframes navGrowIn {
+    from { clip-path: circle(0%   at 50% 50%); }
+    to   { clip-path: circle(140% at 50% 50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    #page-host[data-nav-collapse],
+    #page-host[data-nav-grow-in] { animation: none; }
+}
+
+/* ── Popup → detail expand transition ────────────────────── */
+.mc-expand {
+    position: fixed;
+    z-index: 9999;
+    background: var(--bg);
+    border-radius: 16px;
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+    will-change: top, left, width, height;
+    transition:
+        top           0.36s cubic-bezier(0.32, 0.72, 0, 1),
+        left          0.36s cubic-bezier(0.32, 0.72, 0, 1),
+        width         0.36s cubic-bezier(0.32, 0.72, 0, 1),
+        height        0.36s cubic-bezier(0.32, 0.72, 0, 1),
+        border-radius 0.36s cubic-bezier(0.32, 0.72, 0, 1),
+        opacity       0.24s ease;
+}
+.mc-expand--fade { opacity: 0; }
+
+/* ── Detail page staggered entrance ──────────────────────── */
+.mc-detail-rise,
+.mc-detail-body > * {
+    animation: detailRise 0.44s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.mc-detail-rise                  { animation-delay: 0s;    }
+.mc-detail-body > *:nth-child(1) { animation-delay: 0.04s; }
+.mc-detail-body > *:nth-child(2) { animation-delay: 0.09s; }
+.mc-detail-body > *:nth-child(3) { animation-delay: 0.14s; }
+.mc-detail-body > *:nth-child(4) { animation-delay: 0.19s; }
+.mc-detail-body > *:nth-child(5) { animation-delay: 0.24s; }
+.mc-detail-body > *:nth-child(6) { animation-delay: 0.29s; }
+.mc-detail-body > *:nth-child(7) { animation-delay: 0.34s; }
+.mc-detail-body > *:nth-child(n+8) { animation-delay: 0.38s; }
+@keyframes detailRise {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0);    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .mc-expand { transition: opacity 0.2s ease; }
+    .mc-detail-rise,
+    .mc-detail-body > * { animation: none; }
+}
+
 /* Splash */
 .splash {
     display: flex;

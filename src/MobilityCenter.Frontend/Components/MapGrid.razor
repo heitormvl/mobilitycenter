@@ -1,7 +1,7 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div @ref="_container" style="width:100%; height:@(H)px; z-index:1;"></div>
+<div @ref="_container" style="width:100%; height:@(H)px; position:relative; z-index:0;"></div>
 
 @code {
     [Parameter] public int H { get; set; } = 300;
@@ -53,6 +53,9 @@
 
     public async Task PanToAsync(double lat, double lng) =>
         await JS.InvokeVoidAsync("mapInterop.panTo", _id, lat, lng);
+
+    public async Task FocusMarkerAsync(string id) =>
+        await JS.InvokeVoidAsync("mapInterop.focusMarker", _id, id);
 
     public async Task<(double Lat, double Lng)?> GetCenterAsync()
     {
