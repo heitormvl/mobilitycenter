@@ -68,6 +68,9 @@ Temp/
 .DS_Store
 Thumbs.db
 
+# Gerado pelo deploy-local.ps1 — não commitar
+appsettings.Local.json
+.env
 
 # Coverage
 coverage/

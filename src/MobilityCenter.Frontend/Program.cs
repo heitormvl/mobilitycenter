@@ -5,6 +5,7 @@ using MobilityCenter.Frontend;
 using MobilityCenter.Frontend.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 

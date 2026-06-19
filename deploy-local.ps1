@@ -79,13 +79,11 @@ if (Test-Cmd tailscale) {
     Write-Warn "Tailscale nao instalado. Usando localhost."
 }
 
-# ===== ATUALIZAR appsettings.json DO FRONTEND =====
-Write-Info "Atualizando ApiBaseUrl do frontend para: $apiBaseUrl"
-$appSettingsPath = "src/MobilityCenter.Frontend/wwwroot/appsettings.json"
-$appSettings = Get-Content $appSettingsPath -Raw | ConvertFrom-Json
-$appSettings.ApiBaseUrl = $apiBaseUrl
-$appSettings | ConvertTo-Json -Depth 5 | Set-Content $appSettingsPath -Encoding utf8
-Write-Ok "appsettings.json atualizado"
+# ===== GERAR appsettings.Local.json DO FRONTEND =====
+Write-Info "Gerando appsettings.Local.json com ApiBaseUrl: $apiBaseUrl"
+$localSettings = @{ ApiBaseUrl = $apiBaseUrl }
+$localSettings | ConvertTo-Json | Set-Content "src/MobilityCenter.Frontend/wwwroot/appsettings.Local.json" -Encoding utf8
+Write-Ok "appsettings.Local.json gerado (gitignored)"
 
 # ===== GERAR .env PARA CORS =====
 $envContent = "CORS_ORIGIN_0=http://localhost:5001`nCORS_ORIGIN_1=$apiFrontendOrigin"

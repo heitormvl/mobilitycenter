@@ -44,7 +44,7 @@ services:
     ports:
       - "5001:80"
     volumes:
-      - ./src/MobilityCenter.Frontend/wwwroot/appsettings.json:/usr/share/nginx/html/appsettings.json:ro
+      - ./src/MobilityCenter.Frontend/wwwroot/appsettings.Local.json:/usr/share/nginx/html/appsettings.Local.json:ro
     depends_on:
       - api
 
