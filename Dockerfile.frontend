@@ -1,0 +1,15 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY src/MobilityCenter.Frontend/MobilityCenter.Frontend.csproj src/MobilityCenter.Frontend/
+RUN dotnet restore src/MobilityCenter.Frontend/MobilityCenter.Frontend.csproj
+
+COPY src/MobilityCenter.Frontend/ src/MobilityCenter.Frontend/
+RUN dotnet publish src/MobilityCenter.Frontend/MobilityCenter.Frontend.csproj \
+    -c Release -o /app/publish --no-restore
+
+FROM nginx:alpine
+COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 80

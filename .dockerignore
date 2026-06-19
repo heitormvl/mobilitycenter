@@ -1,0 +1,9 @@
+**/.vs
+**/.git
+**/obj
+**/bin
+**/*.user
+**/node_modules
+docker-compose*.yml
+Dockerfile*
+deploy-local.ps1
