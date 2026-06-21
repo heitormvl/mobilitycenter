@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using MobilityCenter.Business.Interfaces;
@@ -15,21 +16,26 @@ namespace MobilityCenter.Business.Services;
 
 public class AuthService : IAuthService
 {
+    private const string AdminEmail = "heitormvl12@gmail.com";
+
     private readonly UserManager<Usuario> _userManager;
     private readonly IConfiguration _configuration;
     private readonly IFotoStorageService _fotoStorage;
     private readonly IHttpClientFactory _httpFactory;
+    private readonly IEmailService _emailService;
 
     public AuthService(
         UserManager<Usuario> userManager,
         IConfiguration configuration,
         IFotoStorageService fotoStorage,
-        IHttpClientFactory httpFactory)
+        IHttpClientFactory httpFactory,
+        IEmailService emailService)
     {
         _userManager = userManager;
         _configuration = configuration;
         _fotoStorage = fotoStorage;
         _httpFactory = httpFactory;
+        _emailService = emailService;
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
@@ -41,6 +47,9 @@ public class AuthService : IAuthService
         if (!senhaCorreta)
             throw new AppException("Credenciais inválidas.", 401);
 
+        if (!await _userManager.IsEmailConfirmedAsync(usuario))
+            throw new AppException("E-mail não confirmado. Verifique sua caixa de entrada.", 403);
+
         return new AuthResponseDto
         {
             Token = GerarToken(usuario),
@@ -48,7 +57,7 @@ public class AuthService : IAuthService
         };
     }
 
-    public async Task<AuthResponseDto> RegisterAsync(CriarUsuarioDto dto)
+    public async Task<RegisterResponseDto> RegisterAsync(CriarUsuarioDto dto, string apiBaseUrl)
     {
         var existente = await _userManager.FindByEmailAsync(dto.Email);
         if (existente != null)
@@ -69,6 +78,36 @@ public class AuthService : IAuthService
             var erros = string.Join(", ", resultado.Errors.Select(e => e.Description));
             throw new ValidationException(erros);
         }
+
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(usuario);
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        var confirmUrl = $"{apiBaseUrl}/api/auth/confirmar-email?userId={usuario.Id}&token={encodedToken}";
+
+        await _emailService.EnviarConfirmacaoAsync(usuario.Email!, usuario.DisplayName, confirmUrl);
+
+        return new RegisterResponseDto
+        {
+            Message = "Cadastro realizado! Verifique seu e-mail para ativar a conta."
+        };
+    }
+
+    public async Task<AuthResponseDto> ConfirmarEmailAsync(string userId, string token)
+    {
+        var usuario = await _userManager.FindByIdAsync(userId)
+            ?? throw new AppException("Usuário não encontrado.", 404);
+
+        if (await _userManager.IsEmailConfirmedAsync(usuario))
+            return new AuthResponseDto
+            {
+                Token = GerarToken(usuario),
+                Usuario = MapearUsuario(usuario)
+            };
+
+        var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+        var resultado = await _userManager.ConfirmEmailAsync(usuario, decodedToken);
+
+        if (!resultado.Succeeded)
+            throw new AppException("Link de confirmação inválido ou expirado.", 400);
 
         return new AuthResponseDto
         {
@@ -102,7 +141,7 @@ public class AuthService : IAuthService
                 Email = payload.Email,
                 UserName = payload.Email,
                 EmailConfirmed = true,
-                Type = TipoUsuario.Usuario,
+                Type = payload.Email == AdminEmail ? TipoUsuario.Admin : TipoUsuario.Usuario,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -113,8 +152,12 @@ public class AuthService : IAuthService
                 throw new ValidationException(erros);
             }
         }
+        else if (payload.Email == AdminEmail && usuario.Type != TipoUsuario.Admin)
+        {
+            usuario.Type = TipoUsuario.Admin;
+            await _userManager.UpdateAsync(usuario);
+        }
 
-        // Baixa a foto do Google e armazena no nosso storage para evitar restrições de CORS/acesso
         var novaFoto = await BaixarEArmazenarFotoGoogleAsync(usuario.Id, payload.Picture);
         if (!string.IsNullOrEmpty(novaFoto) && usuario.FotoPerfilUrl != novaFoto)
         {

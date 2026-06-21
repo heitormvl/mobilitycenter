@@ -22,8 +22,24 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] CriarUsuarioDto dto)
     {
-        var response = await _authService.RegisterAsync(dto);
-        return Created("/api/usuarios/me", response);
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var response = await _authService.RegisterAsync(dto, baseUrl);
+        return Ok(response);
+    }
+
+    [HttpGet("confirmar-email")]
+    public async Task<IActionResult> ConfirmarEmail([FromQuery] string userId, [FromQuery] string token)
+    {
+        var response = await _authService.ConfirmarEmailAsync(userId, token);
+
+        var frontendUrl = HttpContext.RequestServices
+            .GetService<IConfiguration>()
+            ?.GetValue<string>("App:FrontendUrl");
+
+        if (!string.IsNullOrEmpty(frontendUrl))
+            return Redirect($"{frontendUrl}/login?emailConfirmado=true");
+
+        return Ok(response);
     }
 
     [HttpPost("google")]
