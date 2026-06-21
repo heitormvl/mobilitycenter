@@ -59,7 +59,6 @@ Write-Ok "docker-compose.yml encontrado"
 # ===== TAILSCALE =====
 $tsHostname = $null
 $apiFrontendOrigin = "http://localhost:5001"
-$apiBaseUrl        = "http://localhost:5000"
 
 if (Test-Cmd tailscale) {
     Write-Info "Obtendo hostname do Tailscale..."
@@ -69,7 +68,6 @@ if (Test-Cmd tailscale) {
         if ($tsRaw) {
             $tsHostname        = $tsRaw
             $apiFrontendOrigin = "https://$tsHostname"
-            $apiBaseUrl        = "https://$tsHostname`:5000"
             Write-Ok "Tailscale: $tsHostname"
         }
     } catch {
@@ -78,6 +76,9 @@ if (Test-Cmd tailscale) {
 } else {
     Write-Warn "Tailscale nao instalado. Usando localhost."
 }
+
+# API e frontend compartilham a mesma origem — nginx faz proxy de /api/ para o container da API
+$apiBaseUrl = $apiFrontendOrigin
 
 # ===== GERAR appsettings.Local.json DO FRONTEND =====
 Write-Info "Gerando appsettings.Local.json com ApiBaseUrl: $apiBaseUrl"
@@ -153,13 +154,9 @@ if ($tsHostname) {
     Write-Info "Configurando Tailscale Serve..."
     $ErrorActionPreference = "Continue"
 
-    # Frontend: https://hostname/ -> localhost:5001
+    # Frontend (e API via proxy nginx): https://hostname/ -> localhost:5001
     $out = & tailscale serve --bg http://localhost:5001 2>&1
     if ($LASTEXITCODE -ne 0) { Write-Warn "serve frontend: $out" }
-
-    # API: https://hostname:5000/ -> localhost:5000
-    $out = & tailscale serve --bg --https 5000 http://localhost:5000 2>&1
-    if ($LASTEXITCODE -ne 0) { Write-Warn "serve api: $out" }
 
     $ErrorActionPreference = "Stop"
 
@@ -179,15 +176,14 @@ Write-Host ""
 
 if ($tsHostname) {
     Write-Host "  Tailscale (compartilhavel):" -ForegroundColor Cyan
-    Write-Host "    Frontend: https://$tsHostname" -ForegroundColor Green
-    Write-Host "    API:      https://$tsHostname`:5000" -ForegroundColor Green
+    Write-Host "    App: https://$tsHostname" -ForegroundColor Green
     Write-Host ""
 }
 
 Write-Host "  Local:" -ForegroundColor Cyan
 Write-Host "    Frontend:    http://localhost:5001" -ForegroundColor White
-Write-Host "    API:         http://localhost:5000" -ForegroundColor White
-Write-Host "    Scalar docs: http://localhost:5000/scalar/v1" -ForegroundColor White
+Write-Host "    Scalar docs: http://localhost:5001/scalar/v1" -ForegroundColor White
+Write-Host "    API direta:  http://localhost:5000  (debug)" -ForegroundColor White
 Write-Host "    PostgreSQL:  localhost:5432" -ForegroundColor White
 Write-Host ""
 Write-Host "  Logs:        docker-compose logs -f" -ForegroundColor Gray

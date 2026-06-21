@@ -195,6 +195,9 @@ else if (_item != null)
                     <button @onclick="@(() => _eTemCadeado = !_eTemCadeado)" style="@ChipToggleStyle(_eTemCadeado)">
                         <i class="fa-solid fa-lock" style="font-size:10px;"></i> Cadeado
                     </button>
+                    <button @onclick="@(() => _eTemBanheiro = !_eTemBanheiro)" style="@ChipToggleStyle(_eTemBanheiro)">
+                        <i class="fa-solid fa-restroom" style="font-size:10px;"></i> Banheiro
+                    </button>
                 </div>
                 @if (!string.IsNullOrEmpty(_saveError))
                 {
@@ -334,6 +337,116 @@ else if (_item != null)
             </div>
         </div>
 
+        @* Horários de Funcionamento *@
+        <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid @(_editingHorarios ? "var(--brand)" : "var(--border)"); padding:14px; margin-bottom:20px; box-shadow:var(--shadow-xs); transition:border-color 0.15s;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div style="font-family:var(--font); font-size:11px; font-weight:600; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase;">Horário de Funcionamento</div>
+                @if (_isAdmin && !_editingHorarios)
+                {
+                    <button @onclick="StartEditHorarios"
+                            style="width:28px; height:28px; border-radius:var(--r-full); border:1px solid var(--border); background:var(--bg-page); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i class="fa-solid fa-pen" style="font-size:10px; color:var(--text-3);"></i>
+                    </button>
+                }
+            </div>
+
+            @if (!_editingHorarios)
+            {
+                @if (_item.Horarios.Length == 0)
+                {
+                    <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">Não informado</span>
+                }
+                else
+                {
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        @foreach (var h in _item.Horarios.OrderBy(x => x.DiaSemana))
+                        {
+                            <div style="display:flex; justify-content:space-between; font-family:var(--font); font-size:13px;">
+                                <span style="color:var(--text-3); font-weight:500; min-width:36px;">@_diasSemana[h.DiaSemana]</span>
+                                <span style="color:var(--text-2);">@h.HoraAbertura[..5] – @h.HoraFechamento[..5]</span>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+            else
+            {
+                @* ── Presets de grupo ─────────────────────────────────── *@
+                <div style="background:var(--bg-page); border:1px solid var(--border); border-radius:var(--r); padding:10px; margin-bottom:10px;">
+                    <div style="font-size:11px; font-weight:600; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Aplicar em grupo</div>
+                    <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+                        <input type="time" value="@_presetAbertura" @oninput="@(e => _presetAbertura = e.Value?.ToString() ?? _presetAbertura)"
+                               style="border:1px solid var(--border); border-radius:var(--r); padding:4px 8px; font-family:var(--font); font-size:13px; background:var(--bg); color:var(--text); outline:none;" />
+                        <span style="color:var(--text-4); font-size:12px;">–</span>
+                        <input type="time" value="@_presetFechamento" @oninput="@(e => _presetFechamento = e.Value?.ToString() ?? _presetFechamento)"
+                               style="border:1px solid var(--border); border-radius:var(--r); padding:4px 8px; font-family:var(--font); font-size:13px; background:var(--bg); color:var(--text); outline:none;" />
+                    </div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button @onclick="@(() => AplicarPreset(0, 1, 2, 3, 4, 5, 6))"
+                                style="padding:4px 10px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg); font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer;">
+                            Todos
+                        </button>
+                        <button @onclick="@(() => AplicarPreset(1, 2, 3, 4, 5))"
+                                style="padding:4px 10px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg); font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer;">
+                            Dias úteis
+                        </button>
+                        <button @onclick="@(() => AplicarPreset(1, 2, 3, 4, 5, 6))"
+                                style="padding:4px 10px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg); font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer;">
+                            Seg–Sáb
+                        </button>
+                        <button @onclick="@(() => AplicarPreset(6))"
+                                style="padding:4px 10px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg); font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer;">
+                            Sáb
+                        </button>
+                        <button @onclick="@(() => AplicarPreset(0))"
+                                style="padding:4px 10px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg); font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer;">
+                            Dom
+                        </button>
+                    </div>
+                </div>
+
+                @* ── Grade por dia ────────────────────────────────────── *@
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    @for (var i = 0; i < 7; i++)
+                    {
+                        var idx = i;
+                        var h = _eHorarios[idx];
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button @onclick="@(() => { h.Ciclar(); StateHasChanged(); })" style="@HorarioBtnStyle(h.Estado)">
+                                @_diasSemana[idx]
+                            </button>
+                            @if (h.Estado == "aberto")
+                            {
+                                <input type="time" value="@h.Abertura" @oninput="@(e => { h.Abertura = e.Value?.ToString() ?? h.Abertura; StateHasChanged(); })"
+                                       style="flex:1; border:1px solid var(--border); border-radius:var(--r); padding:4px 8px; font-family:var(--font); font-size:13px; background:var(--bg-page); color:var(--text); outline:none;" />
+                                <span style="color:var(--text-4); font-size:12px;">–</span>
+                                <input type="time" value="@h.Fechamento" @oninput="@(e => { h.Fechamento = e.Value?.ToString() ?? h.Fechamento; StateHasChanged(); })"
+                                       style="flex:1; border:1px solid var(--border); border-radius:var(--r); padding:4px 8px; font-family:var(--font); font-size:13px; background:var(--bg-page); color:var(--text); outline:none;" />
+                            }
+                            else if (h.Estado == "fechado")
+                            {
+                                <span style="font-size:12px; color:var(--text-3); font-family:var(--font);">Fechado</span>
+                            }
+                            else
+                            {
+                                <span style="font-size:12px; color:var(--text-4); font-family:var(--font);">—</span>
+                            }
+                        </div>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(_saveError))
+                {
+                    <div style="font-size:12px; color:#DC2626; margin-top:8px; font-family:var(--font);">@_saveError</div>
+                }
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
+                    <BtnP OnClick="SaveHorarios" Style="@(_isSaving ? "opacity:0.6; pointer-events:none;" : "")">
+                        @(_isSaving ? "Salvando..." : "Salvar")
+                    </BtnP>
+                    <BtnO OnClick="@(() => { _editingHorarios = false; _saveError = null; })">Cancelar</BtnO>
+                </div>
+            }
+        </div>
+
         @* Operator badge *@
         @if (!string.IsNullOrEmpty(_item.NomeOperador))
         {
@@ -465,7 +578,28 @@ else if (_item != null)
     private bool _editingVeiculos;
 
     // Edit state — serviços
-    private bool _eTemTomada, _eTemCalibrador, _eTemVestiario, _eTemArmario, _eTemEspacoManutencao, _eTemCadeado;
+    private bool _eTemTomada, _eTemCalibrador, _eTemVestiario, _eTemArmario, _eTemEspacoManutencao, _eTemCadeado, _eTemBanheiro;
+
+    // Edit state — horários (0=Domingo … 6=Sábado)
+    // Estado: "ni" = não informado (default), "aberto" = com horários, "fechado" = explicitamente fechado
+    private class HorarioEditState
+    {
+        public string Estado = "ni";
+        public string Abertura = "08:00";
+        public string Fechamento = "18:00";
+        public void Ciclar() => Estado = Estado switch { "ni" => "aberto", "aberto" => "fechado", _ => "ni" };
+    }
+    private HorarioEditState[] _eHorarios = Array.Empty<HorarioEditState>();
+
+    private static string HorarioBtnStyle(string estado) => estado switch
+    {
+        "aberto"  => "width:40px; font-size:11px; font-weight:600; padding:3px 6px; border-radius:var(--r); border:1px solid var(--brand); background:var(--brand-soft); color:var(--brand); cursor:pointer; font-family:var(--font); flex-shrink:0;",
+        "fechado" => "width:40px; font-size:11px; font-weight:600; padding:3px 6px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg-page); color:var(--text-3); cursor:pointer; font-family:var(--font); flex-shrink:0; text-decoration:line-through;",
+        _         => "width:40px; font-size:11px; font-weight:600; padding:3px 6px; border-radius:var(--r); border:1px dashed var(--border-2); background:var(--bg-page); color:var(--text-4); cursor:pointer; font-family:var(--font); flex-shrink:0;",
+    };
+    private bool _editingHorarios;
+    private string _presetAbertura = "08:00";
+    private string _presetFechamento = "18:00";
 
     // Edit state — acesso (single selection key: "livre" | "pago" | "cadastro" | "mensal" | "")
     private string _eAcesso = "";
@@ -530,12 +664,13 @@ else if (_item != null)
     {
         _servicos =
         [
-            ("fa-plug",   "Tomada",     _item!.TemTomada),
-            ("fa-gauge",  "Calibrador", _item!.TemCalibrador),
-            ("fa-shirt",  "Vestiário",  _item!.TemVestiario),
-            ("fa-box",    "Armário",    _item!.TemArmario),
-            ("fa-wrench", "Manutenção", _item!.TemEspacoManutencao),
-            ("fa-lock",   "Cadeado",    _item!.TemCadeado),
+            ("fa-plug",      "Tomada",     _item!.TemTomada),
+            ("fa-gauge",     "Calibrador", _item!.TemCalibrador),
+            ("fa-shirt",     "Vestiário",  _item!.TemVestiario),
+            ("fa-box",       "Armário",    _item!.TemArmario),
+            ("fa-wrench",    "Manutenção", _item!.TemEspacoManutencao),
+            ("fa-lock",      "Cadeado",    _item!.TemCadeado),
+            ("fa-restroom",  "Banheiro",   _item!.TemBanheiro),
         ];
 
         _veiculos = [];
@@ -555,9 +690,11 @@ else if (_item != null)
         _eTemArmario          = _item!.TemArmario;
         _eTemEspacoManutencao = _item!.TemEspacoManutencao;
         _eTemCadeado          = _item!.TemCadeado;
+        _eTemBanheiro         = _item!.TemBanheiro;
         _editingServicos = true;
         _editingAcesso   = false;
         _editingVeiculos = false;
+        _editingHorarios = false;
         _editingFoto     = false;
         _saveError       = null;
     }
@@ -570,6 +707,29 @@ else if (_item != null)
                    _item!.AcessoMensal   ? "mensal"   : "";
         _editingAcesso   = true;
         _editingServicos = false;
+        _editingVeiculos = false;
+        _editingHorarios = false;
+        _editingFoto     = false;
+        _saveError       = null;
+    }
+
+    private static readonly string[] _diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+    private void StartEditHorarios()
+    {
+        _eHorarios = Enumerable.Range(0, 7).Select(i =>
+        {
+            var h = _item!.Horarios.FirstOrDefault(x => x.DiaSemana == i);
+            return new HorarioEditState
+            {
+                Estado    = h != null ? "aberto" : "ni",
+                Abertura  = h?.HoraAbertura[..5]  ?? "08:00",
+                Fechamento = h?.HoraFechamento[..5] ?? "18:00",
+            };
+        }).ToArray();
+        _editingHorarios = true;
+        _editingServicos = false;
+        _editingAcesso   = false;
         _editingVeiculos = false;
         _editingFoto     = false;
         _saveError       = null;
@@ -584,6 +744,7 @@ else if (_item != null)
         _editingVeiculos = true;
         _editingServicos = false;
         _editingAcesso   = false;
+        _editingHorarios = false;
         _editingFoto     = false;
         _saveError       = null;
     }
@@ -602,6 +763,7 @@ else if (_item != null)
             TemArmario          = _eTemArmario,
             TemEspacoManutencao = _eTemEspacoManutencao,
             TemCadeado          = _eTemCadeado,
+            TemBanheiro         = _eTemBanheiro,
         });
         if (err == null)
         {
@@ -611,8 +773,38 @@ else if (_item != null)
             _item!.TemArmario          = _eTemArmario;
             _item!.TemEspacoManutencao = _eTemEspacoManutencao;
             _item!.TemCadeado          = _eTemCadeado;
+            _item!.TemBanheiro         = _eTemBanheiro;
             RecomputeDisplayData();
             _editingServicos = false;
+        }
+        else _saveError = err;
+        _isSaving = false;
+    }
+
+    private void AplicarPreset(params int[] dias)
+    {
+        foreach (var d in dias)
+        {
+            _eHorarios[d].Estado    = "aberto";
+            _eHorarios[d].Abertura  = _presetAbertura;
+            _eHorarios[d].Fechamento = _presetFechamento;
+        }
+    }
+
+    private async Task SaveHorarios()
+    {
+        _isSaving  = true;
+        _saveError = null;
+        var horarios = _eHorarios
+            .Select((h, i) => h.Estado == "aberto" ? new HorarioModel { DiaSemana = i, HoraAbertura = h.Abertura, HoraFechamento = h.Fechamento } : null)
+            .Where(h => h != null)
+            .Select(h => h!)
+            .ToArray();
+        var err = await BicicletarioSvc.UpdateAsync(Id!, new AdminUpdateRequest { Horarios = horarios });
+        if (err == null)
+        {
+            _item!.Horarios = horarios;
+            _editingHorarios = false;
         }
         else _saveError = err;
         _isSaving = false;

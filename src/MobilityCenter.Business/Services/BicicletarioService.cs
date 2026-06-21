@@ -82,6 +82,7 @@ public class BicicletarioService : IBicicletarioService
                 TemArmario = b.TemArmario,
                 TemEspacoManutencao = b.TemEspacoManutencao,
                 TemCadeado = b.TemCadeado,
+                TemBanheiro = b.TemBanheiro,
                 AcessoLivre = b.AcessoLivre,
                 AcessoPago = b.AcessoPago,
                 AcessoCadastro = b.AcessoCadastro,
@@ -97,6 +98,7 @@ public class BicicletarioService : IBicicletarioService
             .IgnoreQueryFilters()
             .Include(b => b.Avaliacoes).ThenInclude(a => a.Usuario)
             .Include(b => b.Operador)
+            .Include(b => b.Horarios)
             .FirstOrDefaultAsync(b => b.Id == id)
             ?? throw new NotFoundException($"Bicicletário {id} não encontrado.");
 
@@ -118,6 +120,7 @@ public class BicicletarioService : IBicicletarioService
             TemArmario = dto.TemArmario,
             TemEspacoManutencao = dto.TemEspacoManutencao,
             TemCadeado = dto.TemCadeado,
+            TemBanheiro = dto.TemBanheiro,
             AcessoLivre = dto.AcessoLivre,
             AcessoPago = dto.AcessoPago,
             AcessoCadastro = dto.AcessoCadastro,
@@ -129,6 +132,18 @@ public class BicicletarioService : IBicicletarioService
         };
 
         _db.Bicicletarios.Add(bicicletario);
+
+        if (dto.Horarios != null)
+            foreach (var h in dto.Horarios)
+                _db.HorariosFuncionamento.Add(new HorarioFuncionamento
+                {
+                    Id = Guid.NewGuid(),
+                    BicicletarioId = bicicletario.Id,
+                    DiaSemana = h.DiaSemana,
+                    HoraAbertura = TimeOnly.Parse(h.HoraAbertura, System.Globalization.CultureInfo.InvariantCulture),
+                    HoraFechamento = TimeOnly.Parse(h.HoraFechamento, System.Globalization.CultureInfo.InvariantCulture),
+                });
+
         await _db.SaveChangesAsync();
 
         return await ObterPorIdAsync(bicicletario.Id);
@@ -160,6 +175,24 @@ public class BicicletarioService : IBicicletarioService
             if (dto.TemArmario.HasValue) bicicletario.TemArmario = dto.TemArmario.Value;
             if (dto.TemEspacoManutencao.HasValue) bicicletario.TemEspacoManutencao = dto.TemEspacoManutencao.Value;
             if (dto.TemCadeado.HasValue) bicicletario.TemCadeado = dto.TemCadeado.Value;
+            if (dto.TemBanheiro.HasValue) bicicletario.TemBanheiro = dto.TemBanheiro.Value;
+
+            if (dto.Horarios != null)
+            {
+                var existentes = await _db.HorariosFuncionamento
+                    .Where(h => h.BicicletarioId == id)
+                    .ToListAsync();
+                _db.HorariosFuncionamento.RemoveRange(existentes);
+                foreach (var h in dto.Horarios)
+                    _db.HorariosFuncionamento.Add(new HorarioFuncionamento
+                    {
+                        Id = Guid.NewGuid(),
+                        BicicletarioId = id,
+                        DiaSemana = h.DiaSemana,
+                        HoraAbertura = TimeOnly.Parse(h.HoraAbertura, System.Globalization.CultureInfo.InvariantCulture),
+                        HoraFechamento = TimeOnly.Parse(h.HoraFechamento, System.Globalization.CultureInfo.InvariantCulture),
+                    });
+            }
 
             if (dto.AcessoLivre.HasValue) bicicletario.AcessoLivre = dto.AcessoLivre.Value;
             if (dto.AcessoPago.HasValue) bicicletario.AcessoPago = dto.AcessoPago.Value;
@@ -262,6 +295,13 @@ public class BicicletarioService : IBicicletarioService
         TemArmario = b.TemArmario,
         TemEspacoManutencao = b.TemEspacoManutencao,
         TemCadeado = b.TemCadeado,
+        TemBanheiro = b.TemBanheiro,
+        Horarios = b.Horarios.OrderBy(h => h.DiaSemana).Select(h => new HorarioFuncionamentoDto
+        {
+            DiaSemana = h.DiaSemana,
+            HoraAbertura = h.HoraAbertura.ToString("HH:mm"),
+            HoraFechamento = h.HoraFechamento.ToString("HH:mm"),
+        }).ToList(),
         AcessoLivre = b.AcessoLivre,
         AcessoPago = b.AcessoPago,
         AcessoCadastro = b.AcessoCadastro,

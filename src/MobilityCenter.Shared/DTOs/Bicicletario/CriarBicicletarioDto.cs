@@ -14,6 +14,9 @@ public class CriarBicicletarioDto
     public bool TemArmario { get; set; }
     public bool TemEspacoManutencao { get; set; }
     public bool TemCadeado { get; set; }
+    public bool TemBanheiro { get; set; }
+
+    public IList<HorarioFuncionamentoDto>? Horarios { get; set; }
 
     public bool AcessoLivre { get; set; }
     public bool AcessoPago { get; set; }

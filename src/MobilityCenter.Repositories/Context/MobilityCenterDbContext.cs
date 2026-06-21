@@ -12,6 +12,7 @@ public class MobilityCenterDbContext : IdentityDbContext<Usuario, IdentityRole<G
     public DbSet<Bicicletario> Bicicletarios => Set<Bicicletario>();
     public DbSet<Avaliacao> Avaliacoes => Set<Avaliacao>();
     public DbSet<SugestaoEdicao> SugestoesEdicao => Set<SugestaoEdicao>();
+    public DbSet<HorarioFuncionamento> HorariosFuncionamento => Set<HorarioFuncionamento>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -40,6 +41,18 @@ public class MobilityCenterDbContext : IdentityDbContext<Usuario, IdentityRole<G
              .WithOne(a => a.Bicicletario)
              .HasForeignKey(a => a.BicicletarioId)
              .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasMany(b => b.Horarios)
+             .WithOne(h => h.Bicicletario)
+             .HasForeignKey(h => h.BicicletarioId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<HorarioFuncionamento>(e =>
+        {
+            e.HasKey(h => h.Id);
+            e.Property(h => h.DiaSemana).HasConversion<int>();
+            e.HasIndex(h => new { h.BicicletarioId, h.DiaSemana }).IsUnique();
         });
 
         builder.Entity<SugestaoEdicao>(e =>

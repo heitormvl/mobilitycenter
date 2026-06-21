@@ -84,23 +84,28 @@ MobilityCenter/
    - Usuário: `mc_user`
    - Senha: `mc_dev_password`
 
-3. **Restaure as dependências**
+3. **Instale as ferramentas globais do EF Core**
+   ```bash
+   dotnet tool install --global dotnet-ef
+   ```
+
+4. **Restaure as dependências**
    ```bash
    dotnet restore
    ```
 
-4. **Compile a solução**
+5. **Compile a solução**
    ```bash
    dotnet build
    ```
 
-5. **Execute as migrações** (quando necessário)
+6. **Execute as migrações** (quando necessário)
    ```bash
    dotnet ef migrations add InitialCreate -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
    dotnet ef database update -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
    ```
 
-6. **Inicie a API**
+7. **Inicie a API**
    ```bash
    dotnet run --project ./src/MobilityCenter.API
    ```
@@ -109,7 +114,7 @@ MobilityCenter/
    - HTTP: `http://localhost:5000`
    - HTTPS: `https://localhost:7000`
 
-7. **Inicie o Frontend (Blazor WASM)** (em outra janela do terminal)
+8. **Inicie o Frontend (Blazor WASM)** (em outra janela do terminal)
    ```bash
    dotnet run --project ./src/MobilityCenter.Frontend
    ```

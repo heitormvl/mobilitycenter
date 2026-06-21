@@ -30,14 +30,15 @@ window.googleAuth = {
             callback: function (response) {
                 window.googleAuth._dotNetRef.invokeMethodAsync('HandleGoogleCredential', response.credential);
             },
+            use_fedcm_for_prompt: true,
             auto_select: false,
-            cancel_on_tap_outside: true,
-            use_fedcm_for_prompt: true
+            cancel_on_tap_outside: true
         });
 
         google.accounts.id.prompt(function (notification) {
             var type = notification.getMomentType();
-            if (type === 'skipped' || type === 'dismissed' || notification.isNotDisplayed()) {
+            var credentialReturned = type === 'dismissed' && notification.getDismissedReason() === 'credential_returned';
+            if (!credentialReturned && (type === 'skipped' || type === 'dismissed' || notification.isNotDisplayed())) {
                 // One Tap was suppressed or unavailable — fall back to popup window
                 window.googleAuth._openPopup(clientId);
             }

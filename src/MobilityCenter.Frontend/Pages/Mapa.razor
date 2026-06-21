@@ -134,7 +134,7 @@
                 @{
                     bool hasResources = item.AcessoLivre || item.AcessoPago || item.AcessoCadastro || item.AcessoMensal
                                      || item.TemTomada || item.TemCalibrador || item.TemVestiario
-                                     || item.TemArmario || item.TemEspacoManutencao || item.TemCadeado;
+                                     || item.TemArmario || item.TemEspacoManutencao || item.TemCadeado || item.TemBanheiro;
                 }
                 @if (hasResources)
                 {
@@ -149,6 +149,7 @@
                         @if (item.TemArmario)            { <Chip Sm="true">Armário</Chip> }
                         @if (item.TemEspacoManutencao)   { <Chip Sm="true">Manutenção</Chip> }
                         @if (item.TemCadeado)            { <Chip Sm="true">Cadeado</Chip> }
+                        @if (item.TemBanheiro)           { <Chip Sm="true">Banheiro</Chip> }
                     </div>
                 }
             </div>
@@ -212,6 +213,7 @@
                     <button @onclick="@(() => ToggleServiceAsync("armario"))" style="@ChipStyle(_fArmario)"><i class="fa-solid fa-box"></i> Armário</button>
                     <button @onclick="@(() => ToggleServiceAsync("manutencao"))" style="@ChipStyle(_fManutencao)"><i class="fa-solid fa-wrench"></i> Manutenção</button>
                     <button @onclick="@(() => ToggleServiceAsync("cadeado"))" style="@ChipStyle(_fCadeado)"><i class="fa-solid fa-lock"></i> Cadeado</button>
+                    <button @onclick="@(() => ToggleServiceAsync("banheiro"))" style="@ChipStyle(_fBanheiro)"><i class="fa-solid fa-restroom"></i> Banheiro</button>
                 </div>
             </div>
 
@@ -273,14 +275,14 @@
     private bool _closingFilters;
     private string _search = "";
     private int _selVeiculos;                       // TipoVeiculo bitmask: Bicicleta=1, Scooter=2, Monociclo=4, Patinete=8
-    private bool _fTomada, _fCalibrador, _fVestiario, _fArmario, _fManutencao, _fCadeado;
+    private bool _fTomada, _fCalibrador, _fVestiario, _fArmario, _fManutencao, _fCadeado, _fBanheiro;
     private bool _fLivre, _fPago, _fCadastro, _fMensal;
     private double _minNota;
 
     private int ActiveFilterCount =>
         BitOperations.PopCount((uint)_selVeiculos)
         + (_fTomada ? 1 : 0) + (_fCalibrador ? 1 : 0) + (_fVestiario ? 1 : 0)
-        + (_fArmario ? 1 : 0) + (_fManutencao ? 1 : 0) + (_fCadeado ? 1 : 0)
+        + (_fArmario ? 1 : 0) + (_fManutencao ? 1 : 0) + (_fCadeado ? 1 : 0) + (_fBanheiro ? 1 : 0)
         + (_fLivre ? 1 : 0) + (_fPago ? 1 : 0) + (_fCadastro ? 1 : 0) + (_fMensal ? 1 : 0)
         + (_minNota > 0 ? 1 : 0);
 
@@ -388,6 +390,7 @@
         if (_fArmario && !b.TemArmario) return false;
         if (_fManutencao && !b.TemEspacoManutencao) return false;
         if (_fCadeado && !b.TemCadeado) return false;
+        if (_fBanheiro && !b.TemBanheiro) return false;
 
         if (_fLivre || _fPago || _fCadastro || _fMensal)
         {
@@ -418,6 +421,7 @@
             case "armario": _fArmario = !_fArmario; break;
             case "manutencao": _fManutencao = !_fManutencao; break;
             case "cadeado": _fCadeado = !_fCadeado; break;
+            case "banheiro": _fBanheiro = !_fBanheiro; break;
         }
         await RenderMarkersAsync();
     }
@@ -477,7 +481,7 @@
     private async Task ClearFiltersAsync()
     {
         _selVeiculos = 0;
-        _fTomada = _fCalibrador = _fVestiario = _fArmario = _fManutencao = _fCadeado = false;
+        _fTomada = _fCalibrador = _fVestiario = _fArmario = _fManutencao = _fCadeado = _fBanheiro = false;
         _fLivre = _fPago = _fCadastro = _fMensal = false;
         _minNota = 0;
         await RenderMarkersAsync();

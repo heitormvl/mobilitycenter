@@ -178,6 +178,7 @@ public class BicicletarioDto
     public bool TemArmario { get; set; }
     public bool TemEspacoManutencao { get; set; }
     public bool TemCadeado { get; set; }
+    public bool TemBanheiro { get; set; }
 
     public bool AcessoLivre { get; set; }
     public bool AcessoPago { get; set; }
@@ -199,6 +200,7 @@ public class BicicletarioDetalheModel
     public bool TemArmario { get; set; }
     public bool TemEspacoManutencao { get; set; }
     public bool TemCadeado { get; set; }
+    public bool TemBanheiro { get; set; }
     public bool AcessoLivre { get; set; }
     public bool AcessoPago { get; set; }
     public bool AcessoCadastro { get; set; }
@@ -208,6 +210,7 @@ public class BicicletarioDetalheModel
     public string? NomeOperador { get; set; }
     public double NotaMedia { get; set; }
     public AvaliacaoModel[] Avaliacoes { get; set; } = [];
+    public HorarioModel[] Horarios { get; set; } = [];
     public DateTime CriadoEm { get; set; }
     public bool IsDeleted { get; set; }
 }
@@ -222,6 +225,13 @@ public class AvaliacaoModel
     public DateTime CriadoEm { get; set; }
 }
 
+public class HorarioModel
+{
+    public int DiaSemana { get; set; }
+    public string HoraAbertura { get; set; } = "";
+    public string HoraFechamento { get; set; } = "";
+}
+
 // Partial update DTO for admin edits — all fields nullable, send only the section being changed
 public class AdminUpdateRequest
 {
@@ -231,11 +241,13 @@ public class AdminUpdateRequest
     public bool? TemArmario          { get; set; }
     public bool? TemEspacoManutencao { get; set; }
     public bool? TemCadeado          { get; set; }
+    public bool? TemBanheiro         { get; set; }
     public bool? AcessoLivre         { get; set; }
     public bool? AcessoPago          { get; set; }
     public bool? AcessoCadastro      { get; set; }
     public bool? AcessoMensal        { get; set; }
     public int?  VeiculosSuportados  { get; set; }
+    public HorarioModel[]? Horarios  { get; set; }
 }
 
 // Matches CriarBicicletarioDto (Portuguese names)
@@ -251,9 +263,11 @@ public class CreateBicicletarioRequest
     public bool TemArmario { get; set; }
     public bool TemEspacoManutencao { get; set; }
     public bool TemCadeado { get; set; }
+    public bool TemBanheiro { get; set; }
     public bool AcessoLivre { get; set; }
     public bool AcessoPago { get; set; }
     public bool AcessoCadastro { get; set; }
     public bool AcessoMensal { get; set; }
     public int VeiculosSuportados { get; set; }
+    public HorarioModel[]? Horarios { get; set; }
 }

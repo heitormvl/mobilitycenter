@@ -63,6 +63,24 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
             ?? throw new AppException("Dados da sugestão corrompidos.", 500);
 
         AplicarEdicao(sugestao.Bicicletario, dto);
+
+        if (dto.Horarios != null)
+        {
+            var existentes = await _db.HorariosFuncionamento
+                .Where(h => h.BicicletarioId == sugestao.BicicletarioId)
+                .ToListAsync();
+            _db.HorariosFuncionamento.RemoveRange(existentes);
+            foreach (var h in dto.Horarios)
+                _db.HorariosFuncionamento.Add(new HorarioFuncionamento
+                {
+                    Id = Guid.NewGuid(),
+                    BicicletarioId = sugestao.BicicletarioId,
+                    DiaSemana = h.DiaSemana,
+                    HoraAbertura = TimeOnly.Parse(h.HoraAbertura, System.Globalization.CultureInfo.InvariantCulture),
+                    HoraFechamento = TimeOnly.Parse(h.HoraFechamento, System.Globalization.CultureInfo.InvariantCulture),
+                });
+        }
+
         sugestao.Bicicletario.AtualizadoEm = DateTime.UtcNow;
 
         sugestao.Status = StatusSugestao.Aprovada;
@@ -117,6 +135,7 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
         if (dto.TemArmario.HasValue) b.TemArmario = dto.TemArmario.Value;
         if (dto.TemEspacoManutencao.HasValue) b.TemEspacoManutencao = dto.TemEspacoManutencao.Value;
         if (dto.TemCadeado.HasValue) b.TemCadeado = dto.TemCadeado.Value;
+        if (dto.TemBanheiro.HasValue) b.TemBanheiro = dto.TemBanheiro.Value;
 
         if (dto.AcessoLivre.HasValue) b.AcessoLivre = dto.AcessoLivre.Value;
         if (dto.AcessoPago.HasValue) b.AcessoPago = dto.AcessoPago.Value;

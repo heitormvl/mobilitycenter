@@ -28,6 +28,42 @@ else
 <div style="padding:20px 20px 110px;">
     <div style="display:flex; flex-direction:column; gap:18px;">
 
+        <!-- Foto -->
+        <div>
+            <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">
+                Foto <span style="color:var(--text-4); font-weight:400;">(opcional)</span>
+            </label>
+            <label for="fotoInput" style="cursor:pointer; display:block;">
+                <div style="border:1.5px dashed var(--border-2); border-radius:var(--r-lg); overflow:hidden; height:160px; display:flex; align-items:center; justify-content:center; background:var(--bg-page); position:relative;">
+                    @if (_fotoPreview != null)
+                    {
+                        <img src="@_fotoPreview" alt="Preview"
+                             style="width:100%; height:100%; object-fit:cover;" />
+                        <button type="button" @onclick:stopPropagation="true" @onclick="RemoverFoto"
+                                style="position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(0,0,0,0.5); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                            <i class="fa-solid fa-xmark" style="color:white; font-size:12px;"></i>
+                        </button>
+                    }
+                    else
+                    {
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--text-4);">
+                            <i class="fa-solid fa-camera" style="font-size:24px;"></i>
+                            <span style="font-size:13px; font-family:var(--font);">Toque para adicionar uma foto</span>
+                        </div>
+                    }
+                </div>
+            </label>
+            <InputFile id="fotoInput" OnChange="OnFotoSelecionada"
+                       accept="image/webp,image/png,image/jpeg"
+                       style="display:none;" />
+            @if (_fotoError != null)
+            {
+                <div style="font-size:12px; color:var(--red); margin-top:6px; font-family:var(--font);">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>@_fotoError
+                </div>
+            }
+        </div>
+
         <!-- Nome -->
         <div>
             <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">
@@ -77,40 +113,75 @@ else
             </div>
         </div>
 
-        <!-- Foto -->
+        <!-- Horários de Funcionamento -->
         <div>
-            <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">
-                Foto <span style="color:var(--text-4); font-weight:400;">(opcional)</span>
+            <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:10px; font-family:var(--font);">
+                Horário de funcionamento <span style="color:var(--text-4); font-weight:400;">(opcional)</span>
             </label>
-            <label for="fotoInput" style="cursor:pointer; display:block;">
-                <div style="border:1.5px dashed var(--border-2); border-radius:var(--r-lg); overflow:hidden; height:160px; display:flex; align-items:center; justify-content:center; background:var(--bg-page); position:relative;">
-                    @if (_fotoPreview != null)
-                    {
-                        <img src="@_fotoPreview" alt="Preview"
-                             style="width:100%; height:100%; object-fit:cover;" />
-                        <button type="button" @onclick:stopPropagation="true" @onclick="RemoverFoto"
-                                style="position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(0,0,0,0.5); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-                            <i class="fa-solid fa-xmark" style="color:white; font-size:12px;"></i>
+
+            @* Presets de grupo *@
+            <div style="background:var(--bg-page); border:1px solid var(--border); border-radius:var(--r); padding:10px; margin-bottom:10px;">
+                <div style="font-size:11px; font-weight:600; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Aplicar em grupo</div>
+                <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+                    <input type="time" value="@_presetAbertura" @oninput="@(e => _presetAbertura = e.Value?.ToString() ?? _presetAbertura)"
+                           style="border:1px solid var(--border); border-radius:var(--r); padding:4px 8px; font-family:var(--font); font-size:13px; background:var(--bg); color:var(--text); outline:none;" />
+                    <span style="color:var(--text-4); font-size:12px;">–</span>
+                    <input type="time" value="@_presetFechamento" @oninput="@(e => _presetFechamento = e.Value?.ToString() ?? _presetFechamento)"
+                           style="border:1px solid var(--border); border-radius:var(--r); padding:4px 8px; font-family:var(--font); font-size:13px; background:var(--bg); color:var(--text); outline:none;" />
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button type="button" @onclick="@(() => AplicarPreset(0, 1, 2, 3, 4, 5, 6))"
+                            style="padding:4px 10px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg); font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer;">
+                        Todos
+                    </button>
+                    <button type="button" @onclick="@(() => AplicarPreset(1, 2, 3, 4, 5))"
+                            style="padding:4px 10px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg); font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer;">
+                        Dias úteis
+                    </button>
+                    <button type="button" @onclick="@(() => AplicarPreset(1, 2, 3, 4, 5, 6))"
+                            style="padding:4px 10px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg); font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer;">
+                        Seg–Sáb
+                    </button>
+                    <button type="button" @onclick="@(() => AplicarPreset(6))"
+                            style="padding:4px 10px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg); font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer;">
+                        Sáb
+                    </button>
+                    <button type="button" @onclick="@(() => AplicarPreset(0))"
+                            style="padding:4px 10px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg); font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer;">
+                        Dom
+                    </button>
+                </div>
+            </div>
+
+            @* Grade por dia *@
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                @for (var i = 0; i < 7; i++)
+                {
+                    var idx = i;
+                    var h = _horarios[idx];
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button type="button" @onclick="@(() => { h.Ciclar(); StateHasChanged(); })" style="@HorarioBtnStyle(h.Estado)">
+                            @_diasSemana[idx]
                         </button>
-                    }
-                    else
-                    {
-                        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--text-4);">
-                            <i class="fa-solid fa-camera" style="font-size:24px;"></i>
-                            <span style="font-size:13px; font-family:var(--font);">Toque para adicionar uma foto</span>
-                        </div>
-                    }
-                </div>
-            </label>
-            <InputFile id="fotoInput" OnChange="OnFotoSelecionada"
-                       accept="image/webp,image/png,image/jpeg"
-                       style="display:none;" />
-            @if (_fotoError != null)
-            {
-                <div style="font-size:12px; color:var(--red); margin-top:6px; font-family:var(--font);">
-                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>@_fotoError
-                </div>
-            }
+                        @if (h.Estado == "aberto")
+                        {
+                            <input type="time" value="@h.Abertura" @oninput="@(e => { h.Abertura = e.Value?.ToString() ?? h.Abertura; StateHasChanged(); })"
+                                   style="flex:1; border:1px solid var(--border); border-radius:var(--r); padding:4px 8px; font-family:var(--font); font-size:13px; background:var(--bg-page); color:var(--text); outline:none;" />
+                            <span style="color:var(--text-4); font-size:12px;">–</span>
+                            <input type="time" value="@h.Fechamento" @oninput="@(e => { h.Fechamento = e.Value?.ToString() ?? h.Fechamento; StateHasChanged(); })"
+                                   style="flex:1; border:1px solid var(--border); border-radius:var(--r); padding:4px 8px; font-family:var(--font); font-size:13px; background:var(--bg-page); color:var(--text); outline:none;" />
+                        }
+                        else if (h.Estado == "fechado")
+                        {
+                            <span style="font-size:12px; color:var(--text-3); font-family:var(--font);">Fechado</span>
+                        }
+                        else
+                        {
+                            <span style="font-size:12px; color:var(--text-4); font-family:var(--font);">—</span>
+                        }
+                    </div>
+                }
+            </div>
         </div>
 
     </div>
@@ -155,6 +226,36 @@ else
     private string? _fotoPreview;
     private string? _fotoError;
 
+    private static readonly string[] _diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    // Estado: "ni" = não informado (default), "aberto" = com horários, "fechado" = explicitamente fechado
+    private class HorarioItem
+    {
+        public string Estado = "ni";
+        public string Abertura = "08:00";
+        public string Fechamento = "18:00";
+        public void Ciclar() => Estado = Estado switch { "ni" => "aberto", "aberto" => "fechado", _ => "ni" };
+    }
+    private HorarioItem[] _horarios = Enumerable.Range(0, 7).Select(_ => new HorarioItem()).ToArray();
+    private string _presetAbertura = "08:00";
+    private string _presetFechamento = "18:00";
+
+    private static string HorarioBtnStyle(string estado) => estado switch
+    {
+        "aberto"  => "width:40px; font-size:11px; font-weight:600; padding:3px 6px; border-radius:var(--r); border:1px solid var(--brand); background:var(--brand-soft); color:var(--brand); cursor:pointer; font-family:var(--font); flex-shrink:0;",
+        "fechado" => "width:40px; font-size:11px; font-weight:600; padding:3px 6px; border-radius:var(--r); border:1px solid var(--border); background:var(--bg-page); color:var(--text-3); cursor:pointer; font-family:var(--font); flex-shrink:0; text-decoration:line-through;",
+        _         => "width:40px; font-size:11px; font-weight:600; padding:3px 6px; border-radius:var(--r); border:1px dashed var(--border-2); background:var(--bg-page); color:var(--text-4); cursor:pointer; font-family:var(--font); flex-shrink:0;",
+    };
+
+    private void AplicarPreset(params int[] dias)
+    {
+        foreach (var d in dias)
+        {
+            _horarios[d].Estado    = "aberto";
+            _horarios[d].Abertura  = _presetAbertura;
+            _horarios[d].Fechamento = _presetFechamento;
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         _slideClass = Dir == "back" ? "page-slide-back" : "page-slide-forward";
@@ -168,6 +269,13 @@ else
 
         if (AdicionarState.HasFoto)
             _fotoPreview = $"data:{AdicionarState.FotoContentType};base64,{Convert.ToBase64String(AdicionarState.FotoBytes!)}";
+
+        foreach (var h in AdicionarState.Horarios)
+        {
+            _horarios[h.DiaSemana].Estado    = "aberto";
+            _horarios[h.DiaSemana].Abertura  = h.HoraAbertura;
+            _horarios[h.DiaSemana].Fechamento = h.HoraFechamento;
+        }
     }
 
     private async Task OnFotoSelecionada(InputFileChangeEventArgs e)
@@ -216,6 +324,12 @@ else
             _nameError = "O nome do bicicletário é obrigatório.";
             return Task.CompletedTask;
         }
+
+        AdicionarState.Horarios = _horarios
+            .Select((h, i) => h.Estado == "aberto" ? new HorarioModel { DiaSemana = i, HoraAbertura = h.Abertura, HoraFechamento = h.Fechamento } : null)
+            .Where(h => h != null)
+            .Select(h => h!)
+            .ToArray();
 
         var name = Uri.EscapeDataString(_name.Trim());
         var cap = _capacity.Trim();

@@ -102,11 +102,12 @@ else
 
     private CheckOption[] _servicos =
     [
-        new("fa-plug",   "Tomada elétrica",        true),
-        new("fa-gauge",  "Calibrador de pneus",     true),
-        new("fa-box",    "Armário / guarda-volume", false),
-        new("fa-wrench", "Espaço de manutenção",    false),
-        new("fa-lock",   "Cadeado próprio",         false),
+        new("fa-plug",     "Tomada elétrica",        true),
+        new("fa-gauge",    "Calibrador de pneus",     true),
+        new("fa-box",      "Armário / guarda-volume", false),
+        new("fa-wrench",   "Espaço de manutenção",    false),
+        new("fa-lock",     "Cadeado próprio",         false),
+        new("fa-restroom", "Banheiro",                false),
     ];
 
     private CheckOption[] _veiculos =
@@ -139,6 +140,7 @@ else
             await BicicletarioSvc.UploadFotoAsync(id, content);
             AdicionarState.ClearFoto();
         }
+        AdicionarState.ClearHorarios();
 
         ToastSvc.Show("Bicicletário publicado com sucesso!");
         Nav.NavigateTo("/", forceLoad: false);
@@ -160,7 +162,9 @@ else
             TemArmario          = _servicos[2].Checked,
             TemEspacoManutencao = _servicos[3].Checked,
             TemCadeado          = _servicos[4].Checked,
+            TemBanheiro         = _servicos[5].Checked,
             TemVestiario        = false,
+            Horarios            = AdicionarState.Horarios.Length > 0 ? AdicionarState.Horarios : null,
             AcessoLivre         = accessType == 0,
             AcessoPago          = accessType == 1,
             AcessoCadastro      = accessType == 2,
