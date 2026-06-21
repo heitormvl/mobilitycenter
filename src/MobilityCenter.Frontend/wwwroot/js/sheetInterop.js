@@ -8,6 +8,7 @@ window.sheetInterop = (function () {
     let _startClientY = 0;
     let _startCurrentY = 0;
     let _movedPx = 0;
+    let _lastTouchEnd = 0;
 
     function applyTransform(y, animate) {
         _currentY = Math.max(0, Math.min(y, _peekY));
@@ -81,10 +82,13 @@ window.sheetInterop = (function () {
             }, { passive: false });
 
             document.addEventListener('touchend', e => {
+                _lastTouchEnd = Date.now();
                 onEnd(e.changedTouches[0].clientY);
             });
 
             handleEl.addEventListener('mousedown', e => {
+                // Ignore synthetic mouse events fired by the browser after touch
+                if (Date.now() - _lastTouchEnd < 500) return;
                 onStart(e.clientY);
                 e.preventDefault();
             });

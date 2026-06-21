@@ -17,6 +17,16 @@
 <div style="position:relative;">
     <MapGrid @ref="_map" H="@_mapHeight" OnReady="OnMapReady" OnViewChanged="OnViewChanged" />
 
+    <!-- Loading overlay: visible while map tiles and location are not yet ready -->
+    <div style="position:absolute; inset:0; z-index:20;
+                display:flex; align-items:center; justify-content:center;
+                background:var(--bg-page);
+                opacity:@((_isLoading || !_mapReady) ? "1" : "0");
+                pointer-events:@((_isLoading || !_mapReady) ? "auto" : "none");
+                transition:opacity 0.5s ease;">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:32px; color:var(--brand);"></i>
+    </div>
+
     <!-- Floating search bar over map -->
     <div style="position:absolute; top:calc(env(safe-area-inset-top, 0px) + 10px); left:16px; right:16px; z-index:10;">
         <div style="background:var(--bg); border-radius:var(--r-xl); box-shadow:var(--shadow-lg); display:flex; align-items:center; gap:10px; padding:0 16px; height:50px;">
@@ -78,7 +88,9 @@
                 }
             </div>
             <span style="font-size:13px; color:var(--brand); font-weight:600; font-family:var(--font); cursor:pointer;"
-                  @onclick="@(() => Nav.NavigateTo("/lista"))">Ver lista →</span>
+                  @onclick="NavigateToListaAsync"
+                  @ontouchstart:stopPropagation="true"
+                  @onmousedown:stopPropagation="true">Ver lista →</span>
         </div>
     </div>
 
@@ -426,6 +438,12 @@
     {
         _minNota = n;
         await RenderMarkersAsync();
+    }
+
+    private async Task NavigateToListaAsync()
+    {
+        await JS.InvokeVoidAsync("navTransition.prepare", "mapa", "lista");
+        Nav.NavigateTo("/lista");
     }
 
     private async Task NavigateToDetailAsync(string id)

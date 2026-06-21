@@ -18,7 +18,7 @@
                     Ocultas
                 </button>
             }
-            <i class="fa-solid fa-map" style="color:var(--brand); font-size:19px; cursor:pointer;" @onclick="@(() => Nav.NavigateTo("/"))"></i>
+            <i class="fa-solid fa-map" style="color:var(--brand); font-size:19px; cursor:pointer;" @onclick="NavigateToMapaAsync"></i>
         </div>
     </div>
     <WfInput Placeholder="Buscar por nome..." IconClass="fa-magnifying-glass"
@@ -157,6 +157,12 @@
         catch { }
 
         await CarregarAsync();
+    }
+
+    private async Task NavigateToMapaAsync()
+    {
+        await JS.InvokeVoidAsync("navTransition.prepare", "lista", "mapa");
+        Nav.NavigateTo("/");
     }
 
     private async Task CarregarAsync()

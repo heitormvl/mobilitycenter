@@ -31,12 +31,14 @@ window.googleAuth = {
                 window.googleAuth._dotNetRef.invokeMethodAsync('HandleGoogleCredential', response.credential);
             },
             auto_select: false,
-            cancel_on_tap_outside: true
+            cancel_on_tap_outside: true,
+            use_fedcm_for_prompt: true
         });
 
         google.accounts.id.prompt(function (notification) {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                // One Tap was suppressed — fall back to popup window
+            var type = notification.getMomentType();
+            if (type === 'skipped' || type === 'dismissed' || notification.isNotDisplayed()) {
+                // One Tap was suppressed or unavailable — fall back to popup window
                 window.googleAuth._openPopup(clientId);
             }
         });
