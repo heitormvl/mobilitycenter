@@ -1,6 +1,7 @@
 @inject AuthService AuthService
 @inject LocalStorageService LocalStorage
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <div class="@(_closing ? "cfg-sheet cfg-sheet--out" : "cfg-sheet")">
 
@@ -103,6 +104,59 @@
                     @if (_salvandoSenha) { <span>Salvando...</span> } else { <span>Alterar senha</span> }
                 </BtnP>
             </div>
+
+            <!-- Zona de perigo -->
+            <SecLabel>Zona de perigo</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--red-border); margin:8px 0 24px; box-shadow:var(--shadow-sm); overflow:hidden;">
+                @if (!_confirmandoExclusao)
+                {
+                    <button @onclick="@(() => _confirmandoExclusao = true)"
+                            style="width:100%; display:flex; align-items:center; gap:12px; padding:16px 20px; background:transparent; border:none; cursor:pointer; text-align:left;">
+                        <i class="fa-solid fa-trash" style="font-size:15px; color:var(--red); width:18px; text-align:center;"></i>
+                        <span style="font-size:15px; color:var(--red); font-family:var(--font); font-weight:500;">Excluir conta</span>
+                    </button>
+                }
+                else
+                {
+                    <div style="padding:20px;">
+                        <p style="font-size:14px; font-weight:700; color:var(--red); font-family:var(--font); margin:0 0 8px;">Tem certeza?</p>
+                        <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0 0 16px; line-height:1.55;">
+                            Esta ação é permanente e não pode ser desfeita. Sua conta, avaliações e dados pessoais serão excluídos.
+                        </p>
+
+                        @if (_erroExclusao is not null)
+                        {
+                            <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:var(--red);">
+                                @_erroExclusao
+                            </div>
+                        }
+
+                        <div style="display:flex; gap:10px;">
+                            <button @onclick="@(() => { _confirmandoExclusao = false; _erroExclusao = null; })"
+                                    style="flex:1; padding:13px; border-radius:var(--r-lg); border:1.5px solid var(--border); background:var(--bg-page); color:var(--text-2); font-family:var(--font); font-size:14px; font-weight:500; cursor:pointer;">
+                                Cancelar
+                            </button>
+                            <button @onclick="ConfirmarExclusao" disabled="@_excluindo"
+                                    style="flex:1; padding:13px; border-radius:var(--r-lg); border:none; background:var(--red); color:white; font-family:var(--font); font-size:14px; font-weight:600; cursor:pointer; opacity:@(_excluindo ? "0.6" : "1");">
+                                @(_excluindo ? "Excluindo..." : "Excluir conta")
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Legal -->
+            <SecLabel>Legal</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); margin:8px 0 24px; box-shadow:var(--shadow-sm); overflow:hidden;">
+                <a href="/politica-de-privacidade"
+                   style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; text-decoration:none; color:inherit;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <i class="fa-solid fa-shield-halved" style="font-size:15px; color:var(--text-3); width:18px; text-align:center;"></i>
+                        <span style="font-size:15px; color:var(--text); font-family:var(--font); font-weight:500;">Política de Privacidade</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size:12px; color:var(--text-4);"></i>
+                </a>
+            </div>
         }
     </div>
 </div>
@@ -164,6 +218,10 @@
     private string? _erroSenha;
     private bool _okSenha;
 
+    private bool _confirmandoExclusao;
+    private bool _excluindo;
+    private string? _erroExclusao;
+
     protected override async Task OnInitializedAsync()
     {
         if (User is not null)
@@ -222,6 +280,23 @@
             User.Email = _email.Trim();
         }
         _salvandoDados = false;
+    }
+
+    private async Task ConfirmarExclusao()
+    {
+        if (_excluindo) return;
+        _excluindo = true;
+        _erroExclusao = null;
+
+        var erro = await AuthService.ExcluirContaAsync();
+        if (erro is not null)
+        {
+            _erroExclusao = erro;
+            _excluindo = false;
+            return;
+        }
+
+        Nav.NavigateTo("/login");
     }
 
     private async Task SalvarSenha()

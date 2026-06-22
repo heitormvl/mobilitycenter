@@ -66,11 +66,11 @@ else if (_loadError != null)
 else if (_item != null)
 {
     @* Lightbox *@
-    @if (_lightboxOpen && _fotoUrl != null)
+    @if (_lightboxOpen && _lightboxUrl != null)
     {
         <div @onclick="@(() => _lightboxOpen = false)"
              style="position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.92); display:flex; align-items:center; justify-content:center; padding:24px; cursor:zoom-out;">
-            <img src="@_fotoUrl"
+            <img src="@_lightboxUrl"
                  style="max-width:min(90vw,800px); max-height:80vh; object-fit:contain; border-radius:var(--r-lg); box-shadow:0 24px 64px rgba(0,0,0,0.6);"
                  alt="Foto do local"
                  @onclick:stopPropagation="true" />
@@ -81,15 +81,15 @@ else if (_item != null)
         </div>
     }
 
-    @* Photo section *@
+    @* Cover photo *@
     <div class="mc-detail-rise" style="position:relative; background:#111;">
-        @if (!_fotoFalhou && _fotoUrl != null)
+        @if (_capaUrl != null && !_fotosFalhou.Contains(_capa?.Id ?? "legacy"))
         {
-            <img src="@_fotoUrl"
+            <img src="@_capaUrl"
                  style="width:100%; max-height:320px; object-fit:contain; display:block; cursor:zoom-in;"
                  alt="Foto do local"
-                 @onclick="@(() => _lightboxOpen = true)"
-                 @onerror="@(() => _fotoFalhou = true)" />
+                 @onclick="@(() => { _lightboxUrl = _capaUrl; _lightboxOpen = true; })"
+                 @onerror="@(() => { _fotosFalhou.Add(_capa?.Id ?? "legacy"); StateHasChanged(); })" />
         }
         else
         {
@@ -99,7 +99,7 @@ else if (_item != null)
         {
             <button @onclick="@(() => { _editingFoto = !_editingFoto; _saveError = null; })"
                     style="position:absolute; top:12px; right:12px; width:36px; height:36px; border-radius:var(--r-full); background:rgba(0,0,0,0.5); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-                <i class="fa-solid @(_editingFoto ? "fa-xmark" : "fa-pen")" style="font-size:13px; color:white;"></i>
+                <i class="fa-solid @(_editingFoto ? "fa-xmark" : "fa-plus")" style="font-size:13px; color:white;"></i>
             </button>
         }
         @if (_isAdmin && _editingFoto)
@@ -107,8 +107,8 @@ else if (_item != null)
             <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.75); padding:14px 16px; display:flex; align-items:center; gap:10px;">
                 <label style="flex:1; display:flex; align-items:center; gap:8px; cursor:pointer; color:white; font-size:14px; font-family:var(--font); font-weight:500;">
                     <i class="fa-solid fa-image"></i>
-                    @if (_isSaving) { <span>Enviando...</span> } else { <span>Escolher foto (webp, png, jpg · max 5MB)</span> }
-                    <InputFile OnChange="HandleFotoUpload" accept="image/webp,image/png,image/jpeg" style="display:none;" disabled="@_isSaving" />
+                    @if (_isSaving) { <span>Enviando...</span> } else { <span>Adicionar foto (webp, png, jpg · max 5MB)</span> }
+                    <InputFile OnChange="HandleFotoUpload" accept="image/webp,image/png,image/jpeg,image/heic,image/heif" style="display:none;" disabled="@_isSaving" />
                 </label>
             </div>
             @if (!string.IsNullOrEmpty(_saveError))
@@ -118,7 +118,79 @@ else if (_item != null)
                 </div>
             }
         }
+        @if (_capa != null && _fotos.Count > 1)
+        {
+            <div style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:5px; pointer-events:none;">
+                @foreach (var _ in _fotos)
+                {
+                    <div style="width:6px; height:6px; border-radius:var(--r-full); background:rgba(255,255,255,0.5);"></div>
+                }
+            </div>
+        }
     </div>
+
+    @* Extra photos carousel *@
+    @if (_fotos.Count > 1 || (_fotos.Count == 0 && _isAdmin))
+    {
+        <div style="padding:12px 0 0;">
+            <div style="padding:0 16px 8px; display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:11px; font-weight:600; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:0.07em;">
+                    Fotos (@_fotos.Count)
+                </span>
+            </div>
+            <div style="display:flex; gap:8px; overflow-x:auto; padding:0 16px 12px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
+                @foreach (var foto in _fotos)
+                {
+                    var fUrl = BicicletarioSvc.GetFotoUrl(foto.FotoUrl);
+                    var fId = foto.Id;
+                    <div style="position:relative; flex-shrink:0; width:160px; height:120px; scroll-snap-align:start; border-radius:var(--r-lg); overflow:hidden; border:2px solid @(foto.IsCapa ? "var(--brand)" : "var(--border)");">
+                        @if (!_fotosFalhou.Contains(fId))
+                        {
+                            <img src="@fUrl"
+                                 style="width:100%; height:100%; object-fit:cover; cursor:zoom-in;"
+                                 alt="Foto"
+                                 @onclick="@(() => { _lightboxUrl = fUrl; _lightboxOpen = true; })"
+                                 @onerror="@(() => { _fotosFalhou.Add(fId); StateHasChanged(); })" />
+                        }
+                        else
+                        {
+                            <div style="width:100%; height:100%; background:var(--bg-page); display:flex; align-items:center; justify-content:center;">
+                                <i class="fa-solid fa-image" style="color:var(--text-4); font-size:24px;"></i>
+                            </div>
+                        }
+                        @if (foto.IsCapa)
+                        {
+                            <div style="position:absolute; top:6px; left:6px; background:var(--brand); border-radius:var(--r-full); padding:3px 8px; display:flex; align-items:center; gap:4px; pointer-events:none;">
+                                <i class="fa-solid fa-star" style="font-size:9px; color:white;"></i>
+                                <span style="font-size:10px; font-weight:700; color:white; font-family:var(--font);">Capa</span>
+                            </div>
+                        }
+                        @if (_isAdmin && !foto.IsCapa)
+                        {
+                            <button @onclick="@(async () => await SetCapaAsync(fId))"
+                                    title="Definir como capa"
+                                    style="position:absolute; top:6px; right:6px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-appearance:none;">
+                                <i class="fa-regular fa-star" style="font-size:11px; color:white;"></i>
+                            </button>
+                            <button @onclick="@(async () => await DeleteFotoAsync(fId))"
+                                    title="Excluir foto"
+                                    style="position:absolute; bottom:6px; right:6px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(220,38,38,0.7); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-appearance:none;">
+                                <i class="fa-solid fa-trash" style="font-size:10px; color:white;"></i>
+                            </button>
+                        }
+                        @if (_isAdmin && foto.IsCapa)
+                        {
+                            <button @onclick="@(async () => await DeleteFotoAsync(fId))"
+                                    title="Excluir foto"
+                                    style="position:absolute; bottom:6px; right:6px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(220,38,38,0.7); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-appearance:none;">
+                                <i class="fa-solid fa-trash" style="font-size:10px; color:white;"></i>
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
 
     @* Scrollable body *@
     <div class="mc-detail-body" style="padding:20px 20px 160px;">
@@ -567,9 +639,14 @@ else if (_item != null)
 
     private UserInfo? _userInfo;
     private bool      _isAdmin;
-    private string?   _fotoUrl;
-    private bool      _fotoFalhou;
+    private List<FotoModel> _fotos = [];
+    private HashSet<string> _fotosFalhou = [];
+    private string?   _legacyCoverUrl;
+    private string?   _lightboxUrl;
     private bool      _lightboxOpen;
+
+    private FotoModel? _capa => _fotos.FirstOrDefault(f => f.IsCapa) ?? _fotos.FirstOrDefault();
+    private string? _capaUrl => _capa != null ? BicicletarioSvc.GetFotoUrl(_capa.FotoUrl) : _legacyCoverUrl;
 
     // Edit mode flags (only one section active at a time)
     private bool _editingFoto;
@@ -642,7 +719,7 @@ else if (_item != null)
         RecomputeDisplayData();
 
         _ = ReverseGeocodeAsync(_item.Latitude, _item.Longitude);
-        _fotoUrl = BicicletarioSvc.GetFotoBicicletarioUrl(Id!);
+        _ = CarregarFotosAsync();
     }
 
     private async Task GoBack()
@@ -853,6 +930,16 @@ else if (_item != null)
         _isSaving = false;
     }
 
+    private async Task CarregarFotosAsync()
+    {
+        var fotos = await BicicletarioSvc.GetFotosAsync(Id!);
+        if (fotos != null)
+            _fotos = [.. fotos.OrderBy(f => f.Ordem)];
+        else
+            _legacyCoverUrl = BicicletarioSvc.GetFotoBicicletarioUrl(Id!);
+        StateHasChanged();
+    }
+
     private async Task HandleFotoUpload(InputFileChangeEventArgs e)
     {
         var file = e.File;
@@ -870,16 +957,41 @@ else if (_item != null)
             using var sc      = new StreamContent(stream);
             sc.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
             content.Add(sc, "foto", file.Name);
-            var err = await BicicletarioSvc.UploadFotoAsync(Id!, content);
-            if (err == null)
+            var (err, novaFoto) = await BicicletarioSvc.UploadFotoAsync(Id!, content);
+            if (err == null && novaFoto != null)
             {
-                _fotoFalhou = false;
-                _fotoUrl = BicicletarioSvc.GetFotoBicicletarioUrl(Id!, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                _fotos.Add(novaFoto);
                 _editingFoto = false;
             }
             else _saveError = err;
         }
         finally { _isSaving = false; }
+    }
+
+    private async Task SetCapaAsync(string fotoId)
+    {
+        var err = await BicicletarioSvc.SetCapaAsync(fotoId);
+        if (err == null)
+        {
+            foreach (var f in _fotos) f.IsCapa = (f.Id == fotoId);
+            StateHasChanged();
+        }
+        else _saveError = err;
+    }
+
+    private async Task DeleteFotoAsync(string fotoId)
+    {
+        var err = await BicicletarioSvc.DeleteFotoAsync(fotoId);
+        if (err == null)
+        {
+            var removed = _fotos.FirstOrDefault(f => f.Id == fotoId);
+            _fotos.Remove(removed!);
+            // If we deleted the cover, promote the next one
+            if (removed?.IsCapa == true && _fotos.Count > 0)
+                _fotos[0].IsCapa = true;
+            StateHasChanged();
+        }
+        else _saveError = err;
     }
 
     // ─── Delete handlers ─────────────────────────────────────────────────────

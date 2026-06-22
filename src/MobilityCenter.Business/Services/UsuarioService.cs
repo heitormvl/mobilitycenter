@@ -140,6 +140,18 @@ public class UsuarioService : IUsuarioService
             .ToListAsync();
     }
 
+    public async Task ExcluirContaAsync(Guid usuarioId)
+    {
+        var usuario = await _userManager.FindByIdAsync(usuarioId.ToString())
+            ?? throw new NotFoundException("Usuário não encontrado.");
+
+        await _fotoStorage.DeleteFotoPerfilAsync(usuarioId);
+
+        var resultado = await _userManager.DeleteAsync(usuario);
+        if (!resultado.Succeeded)
+            throw new ValidationException(string.Join(", ", resultado.Errors.Select(e => e.Description)));
+    }
+
     public async Task<IEnumerable<BicicletarioResumoDto>> ObterBicicletariosAsync(Guid usuarioId)
     {
         return await _db.Bicicletarios

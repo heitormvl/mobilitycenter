@@ -88,6 +88,26 @@ public class AuthService(
         authStateProvider.NotifyStateChanged(null);
     }
 
+    public async Task<string?> ExcluirContaAsync()
+    {
+        try
+        {
+            var response = await http.DeleteAsync("api/usuarios/me");
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao excluir a conta.";
+            }
+
+            await LogoutAsync();
+            return null;
+        }
+        catch
+        {
+            return "Não foi possível conectar ao servidor.";
+        }
+    }
+
     public Task<UserInfo?> GetUserInfoAsync() =>
         localStorage.GetItemAsync<UserInfo>("userInfo");
 

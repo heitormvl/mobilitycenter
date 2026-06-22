@@ -122,7 +122,7 @@ else
                 <div style="font-size:14px; font-weight:500; font-family:var(--font); color:var(--text-2); word-break:break-all;">@_photo.Name</div>
                 <div style="font-size:12px; color:var(--brand); margin-top:3px; font-family:var(--font);">Toque para trocar</div>
             }
-            <InputFile OnChange="OnPhotoSelected" accept="image/webp,image/png,image/jpeg" style="display:none;" disabled="@_submitting" />
+            <InputFile OnChange="OnPhotoSelected" accept="image/webp,image/png,image/jpeg,image/heic,image/heif" style="display:none;" disabled="@_submitting" />
         </label>
 
         @if (!string.IsNullOrEmpty(_error))

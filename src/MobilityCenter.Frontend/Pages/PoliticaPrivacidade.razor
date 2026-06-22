@@ -1,0 +1,243 @@
+@page "/politica-de-privacidade"
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div style="min-height:100vh; background:var(--bg-page); display:flex; flex-direction:column;">
+
+    <!-- Header -->
+    <div style="background:var(--bg); border-bottom:1px solid var(--border); flex-shrink:0;">
+        <StatusBar />
+        <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
+            <button @onclick="GoBack"
+                    style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <i class="fa-solid fa-chevron-left" style="color:var(--text-3); font-size:15px;"></i>
+            </button>
+            <h1 style="font-size:20px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin:0;">Política de Privacidade</h1>
+        </div>
+    </div>
+
+    <div style="padding:24px 20px 88px; max-width:680px; width:100%; margin:0 auto; box-sizing:border-box;">
+
+        <!-- Intro -->
+        <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm); margin-bottom:28px;">
+            <p style="font-size:12px; color:var(--text-4); font-family:var(--font); margin:0 0 10px; font-weight:500; text-transform:uppercase; letter-spacing:0.04em;">Última atualização: 21 de junho de 2026</p>
+            <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0; line-height:1.65;">
+                Esta Política de Privacidade descreve como o <strong style="color:var(--text);">MobilityCenter</strong> coleta, usa, armazena e compartilha seus dados pessoais, em conformidade com a
+                Lei Geral de Proteção de Dados (<strong style="color:var(--text);">LGPD</strong> — Lei nº 13.709/2018).
+            </p>
+        </div>
+
+        <!-- 1. Dados coletados -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>1. Dados que coletamos</SecLabel>
+
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:4px 0; box-shadow:var(--shadow-sm);">
+
+                @foreach (var (icon, titulo, desc, last) in _dadosColetados)
+                {
+                    <div style="display:flex; align-items:flex-start; gap:12px; padding:16px 20px;">
+                        <div style="width:34px; height:34px; border-radius:var(--r); background:var(--brand-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">
+                            <i class="fa-solid @icon" style="font-size:13px; color:var(--brand);"></i>
+                        </div>
+                        <div>
+                            <p style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font); margin:0 0 3px;">@titulo</p>
+                            <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0; line-height:1.55;">@desc</p>
+                        </div>
+                    </div>
+                    @if (!last)
+                    {
+                        <div style="height:1px; background:var(--border); margin:0 20px;"></div>
+                    }
+                }
+
+            </div>
+        </div>
+
+        <!-- 2. Base legal -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>2. Base legal (LGPD)</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:4px 0; box-shadow:var(--shadow-sm);">
+
+                @foreach (var (art, label, desc, last) in _basesLegais)
+                {
+                    <div style="padding:16px 20px;">
+                        <div style="display:inline-block; background:var(--brand-soft); border-radius:6px; padding:2px 8px; margin-bottom:6px;">
+                            <span style="font-size:11px; font-weight:700; color:var(--brand); font-family:var(--font);">@art</span>
+                        </div>
+                        <p style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font); margin:0 0 3px;">@label</p>
+                        <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0; line-height:1.55;">@desc</p>
+                    </div>
+                    @if (!last)
+                    {
+                        <div style="height:1px; background:var(--border); margin:0 20px;"></div>
+                    }
+                }
+
+            </div>
+        </div>
+
+        <!-- 3. Como usamos -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>3. Como usamos seus dados</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <ul style="margin:0; padding:0 0 0 18px; display:flex; flex-direction:column; gap:10px; color:var(--text-2); font-family:var(--font); font-size:14px; line-height:1.6;">
+                    <li>Autenticar e manter sua sessão no app.</li>
+                    <li>Exibir seu nome e foto nas avaliações que você publica (dados públicos).</li>
+                    <li>Contabilizar suas contribuições (avaliações e locais adicionados) no perfil.</li>
+                    <li>Processar e exibir as imagens enviadas para bicicletários.</li>
+                    <li>Moderar sugestões de edição de bicicletários.</li>
+                    <li>Realizar buscas geográficas para exibir bicicletários próximos.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 4. Compartilhamento -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>4. Compartilhamento com terceiros</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:4px 0; box-shadow:var(--shadow-sm);">
+
+                <div style="display:flex; align-items:flex-start; gap:12px; padding:16px 20px;">
+                    <div style="width:34px; height:34px; border-radius:var(--r); background:var(--brand-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">
+                        <i class="fa-brands fa-google" style="font-size:14px; color:var(--brand);"></i>
+                    </div>
+                    <div>
+                        <p style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font); margin:0 0 3px;">Google LLC</p>
+                        <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0; line-height:1.55;">
+                            Usamos o Google Sign-In para autenticação opcional. Nós recebemos nome, e-mail e foto de perfil do Google.
+                            Consulte a <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--brand); text-decoration:none; font-weight:500;">Política de Privacidade do Google</a>.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="height:1px; background:var(--border); margin:0 20px;"></div>
+
+                <div style="display:flex; align-items:flex-start; gap:12px; padding:16px 20px;">
+                    <div style="width:34px; height:34px; border-radius:var(--r); background:var(--brand-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">
+                        <i class="fa-brands fa-microsoft" style="font-size:14px; color:var(--brand);"></i>
+                    </div>
+                    <div>
+                        <p style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font); margin:0 0 3px;">Microsoft Azure</p>
+                        <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0; line-height:1.55;">
+                            Fotos de perfil e imagens de bicicletários são armazenadas no Azure Blob Storage.
+                            Consulte o <a href="https://privacy.microsoft.com/pt-br/privacystatement" target="_blank" rel="noopener" style="color:var(--brand); text-decoration:none; font-weight:500;">Aviso de Privacidade da Microsoft</a>.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="height:1px; background:var(--border); margin:0 20px;"></div>
+
+                <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0; padding:16px 20px; line-height:1.55;">
+                    Não vendemos, alugamos nem compartilhamos seus dados com terceiros para fins de publicidade ou marketing.
+                </p>
+
+            </div>
+        </div>
+
+        <!-- 5. Retenção -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>5. Retenção de dados</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0; line-height:1.65;">
+                    Seus dados são mantidos enquanto sua conta estiver ativa. Avaliações e contribuições a bicicletários podem ser preservadas de forma anonimizada após o encerramento da conta para manter a integridade do mapa colaborativo.
+                    Você pode solicitar a exclusão completa dos seus dados pelo e-mail de contato abaixo.
+                </p>
+            </div>
+        </div>
+
+        <!-- 6. Direitos LGPD -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>6. Seus direitos (LGPD, art. 18)</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:4px 0; box-shadow:var(--shadow-sm);">
+
+                @foreach (var (icon, titulo, desc, last) in _direitos)
+                {
+                    <div style="display:flex; align-items:flex-start; gap:12px; padding:16px 20px;">
+                        <div style="width:34px; height:34px; border-radius:var(--r); background:var(--brand-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">
+                            <i class="fa-solid @icon" style="font-size:12px; color:var(--brand);"></i>
+                        </div>
+                        <div>
+                            <p style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font); margin:0 0 3px;">@titulo</p>
+                            <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0; line-height:1.55;">@desc</p>
+                        </div>
+                    </div>
+                    @if (!last)
+                    {
+                        <div style="height:1px; background:var(--border); margin:0 20px;"></div>
+                    }
+                }
+
+            </div>
+        </div>
+
+        <!-- 7. Segurança -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>7. Segurança</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0; line-height:1.65;">
+                    Adotamos medidas técnicas para proteger seus dados: senhas são armazenadas apenas como hash criptográfico,
+                    comunicações ocorrem via HTTPS, tokens JWT têm validade de 24 horas e acesso ao armazenamento de imagens
+                    é controlado por credenciais de serviço.
+                </p>
+            </div>
+        </div>
+
+        <!-- 8. Contato -->
+        <div>
+            <SecLabel>8. Contato e exercício de direitos</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0 0 14px; line-height:1.65;">
+                    Para exercer seus direitos, corrigir dados, solicitar exclusão ou tirar dúvidas sobre esta política:
+                </p>
+                <a href="mailto:contato@mobilitycenter.app"
+                   style="display:inline-flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:var(--brand); font-family:var(--font); text-decoration:none;">
+                    <i class="fa-solid fa-envelope" style="font-size:13px;"></i>
+                    contato@mobilitycenter.app
+                </a>
+                <p style="font-size:13px; color:var(--text-4); font-family:var(--font); margin:14px 0 0; line-height:1.55;">
+                    Você também pode registrar uma reclamação junto à Autoridade Nacional de Proteção de Dados (ANPD) em
+                    <a href="https://www.gov.br/anpd" target="_blank" rel="noopener" style="color:var(--brand); text-decoration:none; font-weight:500;">gov.br/anpd</a>.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@code {
+    private async Task GoBack()
+    {
+        var canGoBack = await JS.InvokeAsync<bool>("eval", "history.length > 1");
+        if (canGoBack)
+            await JS.InvokeVoidAsync("eval", "history.back()");
+        else
+            Nav.NavigateTo("/");
+    }
+
+    private readonly (string Icon, string Titulo, string Desc, bool Last)[] _dadosColetados =
+    [
+        ("fa-user",           "Identificação e cadastro",     "Nome de exibição, endereço de e-mail e data de criação da conta. Quando o cadastro é feito via Google, também obtemos sua foto de perfil do Google.", false),
+        ("fa-lock",           "Autenticação",                  "Senha armazenada de forma criptografada (hash) para contas com login local. Para login via Google, recebemos apenas um token temporário que é validado com o Google e descartado.", false),
+        ("fa-image",          "Foto de perfil",                "Imagem enviada por você ou obtida do Google no cadastro. Armazenada em nossos servidores e exibida publicamente no seu perfil e nas suas avaliações.", false),
+        ("fa-star",           "Avaliações",                    "Nota (1 a 5 estrelas) e comentário ao avaliar um bicicletário. São públicos e exibidos com o seu nome de exibição.", false),
+        ("fa-location-dot",   "Localização dos bicicletários", "Coordenadas geográficas (latitude e longitude) dos bicicletários cadastrados. Descrevem a localização das instalações — não a sua posição em tempo real.", false),
+        ("fa-camera",         "Fotos de bicicletários",        "Imagens enviadas ao cadastrar ou editar um bicicletário, vinculadas ao local correspondente.", false),
+        ("fa-pen-to-square",  "Sugestões de edição",           "Alterações sugeridas para bicicletários existentes, armazenadas com identificação do autor para fins de moderação.", true),
+    ];
+
+    private readonly (string Art, string Label, string Desc, bool Last)[] _basesLegais =
+    [
+        ("Art. 7º, V",  "Execução de contrato",  "Dados necessários para criar e manter sua conta, autenticar seu acesso e exibir suas avaliações e contribuições.", false),
+        ("Art. 7º, IX", "Legítimo interesse",    "Vinculação do seu nome às avaliações e sugestões para garantir responsabilidade e qualidade das informações da plataforma.", false),
+        ("Art. 7º, I",  "Consentimento",         "Foto de perfil: você fornece voluntariamente e pode removê-la a qualquer momento nas configurações.", true),
+    ];
+
+    private readonly (string Icon, string Titulo, string Desc, bool Last)[] _direitos =
+    [
+        ("fa-eye",         "Acesso",       "Solicitar confirmação da existência e acesso aos seus dados pessoais.", false),
+        ("fa-pen",         "Correção",     "Corrigir dados incompletos, inexatos ou desatualizados.", false),
+        ("fa-trash",       "Exclusão",     "Solicitar a eliminação dos seus dados tratados com base no consentimento.", false),
+        ("fa-file-export", "Portabilidade","Receber seus dados em formato estruturado para uso em outro serviço.", false),
+        ("fa-ban",         "Revogação",    "Revogar o consentimento para uso da foto de perfil a qualquer momento.", false),
+        ("fa-circle-info", "Informação",   "Ser informado sobre com quais entidades seus dados são compartilhados.", true),
+    ];
+}

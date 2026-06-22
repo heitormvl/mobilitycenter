@@ -22,7 +22,7 @@ public class LocalFotoStorageService : IFotoStorageService
     {
         using var ms = new MemoryStream();
         await imageStream.CopyToAsync(ms);
-        var inputBytes = ms.ToArray();
+        var inputBytes = HeicConverter.EnsureSkiaDecodable(ms.ToArray(), contentType);
 
         using var bitmap = SKBitmap.Decode(inputBytes)
             ?? throw new InvalidOperationException("Não foi possível decodificar a imagem.");
@@ -64,11 +64,11 @@ public class LocalFotoStorageService : IFotoStorageService
         return Task.FromResult<(Stream, string)?>((stream, "image/webp"));
     }
 
-    public async Task<string> UploadFotoBicicletarioAsync(Guid bicicletarioId, Stream imageStream, string contentType)
+    public async Task UploadFotoBicicletarioAsync(Guid bicicletarioId, Guid fotoId, Stream imageStream, string contentType)
     {
         using var ms = new MemoryStream();
         await imageStream.CopyToAsync(ms);
-        var inputBytes = ms.ToArray();
+        var inputBytes = HeicConverter.EnsureSkiaDecodable(ms.ToArray(), contentType);
 
         using var bitmap = SKBitmap.Decode(inputBytes)
             ?? throw new InvalidOperationException("Não foi possível decodificar a imagem.");
@@ -87,11 +87,9 @@ public class LocalFotoStorageService : IFotoStorageService
             using var skImage = SKImage.FromBitmap(source);
             using var encoded = skImage.Encode(SKEncodedImageFormat.Webp, 85);
 
-            var dir = Path.Combine(_basePath, "bicicletarios");
+            var dir = Path.Combine(_basePath, "bicicletarios", bicicletarioId.ToString());
             Directory.CreateDirectory(dir);
-            await File.WriteAllBytesAsync(Path.Combine(dir, $"{bicicletarioId}.webp"), encoded.ToArray());
-
-            return $"/api/fotos/bicicletario/{bicicletarioId}";
+            await File.WriteAllBytesAsync(Path.Combine(dir, $"{fotoId}.webp"), encoded.ToArray());
         }
         finally
         {
@@ -99,7 +97,18 @@ public class LocalFotoStorageService : IFotoStorageService
         }
     }
 
-    public Task<(Stream stream, string contentType)?> DownloadFotoBicicletarioAsync(Guid bicicletarioId)
+    public Task<(Stream stream, string contentType)?> DownloadFotoBicicletarioAsync(Guid bicicletarioId, Guid fotoId)
+    {
+        var filePath = Path.Combine(_basePath, "bicicletarios", bicicletarioId.ToString(), $"{fotoId}.webp");
+
+        if (!File.Exists(filePath))
+            return Task.FromResult<(Stream, string)?>(null);
+
+        Stream stream = File.OpenRead(filePath);
+        return Task.FromResult<(Stream, string)?>((stream, "image/webp"));
+    }
+
+    public Task<(Stream stream, string contentType)?> DownloadFotoBicicletarioLegacyAsync(Guid bicicletarioId)
     {
         var filePath = Path.Combine(_basePath, "bicicletarios", $"{bicicletarioId}.webp");
 
@@ -108,5 +117,25 @@ public class LocalFotoStorageService : IFotoStorageService
 
         Stream stream = File.OpenRead(filePath);
         return Task.FromResult<(Stream, string)?>((stream, "image/webp"));
+    }
+
+    public Task DeleteFotoBicicletarioAsync(Guid bicicletarioId, Guid fotoId)
+    {
+        var filePath = Path.Combine(_basePath, "bicicletarios", bicicletarioId.ToString(), $"{fotoId}.webp");
+
+        if (File.Exists(filePath))
+            File.Delete(filePath);
+
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteFotoPerfilAsync(Guid usuarioId)
+    {
+        var filePath = Path.Combine(_basePath, $"{usuarioId}.webp");
+
+        if (File.Exists(filePath))
+            File.Delete(filePath);
+
+        return Task.CompletedTask;
     }
 }

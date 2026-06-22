@@ -12,4 +12,5 @@ public interface IUsuarioService
     Task<string> AtualizarFotoPerfilAsync(Guid usuarioId, Stream imageStream, string contentType);
     Task<UsuarioDto> AtualizarPerfilAsync(Guid usuarioId, AtualizarPerfilDto dto);
     Task AlterarSenhaAsync(Guid usuarioId, AlterarSenhaDto dto);
+    Task ExcluirContaAsync(Guid usuarioId);
 }

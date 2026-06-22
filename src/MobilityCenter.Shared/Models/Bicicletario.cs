@@ -35,6 +35,7 @@ public class Bicicletario
     public ICollection<Avaliacao> Avaliacoes { get; set; } = [];
     public ICollection<SugestaoEdicao> Sugestoes { get; set; } = [];
     public ICollection<HorarioFuncionamento> Horarios { get; set; } = [];
+    public ICollection<FotoBicicletario> Fotos { get; set; } = [];
 
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
     public DateTime AtualizadoEm { get; set; } = DateTime.UtcNow;

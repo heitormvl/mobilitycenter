@@ -124,7 +124,19 @@ public class BicicletarioService(HttpClient http)
         }
     }
 
-    public async Task<string?> UploadFotoAsync(string bicicletarioId, MultipartFormDataContent content)
+    public async Task<FotoModel[]?> GetFotosAsync(string bicicletarioId)
+    {
+        try
+        {
+            return await http.GetFromJsonAsync<FotoModel[]>($"api/fotos?bicicletarioId={bicicletarioId}");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<(string? Error, FotoModel? Foto)> UploadFotoAsync(string bicicletarioId, MultipartFormDataContent content)
     {
         try
         {
@@ -132,7 +144,26 @@ public class BicicletarioService(HttpClient http)
             if (!response.IsSuccessStatusCode)
             {
                 var err = await response.Content.ReadFromJsonAsync<ApiError>();
-                return err?.Message ?? "Erro ao enviar foto.";
+                return (err?.Message ?? "Erro ao enviar foto.", null);
+            }
+            var foto = await response.Content.ReadFromJsonAsync<FotoModel>();
+            return (null, foto);
+        }
+        catch
+        {
+            return ("Erro de conexão.", null);
+        }
+    }
+
+    public async Task<string?> SetCapaAsync(string fotoId)
+    {
+        try
+        {
+            var response = await http.PatchAsync($"api/fotos/{fotoId}/capa", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao definir capa.";
             }
             return null;
         }
@@ -142,20 +173,33 @@ public class BicicletarioService(HttpClient http)
         }
     }
 
-    public async Task<bool> FotoExisteAsync(string bicicletarioId)
+    public async Task<string?> DeleteFotoAsync(string fotoId)
     {
         try
         {
-            var response = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, $"api/fotos/bicicletario/{bicicletarioId}"));
-            return response.IsSuccessStatusCode;
+            var response = await http.DeleteAsync($"api/fotos/{fotoId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao excluir foto.";
+            }
+            return null;
         }
-        catch { return false; }
+        catch
+        {
+            return "Erro de conexão.";
+        }
     }
 
     public string GetFotoBicicletarioUrl(string bicicletarioId, long? cacheBust = null) =>
         http.BaseAddress is { } b
             ? $"{b}api/fotos/bicicletario/{bicicletarioId}{(cacheBust.HasValue ? $"?t={cacheBust}" : "")}"
             : $"api/fotos/bicicletario/{bicicletarioId}";
+
+    public string GetFotoUrl(string fotoUrl) =>
+        http.BaseAddress is { } b && fotoUrl.StartsWith("/")
+            ? $"{b.ToString().TrimEnd('/')}{fotoUrl}"
+            : fotoUrl;
 
     private record ApiError(string Message);
     private record CreatedResponse(string Id);
@@ -248,6 +292,16 @@ public class AdminUpdateRequest
     public bool? AcessoMensal        { get; set; }
     public int?  VeiculosSuportados  { get; set; }
     public HorarioModel[]? Horarios  { get; set; }
+}
+
+public class FotoModel
+{
+    public string Id { get; set; } = "";
+    public string BicicletarioId { get; set; } = "";
+    public string FotoUrl { get; set; } = "";
+    public bool IsCapa { get; set; }
+    public int Ordem { get; set; }
+    public DateTime CriadoEm { get; set; }
 }
 
 // Matches CriarBicicletarioDto (Portuguese names)

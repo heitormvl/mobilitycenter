@@ -126,7 +126,6 @@ public class BicicletarioService : IBicicletarioService
             AcessoCadastro = dto.AcessoCadastro,
             AcessoMensal = dto.AcessoMensal,
             VeiculosSuportados = dto.VeiculosSuportados,
-            OperadorId = usuarioId,
             CriadoEm = DateTime.UtcNow,
             AtualizadoEm = DateTime.UtcNow
         };

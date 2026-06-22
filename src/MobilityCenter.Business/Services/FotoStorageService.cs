@@ -8,7 +8,8 @@ namespace MobilityCenter.Business.Services;
 public class FotoStorageService : IFotoStorageService
 {
     private readonly BlobServiceClient _blobService;
-    private const string ContainerName = "fotos-perfil";
+    private const string PerfilContainer = "fotos-perfil";
+    private const string BicicletariosContainer = "fotos-bicicletarios";
     private const int MaxDimension = 500;
 
     public FotoStorageService(BlobServiceClient blobService)
@@ -20,7 +21,7 @@ public class FotoStorageService : IFotoStorageService
     {
         using var ms = new MemoryStream();
         await imageStream.CopyToAsync(ms);
-        var inputBytes = ms.ToArray();
+        var inputBytes = HeicConverter.EnsureSkiaDecodable(ms.ToArray(), contentType);
 
         using var bitmap = SKBitmap.Decode(inputBytes)
             ?? throw new InvalidOperationException("Não foi possível decodificar a imagem.");
@@ -41,7 +42,7 @@ public class FotoStorageService : IFotoStorageService
             using var encoded = skImage.Encode(SKEncodedImageFormat.Webp, 85);
             using var output = new MemoryStream(encoded.ToArray());
 
-            var container = _blobService.GetBlobContainerClient(ContainerName);
+            var container = _blobService.GetBlobContainerClient(PerfilContainer);
             await container.CreateIfNotExistsAsync(PublicAccessType.None);
 
             var blob = container.GetBlobClient($"{usuarioId}.webp");
@@ -50,7 +51,6 @@ public class FotoStorageService : IFotoStorageService
                 HttpHeaders = new BlobHttpHeaders { ContentType = "image/webp" }
             });
 
-            // Foto servida via endpoint proxy da API para evitar exposição direta do blob
             return $"/api/fotos/{usuarioId}";
         }
         finally
@@ -61,7 +61,7 @@ public class FotoStorageService : IFotoStorageService
 
     public async Task<(Stream stream, string contentType)?> DownloadFotoPerfilAsync(Guid usuarioId)
     {
-        var container = _blobService.GetBlobContainerClient(ContainerName);
+        var container = _blobService.GetBlobContainerClient(PerfilContainer);
         var blob = container.GetBlobClient($"{usuarioId}.webp");
 
         if (!await blob.ExistsAsync())
@@ -71,11 +71,11 @@ public class FotoStorageService : IFotoStorageService
         return (download.Value.Content, "image/webp");
     }
 
-    public async Task<string> UploadFotoBicicletarioAsync(Guid bicicletarioId, Stream imageStream, string contentType)
+    public async Task UploadFotoBicicletarioAsync(Guid bicicletarioId, Guid fotoId, Stream imageStream, string contentType)
     {
         using var ms = new MemoryStream();
         await imageStream.CopyToAsync(ms);
-        var inputBytes = ms.ToArray();
+        var inputBytes = HeicConverter.EnsureSkiaDecodable(ms.ToArray(), contentType);
 
         using var bitmap = SKBitmap.Decode(inputBytes)
             ?? throw new InvalidOperationException("Não foi possível decodificar a imagem.");
@@ -95,17 +95,14 @@ public class FotoStorageService : IFotoStorageService
             using var encoded = skImage.Encode(SKEncodedImageFormat.Webp, 85);
             using var output = new MemoryStream(encoded.ToArray());
 
-            const string bicicletariosContainer = "fotos-bicicletarios";
-            var container = _blobService.GetBlobContainerClient(bicicletariosContainer);
+            var container = _blobService.GetBlobContainerClient(BicicletariosContainer);
             await container.CreateIfNotExistsAsync(PublicAccessType.None);
 
-            var blob = container.GetBlobClient($"{bicicletarioId}.webp");
+            var blob = container.GetBlobClient($"{bicicletarioId}/{fotoId}.webp");
             await blob.UploadAsync(output, new BlobUploadOptions
             {
                 HttpHeaders = new BlobHttpHeaders { ContentType = "image/webp" }
             });
-
-            return $"/api/fotos/bicicletario/{bicicletarioId}";
         }
         finally
         {
@@ -113,10 +110,21 @@ public class FotoStorageService : IFotoStorageService
         }
     }
 
-    public async Task<(Stream stream, string contentType)?> DownloadFotoBicicletarioAsync(Guid bicicletarioId)
+    public async Task<(Stream stream, string contentType)?> DownloadFotoBicicletarioAsync(Guid bicicletarioId, Guid fotoId)
     {
-        const string bicicletariosContainer = "fotos-bicicletarios";
-        var container = _blobService.GetBlobContainerClient(bicicletariosContainer);
+        var container = _blobService.GetBlobContainerClient(BicicletariosContainer);
+        var blob = container.GetBlobClient($"{bicicletarioId}/{fotoId}.webp");
+
+        if (!await blob.ExistsAsync())
+            return null;
+
+        var download = await blob.DownloadStreamingAsync();
+        return (download.Value.Content, "image/webp");
+    }
+
+    public async Task<(Stream stream, string contentType)?> DownloadFotoBicicletarioLegacyAsync(Guid bicicletarioId)
+    {
+        var container = _blobService.GetBlobContainerClient(BicicletariosContainer);
         var blob = container.GetBlobClient($"{bicicletarioId}.webp");
 
         if (!await blob.ExistsAsync())
@@ -124,5 +132,19 @@ public class FotoStorageService : IFotoStorageService
 
         var download = await blob.DownloadStreamingAsync();
         return (download.Value.Content, "image/webp");
+    }
+
+    public async Task DeleteFotoBicicletarioAsync(Guid bicicletarioId, Guid fotoId)
+    {
+        var container = _blobService.GetBlobContainerClient(BicicletariosContainer);
+        var blob = container.GetBlobClient($"{bicicletarioId}/{fotoId}.webp");
+        await blob.DeleteIfExistsAsync();
+    }
+
+    public async Task DeleteFotoPerfilAsync(Guid usuarioId)
+    {
+        var container = _blobService.GetBlobContainerClient(PerfilContainer);
+        var blob = container.GetBlobClient($"{usuarioId}.webp");
+        await blob.DeleteIfExistsAsync();
     }
 }

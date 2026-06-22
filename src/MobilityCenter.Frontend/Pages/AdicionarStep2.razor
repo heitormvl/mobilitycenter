@@ -54,7 +54,7 @@ else
                 </div>
             </label>
             <InputFile id="fotoInput" OnChange="OnFotoSelecionada"
-                       accept="image/webp,image/png,image/jpeg"
+                       accept="image/webp,image/png,image/jpeg,image/heic,image/heif"
                        style="display:none;" />
             @if (_fotoError != null)
             {
@@ -289,10 +289,10 @@ else
             return;
         }
 
-        var tiposPermitidos = new[] { "image/webp", "image/png", "image/jpeg" };
+        var tiposPermitidos = new[] { "image/webp", "image/png", "image/jpeg", "image/heic", "image/heif" };
         if (!tiposPermitidos.Contains(file.ContentType.ToLowerInvariant()))
         {
-            _fotoError = "Use WEBP, PNG ou JPG.";
+            _fotoError = "Use WEBP, PNG, JPG ou HEIC.";
             return;
         }
 
