@@ -104,6 +104,17 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("DefaultCors");
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("Referrer-Policy", "no-referrer");
+    context.Response.Headers.Append("X-XSS-Protection", "0");
+    context.Response.Headers.Append("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)");
+    await next();
+});
+
 app.UseRateLimiter();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
