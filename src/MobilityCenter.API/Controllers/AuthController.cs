@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MobilityCenter.Business.Interfaces;
 using MobilityCenter.Shared.DTOs.Usuario;
 
@@ -13,6 +14,7 @@ public class AuthController : ControllerBase
     public AuthController(IAuthService authService) => _authService = authService;
 
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
         var response = await _authService.LoginAsync(dto);
@@ -20,6 +22,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register([FromBody] CriarUsuarioDto dto)
     {
         var response = await _authService.RegisterAsync(dto);
@@ -41,6 +44,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("reenviar-confirmacao")]
+    [EnableRateLimiting("auth-relaxed")]
     public async Task<IActionResult> ReenviarConfirmacao([FromBody] ReenviarConfirmacaoDto dto)
     {
         await _authService.ReenviarConfirmacaoAsync(dto.Email);
@@ -48,6 +52,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("esqueci-senha")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> EsquecerSenha([FromBody] EsquecerSenhaDto dto)
     {
         await _authService.EsquecerSenhaAsync(dto.Email);
