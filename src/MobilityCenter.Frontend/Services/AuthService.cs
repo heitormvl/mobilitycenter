@@ -18,7 +18,11 @@ public class AuthService(
             if (!response.IsSuccessStatusCode)
             {
                 var err = await response.Content.ReadFromJsonAsync<ApiError>();
-                return err?.Message ?? "Credenciais inválidas.";
+                var msg = err?.Message ?? "Credenciais inválidas.";
+                // Prefixo especial para o frontend detectar email não confirmado
+                if ((int)response.StatusCode == 403)
+                    return $"EMAIL_NAO_CONFIRMADO:{email}";
+                return msg;
             }
 
             var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
@@ -49,8 +53,42 @@ public class AuthService(
                 return err?.Message ?? "Erro ao criar conta.";
             }
 
-            var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
-            await PersistSession(result!);
+            return null;
+        }
+        catch
+        {
+            return "Não foi possível conectar ao servidor.";
+        }
+    }
+
+    public async Task<string?> ConfirmarEmailAsync(string userId, string token)
+    {
+        try
+        {
+            var response = await http.GetAsync($"api/auth/confirmar-email?userId={Uri.EscapeDataString(userId)}&token={Uri.EscapeDataString(token)}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Link inválido ou expirado.";
+            }
+            return null;
+        }
+        catch
+        {
+            return "Não foi possível conectar ao servidor.";
+        }
+    }
+
+    public async Task<string?> ReenviarConfirmacaoAsync(string email)
+    {
+        try
+        {
+            var response = await http.PostAsJsonAsync("api/auth/reenviar-confirmacao", new { email });
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao reenviar e-mail.";
+            }
             return null;
         }
         catch

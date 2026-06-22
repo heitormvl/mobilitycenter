@@ -1,0 +1,76 @@
+@page "/confirmar-email"
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<div style="min-height:100vh; display:flex; flex-direction:column; background:linear-gradient(160deg, var(--brand) 0%, var(--brand-dark) 100%);">
+
+    <StatusBar Dark="true" />
+
+    <div style="padding:36px 28px 60px; text-align:center; flex-shrink:0;">
+        <div style="width:76px; height:76px; border-radius:24px; background:rgba(255,255,255,0.18); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1.5px solid rgba(255,255,255,0.28); margin:0 auto 20px; display:flex; align-items:center; justify-content:center;">
+            <i class="fa-solid fa-bicycle" style="font-size:34px; color:white;"></i>
+        </div>
+        <h1 style="font-size:28px; font-weight:800; color:white; font-family:var(--font); letter-spacing:-0.03em; margin-bottom:6px; text-shadow:0 2px 8px rgba(0,0,0,0.18);">MobilityCenter</h1>
+        <p style="font-size:14px; color:rgba(255,255,255,0.72); font-family:var(--font);">Micromobilidade colaborativa</p>
+    </div>
+
+    <div style="flex:1; background:var(--bg); border-radius:28px 28px 0 0; margin-top:-32px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px 52px; text-align:center;">
+
+        @if (_loading)
+        {
+            <div style="width:56px; height:56px; background:var(--surface); border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:24px;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size:24px; color:var(--brand);"></i>
+            </div>
+            <p style="font-size:16px; color:var(--text-3); font-family:var(--font);">Confirmando seu e-mail...</p>
+        }
+        else if (_sucesso)
+        {
+            <div style="width:72px; height:72px; background:#e8f8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:24px;">
+                <i class="fa-solid fa-circle-check" style="font-size:36px; color:var(--brand);"></i>
+            </div>
+            <p style="font-size:22px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin-bottom:8px;">E-mail confirmado!</p>
+            <p style="font-size:14px; color:var(--text-3); font-family:var(--font); margin-bottom:32px; line-height:1.6;">
+                Sua conta está ativa. Agora você pode fazer login.
+            </p>
+            <BtnP OnClick="@(() => Nav.NavigateTo("/login"))">Ir para o login</BtnP>
+        }
+        else
+        {
+            <div style="width:72px; height:72px; background:var(--red-bg); border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:24px;">
+                <i class="fa-solid fa-circle-xmark" style="font-size:36px; color:var(--red);"></i>
+            </div>
+            <p style="font-size:22px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin-bottom:8px;">Link inválido</p>
+            <p style="font-size:14px; color:var(--text-3); font-family:var(--font); margin-bottom:8px; line-height:1.6;">@_erro</p>
+            <p style="font-size:13px; color:var(--text-4); font-family:var(--font); margin-bottom:32px;">Solicite um novo link de confirmação ao fazer login.</p>
+            <BtnP OnClick="@(() => Nav.NavigateTo("/login"))">Ir para o login</BtnP>
+        }
+
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "userId")]
+    public string UserId { get; set; } = "";
+
+    [SupplyParameterFromQuery(Name = "token")]
+    public string Token { get; set; } = "";
+
+    private bool _loading = true;
+    private bool _sucesso;
+    private string? _erro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(UserId) || string.IsNullOrWhiteSpace(Token))
+        {
+            _loading = false;
+            _erro = "Link de confirmação incompleto.";
+            return;
+        }
+
+        var erro = await AuthService.ConfirmarEmailAsync(UserId, Token);
+        _sucesso = erro is null;
+        _erro = erro;
+        _loading = false;
+    }
+}

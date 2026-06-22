@@ -23,7 +23,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register([FromBody] CriarUsuarioDto dto)
     {
         var response = await _authService.RegisterAsync(dto);
-        return Created("/api/usuarios/me", response);
+        return StatusCode(201, response);
     }
 
     [HttpPost("google")]
@@ -31,5 +31,19 @@ public class AuthController : ControllerBase
     {
         var response = await _authService.LoginWithGoogleAsync(dto.IdToken);
         return Ok(response);
+    }
+
+    [HttpGet("confirmar-email")]
+    public async Task<IActionResult> ConfirmarEmail([FromQuery] string userId, [FromQuery] string token)
+    {
+        await _authService.ConfirmEmailAsync(userId, token);
+        return Ok(new { message = "E-mail confirmado com sucesso!" });
+    }
+
+    [HttpPost("reenviar-confirmacao")]
+    public async Task<IActionResult> ReenviarConfirmacao([FromBody] ReenviarConfirmacaoDto dto)
+    {
+        await _authService.ReenviarConfirmacaoAsync(dto.Email);
+        return Ok(new { message = "E-mail de confirmação reenviado." });
     }
 }
