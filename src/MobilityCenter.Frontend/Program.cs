@@ -22,6 +22,10 @@ builder.Services.AddHttpClient("api", client =>
     client.BaseAddress = new Uri(apiBaseUrl))
     .AddHttpMessageHandler<AuthTokenHandler>();
 
+// Cliente sem handler de autenticação — usado para chamadas de refresh token
+builder.Services.AddHttpClient("auth-api", client =>
+    client.BaseAddress = new Uri(apiBaseUrl));
+
 builder.Services.AddScoped(sp =>
     sp.GetRequiredService<IHttpClientFactory>().CreateClient("api"));
 

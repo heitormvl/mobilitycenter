@@ -51,6 +51,13 @@ public class AuthController : ControllerBase
         return Ok(new { message = "E-mail de confirmação reenviado." });
     }
 
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
+    {
+        var response = await _authService.RefreshAsync(dto.Token);
+        return Ok(response);
+    }
+
     [HttpPost("esqueci-senha")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> EsquecerSenha([FromBody] EsquecerSenhaDto dto)

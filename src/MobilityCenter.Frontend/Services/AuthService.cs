@@ -158,6 +158,7 @@ public class AuthService(
     public async Task LogoutAsync()
     {
         await localStorage.RemoveItemAsync("authToken");
+        await localStorage.RemoveItemAsync("refreshToken");
         await localStorage.RemoveItemAsync("userInfo");
         authStateProvider.NotifyStateChanged(null);
     }
@@ -282,6 +283,8 @@ public class AuthService(
     {
         await localStorage.SetItemAsync("authToken", result.Token);
         await localStorage.SetItemAsync("userInfo", result.Usuario);
+        if (!string.IsNullOrEmpty(result.RefreshToken))
+            await localStorage.SetItemAsync("refreshToken", result.RefreshToken);
         authStateProvider.NotifyStateChanged(result.Token);
     }
 

@@ -14,6 +14,7 @@ public class MobilityCenterDbContext : IdentityDbContext<Usuario, IdentityRole<G
     public DbSet<SugestaoEdicao> SugestoesEdicao => Set<SugestaoEdicao>();
     public DbSet<HorarioFuncionamento> HorariosFuncionamento => Set<HorarioFuncionamento>();
     public DbSet<FotoBicicletario> FotosBicicletario => Set<FotoBicicletario>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -85,6 +86,18 @@ public class MobilityCenterDbContext : IdentityDbContext<Usuario, IdentityRole<G
             e.HasOne(f => f.Bicicletario)
              .WithMany(b => b.Fotos)
              .HasForeignKey(f => f.BicicletarioId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<RefreshToken>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Token).IsRequired().HasMaxLength(128);
+            e.HasIndex(r => r.Token);
+
+            e.HasOne(r => r.Usuario)
+             .WithMany()
+             .HasForeignKey(r => r.UsuarioId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 

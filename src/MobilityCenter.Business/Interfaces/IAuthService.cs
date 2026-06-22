@@ -11,4 +11,5 @@ public interface IAuthService
     Task ReenviarConfirmacaoAsync(string email);
     Task EsquecerSenhaAsync(string email);
     Task RedefinirSenhaAsync(string email, string token, string novaSenha);
+    Task<AuthResponseDto> RefreshAsync(string refreshToken);
 }

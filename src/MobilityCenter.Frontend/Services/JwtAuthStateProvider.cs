@@ -1,10 +1,13 @@
+using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
 
 namespace MobilityCenter.Frontend.Services;
 
-public class JwtAuthStateProvider(LocalStorageService localStorage) : AuthenticationStateProvider
+public class JwtAuthStateProvider(
+    LocalStorageService localStorage,
+    IHttpClientFactory httpFactory) : AuthenticationStateProvider
 {
     private static readonly AuthenticationState Anonymous =
         new(new ClaimsPrincipal(new ClaimsIdentity()));
@@ -23,14 +26,49 @@ public class JwtAuthStateProvider(LocalStorageService localStorage) : Authentica
             var exp = DateTimeOffset.FromUnixTimeSeconds(long.Parse(expClaim.Value));
             if (exp < DateTimeOffset.UtcNow)
             {
-                await localStorage.RemoveItemAsync("authToken");
-                return Anonymous;
+                var refreshed = await TryRefreshAsync();
+                if (refreshed is null)
+                {
+                    await localStorage.RemoveItemAsync("authToken");
+                    await localStorage.RemoveItemAsync("refreshToken");
+                    return Anonymous;
+                }
+                token = refreshed;
+                claims = ParseClaimsFromJwt(token);
             }
         }
 
         return new AuthenticationState(
             new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt")));
     }
+
+    private async Task<string?> TryRefreshAsync()
+    {
+        try
+        {
+            var refreshToken = await localStorage.GetItemAsync("refreshToken");
+            if (string.IsNullOrEmpty(refreshToken)) return null;
+
+            var http = httpFactory.CreateClient("auth-api");
+            var response = await http.PostAsJsonAsync("api/auth/refresh", new { token = refreshToken });
+            if (!response.IsSuccessStatusCode) return null;
+
+            var result = await response.Content.ReadFromJsonAsync<AuthTokenPair>();
+            if (result is null) return null;
+
+            await localStorage.SetItemAsync("authToken", result.Token);
+            if (!string.IsNullOrEmpty(result.RefreshToken))
+                await localStorage.SetItemAsync("refreshToken", result.RefreshToken);
+
+            return result.Token;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private record AuthTokenPair(string Token, string? RefreshToken);
 
     public void NotifyStateChanged(string? token)
     {

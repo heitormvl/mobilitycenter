@@ -1,12 +1,15 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using MobilityCenter.Business.Interfaces;
+using MobilityCenter.Repositories.Context;
 using MobilityCenter.Shared.DTOs.Usuario;
 using MobilityCenter.Shared.Exceptions;
 using MobilityCenter.Shared.Enums;
@@ -22,6 +25,7 @@ public class AuthService : IAuthService
     private readonly IHttpClientFactory _httpFactory;
     private readonly IEmailService _emailService;
     private readonly ILogger<AuthService> _logger;
+    private readonly MobilityCenterDbContext _db;
 
     public AuthService(
         UserManager<Usuario> userManager,
@@ -29,7 +33,8 @@ public class AuthService : IAuthService
         IFotoStorageService fotoStorage,
         IHttpClientFactory httpFactory,
         IEmailService emailService,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        MobilityCenterDbContext db)
     {
         _userManager = userManager;
         _configuration = configuration;
@@ -37,6 +42,7 @@ public class AuthService : IAuthService
         _httpFactory = httpFactory;
         _emailService = emailService;
         _logger = logger;
+        _db = db;
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
@@ -51,9 +57,20 @@ public class AuthService : IAuthService
         if (!usuario.EmailConfirmed)
             throw new AppException("E-mail não confirmado. Verifique sua caixa de entrada.", 403);
 
+        var refreshTokenValor = GerarRefreshTokenValor();
+        _db.RefreshTokens.Add(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UsuarioId = usuario.Id,
+            Token = refreshTokenValor,
+            ExpiresAt = DateTime.UtcNow.AddDays(30),
+        });
+        await _db.SaveChangesAsync();
+
         return new AuthResponseDto
         {
             Token = GerarToken(usuario),
+            RefreshToken = refreshTokenValor,
             Usuario = MapearUsuario(usuario)
         };
     }
@@ -212,9 +229,20 @@ public class AuthService : IAuthService
             await _userManager.UpdateAsync(usuario);
         }
 
+        var refreshTokenValor = GerarRefreshTokenValor();
+        _db.RefreshTokens.Add(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UsuarioId = usuario.Id,
+            Token = refreshTokenValor,
+            ExpiresAt = DateTime.UtcNow.AddDays(30),
+        });
+        await _db.SaveChangesAsync();
+
         return new AuthResponseDto
         {
             Token = GerarToken(usuario),
+            RefreshToken = refreshTokenValor,
             Usuario = MapearUsuario(usuario)
         };
     }
@@ -237,6 +265,54 @@ public class AuthService : IAuthService
             return null;
         }
     }
+
+    public async Task<AuthResponseDto> RefreshAsync(string token)
+    {
+        var rt = await _db.RefreshTokens
+            .Include(r => r.Usuario)
+            .FirstOrDefaultAsync(r => r.Token == token && r.UsedAt == null && r.ExpiresAt > DateTime.UtcNow);
+
+        if (rt is null)
+        {
+            // Detecta replay: token existente mas já usado = possível roubo de token
+            var replayed = await _db.RefreshTokens.FirstOrDefaultAsync(r => r.Token == token);
+            if (replayed is not null)
+            {
+                var ativos = await _db.RefreshTokens
+                    .Where(r => r.UsuarioId == replayed.UsuarioId && r.UsedAt == null)
+                    .ToListAsync();
+                foreach (var t in ativos)
+                    t.UsedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+            }
+            throw new AppException("Token de atualização inválido ou expirado.", 401);
+        }
+
+        var novoTokenValor = GerarRefreshTokenValor();
+
+        rt.UsedAt = DateTime.UtcNow;
+        rt.ReplacedByToken = novoTokenValor;
+
+        _db.RefreshTokens.Add(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UsuarioId = rt.UsuarioId,
+            Token = novoTokenValor,
+            ExpiresAt = DateTime.UtcNow.AddDays(30),
+        });
+
+        await _db.SaveChangesAsync();
+
+        return new AuthResponseDto
+        {
+            Token = GerarToken(rt.Usuario),
+            RefreshToken = novoTokenValor,
+            Usuario = MapearUsuario(rt.Usuario)
+        };
+    }
+
+    private static string GerarRefreshTokenValor() =>
+        Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
     private string GerarToken(Usuario usuario)
     {
