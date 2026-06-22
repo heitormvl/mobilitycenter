@@ -64,32 +64,40 @@ public class BicicletarioService : IBicicletarioService
             _ => query.OrderBy(b => b.Nome)
         };
 
-        return await query
+        var entities = await query
+            .Include(b => b.Horarios)
             .Skip((filtros.Page - 1) * filtros.PageSize)
             .Take(filtros.PageSize)
-            .Select(b => new BicicletarioResumoDto
-            {
-                Id = b.Id,
-                Nome = b.Nome,
-                Latitude = b.Latitude,
-                Longitude = b.Longitude,
-                NotaMedia = b.Avaliacoes.Select(a => (double?)a.Nota).Average() ?? 0,
-                TotalAvaliacoes = b.Avaliacoes.Count,
-                VeiculosSuportados = b.VeiculosSuportados,
-                TemTomada = b.TemTomada,
-                TemCalibrador = b.TemCalibrador,
-                TemVestiario = b.TemVestiario,
-                TemArmario = b.TemArmario,
-                TemEspacoManutencao = b.TemEspacoManutencao,
-                TemCadeado = b.TemCadeado,
-                TemBanheiro = b.TemBanheiro,
-                AcessoLivre = b.AcessoLivre,
-                AcessoPago = b.AcessoPago,
-                AcessoCadastro = b.AcessoCadastro,
-                AcessoMensal = b.AcessoMensal,
-                IsDeleted = b.Deletado
-            })
             .ToListAsync();
+
+        return entities.Select(b => new BicicletarioResumoDto
+        {
+            Id = b.Id,
+            Nome = b.Nome,
+            Latitude = b.Latitude,
+            Longitude = b.Longitude,
+            NotaMedia = b.Avaliacoes.Select(a => (double?)a.Nota).Average() ?? 0,
+            TotalAvaliacoes = b.Avaliacoes.Count,
+            VeiculosSuportados = b.VeiculosSuportados,
+            TemTomada = b.TemTomada,
+            TemCalibrador = b.TemCalibrador,
+            TemVestiario = b.TemVestiario,
+            TemArmario = b.TemArmario,
+            TemEspacoManutencao = b.TemEspacoManutencao,
+            TemCadeado = b.TemCadeado,
+            TemBanheiro = b.TemBanheiro,
+            AcessoLivre = b.AcessoLivre,
+            AcessoPago = b.AcessoPago,
+            AcessoCadastro = b.AcessoCadastro,
+            AcessoMensal = b.AcessoMensal,
+            IsDeleted = b.Deletado,
+            Horarios = b.Horarios.OrderBy(h => h.DiaSemana).Select(h => new HorarioFuncionamentoDto
+            {
+                DiaSemana = h.DiaSemana,
+                HoraAbertura = h.HoraAbertura.ToString("HH:mm"),
+                HoraFechamento = h.HoraFechamento.ToString("HH:mm")
+            }).ToList()
+        }).ToList();
     }
 
     public async Task<BicicletarioDetalheDto> ObterPorIdAsync(Guid id)

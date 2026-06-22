@@ -413,13 +413,24 @@ else if (_item != null)
         <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid @(_editingHorarios ? "var(--brand)" : "var(--border)"); padding:14px; margin-bottom:20px; box-shadow:var(--shadow-xs); transition:border-color 0.15s;">
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
                 <div style="font-family:var(--font); font-size:11px; font-weight:600; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase;">Horário de Funcionamento</div>
-                @if (_isAdmin && !_editingHorarios)
-                {
-                    <button @onclick="StartEditHorarios"
-                            style="width:28px; height:28px; border-radius:var(--r-full); border:1px solid var(--border); background:var(--bg-page); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                        <i class="fa-solid fa-pen" style="font-size:10px; color:var(--text-3);"></i>
-                    </button>
-                }
+                <div style="display:flex; align-items:center; gap:6px;">
+                    @if (!_editingHorarios)
+                    {
+                        var detStatus = HorarioHelper.GetStatus(_item.Horarios);
+                        var (detStatusTxt, detStatusBg, detStatusColor) = HorarioHelper.GetBadgeStyle(detStatus);
+                        if (detStatus != StatusHorario.NaoInformado)
+                        {
+                            <span style="font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--r-full); background:@detStatusBg; color:@detStatusColor; font-family:var(--font);">@detStatusTxt</span>
+                        }
+                    }
+                    @if (_isAdmin && !_editingHorarios)
+                    {
+                        <button @onclick="StartEditHorarios"
+                                style="width:28px; height:28px; border-radius:var(--r-full); border:1px solid var(--border); background:var(--bg-page); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i class="fa-solid fa-pen" style="font-size:10px; color:var(--text-3);"></i>
+                        </button>
+                    }
+                </div>
             </div>
 
             @if (!_editingHorarios)

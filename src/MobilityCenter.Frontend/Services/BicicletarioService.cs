@@ -229,6 +229,7 @@ public class BicicletarioDto
     public bool AcessoCadastro { get; set; }
     public bool AcessoMensal { get; set; }
     public bool IsDeleted { get; set; }
+    public HorarioModel[] Horarios { get; set; } = [];
 }
 
 // Matches BicicletarioDetalheDto (full detail with reviews)
@@ -274,6 +275,34 @@ public class HorarioModel
     public int DiaSemana { get; set; }
     public string HoraAbertura { get; set; } = "";
     public string HoraFechamento { get; set; } = "";
+}
+
+public enum StatusHorario { NaoInformado, Aberto, FechaEmBreve, Fechado }
+
+public static class HorarioHelper
+{
+    public static StatusHorario GetStatus(HorarioModel[] horarios)
+    {
+        if (horarios.Length == 0) return StatusHorario.NaoInformado;
+        var now = DateTime.Now;
+        var diaSemana = (int)now.DayOfWeek;
+        var hora = TimeOnly.FromDateTime(now);
+        var h = horarios.FirstOrDefault(x => x.DiaSemana == diaSemana);
+        if (h == null) return StatusHorario.Fechado;
+        if (!TimeOnly.TryParse(h.HoraAbertura, out var abertura)) return StatusHorario.NaoInformado;
+        if (!TimeOnly.TryParse(h.HoraFechamento, out var fechamento)) return StatusHorario.NaoInformado;
+        if (hora < abertura || hora >= fechamento) return StatusHorario.Fechado;
+        if ((fechamento - hora).TotalMinutes <= 30) return StatusHorario.FechaEmBreve;
+        return StatusHorario.Aberto;
+    }
+
+    public static (string Text, string Bg, string Color) GetBadgeStyle(StatusHorario status) => status switch
+    {
+        StatusHorario.Aberto       => ("Aberto",         "#16a34a", "#fff"),
+        StatusHorario.FechaEmBreve => ("Fecha em breve", "#d97706", "#fff"),
+        StatusHorario.Fechado      => ("Fechado",        "#dc2626", "#fff"),
+        _                          => ("",               "",        "")
+    };
 }
 
 // Partial update DTO for admin edits — all fields nullable, send only the section being changed

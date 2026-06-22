@@ -110,10 +110,18 @@
         {
             var id = item.Id;
             var stars = (int)Math.Round(item.NotaMedia);
+            var sheetStatus = HorarioHelper.GetStatus(item.Horarios);
+            var (sheetStatusTxt, sheetStatusBg, sheetStatusColor) = HorarioHelper.GetBadgeStyle(sheetStatus);
             <div @onclick="@(() => NavigateToDetailAsync(id))"
                  style="background:var(--bg-page); border-radius:var(--r-lg); padding:12px 14px; margin-bottom:8px; cursor:pointer; border:1px solid var(--border);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-                    <span style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font); letter-spacing:-0.01em; flex:1; margin-right:8px; line-height:1.3;">@item.Nome</span>
+                    <div style="flex:1; margin-right:8px; display:flex; flex-direction:column; gap:4px;">
+                        <span style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font); letter-spacing:-0.01em; line-height:1.3;">@item.Nome</span>
+                        @if (sheetStatus != StatusHorario.NaoInformado)
+                        {
+                            <span style="display:inline-block; align-self:flex-start; font-size:10px; font-weight:700; padding:2px 7px; border-radius:var(--r-full); background:@sheetStatusBg; color:@sheetStatusColor; font-family:var(--font);">@sheetStatusTxt</span>
+                        }
+                    </div>
                     @if (item.TotalAvaliacoes > 0)
                     {
                         <span style="display:flex; align-items:center; gap:3px; font-size:12px; font-weight:600; color:var(--text-2); font-family:var(--font); flex-shrink:0;">
@@ -507,8 +515,15 @@
         if (b.TemTomada) chips.Add(Chip("fa-plug", "Tomada"));
         var chipsHtml = string.Concat(chips.Take(4));
 
+        var status = HorarioHelper.GetStatus(b.Horarios);
+        var (statusTxt, statusBg, statusColor) = HorarioHelper.GetBadgeStyle(status);
+        var statusBadge = status != StatusHorario.NaoInformado
+            ? $@"<span class=""mc-pop-status"" style=""background:{statusBg};color:{statusColor};"">{statusTxt}</span>"
+            : "";
+
         return $@"<div class=""mc-pop"">
             <div class=""mc-pop-title"">{name}</div>
+            {statusBadge}
             <div class=""mc-pop-rating""><span class=""mc-pop-stars"">{stars}</span><span class=""mc-pop-rating-txt"">{ratingTxt}</span></div>
             <div class=""mc-pop-chips"">{chipsHtml}</div>
             <a href=""/bicicletario/{b.Id}?from=mapa"" onclick=""mapInterop.navigateTo(event,'/bicicletario/{b.Id}?from=mapa',{b.Latitude.ToString(CultureInfo.InvariantCulture)},{b.Longitude.ToString(CultureInfo.InvariantCulture)})"" class=""mc-pop-link"">Ver detalhes <i class=""fa-solid fa-arrow-right""></i></a>

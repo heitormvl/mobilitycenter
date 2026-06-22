@@ -90,6 +90,8 @@
             var reviews = item.TotalAvaliacoes;
             var chips = GetChips(item);
             var dist = _hasLocation ? FormatDist(HaversineDist(_userLat, _userLng, item.Latitude, item.Longitude)) : "";
+            var listaStatus = HorarioHelper.GetStatus(item.Horarios);
+            var (listaStatusTxt, listaStatusBg, listaStatusColor) = HorarioHelper.GetBadgeStyle(listaStatus);
 
             <div style="background:var(--bg); border-radius:var(--r-lg); padding:16px; border:1px solid @(item.IsDeleted ? "var(--border-2)" : "var(--border)"); box-shadow:var(--shadow-sm); cursor:pointer; opacity:@(item.IsDeleted ? "0.65" : "1");"
                  @onclick="@(() => Nav.NavigateTo($"/bicicletario/{id}"))">
@@ -99,6 +101,10 @@
                         @if (item.IsDeleted)
                         {
                             <span style="font-size:10px; font-weight:700; font-family:var(--font); background:#f3e8e8; color:#b91c1c; padding:2px 7px; border-radius:var(--r-full); letter-spacing:.02em;">OCULTO</span>
+                        }
+                        @if (listaStatus != StatusHorario.NaoInformado)
+                        {
+                            <span style="font-size:10px; font-weight:700; font-family:var(--font); background:@listaStatusBg; color:@listaStatusColor; padding:2px 7px; border-radius:var(--r-full);">@listaStatusTxt</span>
                         }
                     </div>
                     @if (!string.IsNullOrEmpty(dist))
