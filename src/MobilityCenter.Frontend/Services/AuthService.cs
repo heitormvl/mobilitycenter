@@ -97,6 +97,42 @@ public class AuthService(
         }
     }
 
+    public async Task<string?> EsquecerSenhaAsync(string email)
+    {
+        try
+        {
+            var response = await http.PostAsJsonAsync("api/auth/esqueci-senha", new { email });
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao enviar e-mail.";
+            }
+            return null;
+        }
+        catch
+        {
+            return "Não foi possível conectar ao servidor.";
+        }
+    }
+
+    public async Task<string?> RedefinirSenhaAsync(string email, string token, string novaSenha)
+    {
+        try
+        {
+            var response = await http.PostAsJsonAsync("api/auth/redefinir-senha", new { email, token, novaSenha });
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Link inválido ou expirado.";
+            }
+            return null;
+        }
+        catch
+        {
+            return "Não foi possível conectar ao servidor.";
+        }
+    }
+
     public async Task<string?> LoginWithGoogleAsync(string idToken)
     {
         try

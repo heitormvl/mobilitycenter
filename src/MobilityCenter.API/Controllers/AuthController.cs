@@ -46,4 +46,18 @@ public class AuthController : ControllerBase
         await _authService.ReenviarConfirmacaoAsync(dto.Email);
         return Ok(new { message = "E-mail de confirmação reenviado." });
     }
+
+    [HttpPost("esqueci-senha")]
+    public async Task<IActionResult> EsquecerSenha([FromBody] EsquecerSenhaDto dto)
+    {
+        await _authService.EsquecerSenhaAsync(dto.Email);
+        return Ok(new { message = "Se o e-mail estiver cadastrado, você receberá um link de redefinição." });
+    }
+
+    [HttpPost("redefinir-senha")]
+    public async Task<IActionResult> RedefinirSenha([FromBody] RedefinirSenhaDto dto)
+    {
+        await _authService.RedefinirSenhaAsync(dto.Email, dto.Token, dto.NovaSenha);
+        return Ok(new { message = "Senha redefinida com sucesso!" });
+    }
 }

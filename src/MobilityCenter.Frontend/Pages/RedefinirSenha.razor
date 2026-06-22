@@ -1,0 +1,132 @@
+@page "/redefinir-senha"
+@inject AuthService AuthService
+
+<div style="min-height:100vh; display:flex; flex-direction:column; background:linear-gradient(160deg, var(--brand) 0%, var(--brand-dark) 100%);">
+
+    <StatusBar Dark="true" />
+
+    <div style="padding:36px 28px 60px; text-align:center; flex-shrink:0;">
+        <div style="width:76px; height:76px; border-radius:24px; background:rgba(255,255,255,0.18); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1.5px solid rgba(255,255,255,0.28); margin:0 auto 20px; display:flex; align-items:center; justify-content:center;">
+            <i class="fa-solid fa-key" style="font-size:34px; color:white;"></i>
+        </div>
+        <h1 style="font-size:28px; font-weight:800; color:white; font-family:var(--font); letter-spacing:-0.03em; margin-bottom:6px; text-shadow:0 2px 8px rgba(0,0,0,0.18);">Nova senha</h1>
+        <p style="font-size:14px; color:rgba(255,255,255,0.72); font-family:var(--font);">Crie uma senha segura para sua conta</p>
+    </div>
+
+    <div style="flex:1; background:var(--bg); border-radius:28px 28px 0 0; margin-top:-32px; padding:32px 24px 52px;">
+
+        @if (_sucesso)
+        {
+            <div style="display:flex; flex-direction:column; align-items:center; text-align:center; padding-top:24px;">
+                <div style="width:72px; height:72px; background:#e8f8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:24px;">
+                    <i class="fa-solid fa-circle-check" style="font-size:32px; color:#059669;"></i>
+                </div>
+                <p style="font-size:22px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin-bottom:8px;">Senha redefinida!</p>
+                <p style="font-size:14px; color:var(--text-3); font-family:var(--font); line-height:1.6; margin-bottom:32px;">
+                    Sua senha foi alterada com sucesso. Você já pode entrar com a nova senha.
+                </p>
+                <a href="/login" style="display:inline-block; background:var(--brand); color:white; font-size:15px; font-weight:700; text-decoration:none; padding:15px 36px; border-radius:12px; font-family:var(--font);">
+                    Ir para o login
+                </a>
+            </div>
+        }
+        else if (_linkInvalido)
+        {
+            <div style="display:flex; flex-direction:column; align-items:center; text-align:center; padding-top:24px;">
+                <div style="width:72px; height:72px; background:var(--red-bg); border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:24px;">
+                    <i class="fa-solid fa-circle-xmark" style="font-size:32px; color:var(--red);"></i>
+                </div>
+                <p style="font-size:22px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin-bottom:8px;">Link inválido</p>
+                <p style="font-size:14px; color:var(--text-3); font-family:var(--font); line-height:1.6; margin-bottom:32px;">
+                    Este link expirou ou já foi utilizado. Solicite um novo link de redefinição.
+                </p>
+                <a href="/esqueci-senha" style="font-size:14px; color:var(--brand); font-weight:600; text-decoration:none; font-family:var(--font);">
+                    Solicitar novo link
+                </a>
+            </div>
+        }
+        else
+        {
+            <p style="font-size:22px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin-bottom:4px;">Crie sua nova senha</p>
+            <p style="font-size:14px; color:var(--text-3); font-family:var(--font); margin-bottom:28px;">Mínimo de 6 caracteres</p>
+
+            <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
+                <div>
+                    <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Nova senha</label>
+                    <WfInput @bind-Value="_novaSenha" Placeholder="Mínimo 6 caracteres" IconClass="fa-lock" Type="password" />
+                </div>
+                <div>
+                    <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Confirmar senha</label>
+                    <WfInput @bind-Value="_confirmarSenha" Placeholder="Repita a senha" IconClass="fa-lock" Type="password" />
+                </div>
+            </div>
+
+            @if (_erro != null)
+            {
+                <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:var(--red);">
+                    @_erro
+                </div>
+            }
+
+            <BtnP OnClick="HandleRedefinir">
+                @if (_loading) { <span>Salvando...</span> } else { <span>Salvar nova senha</span> }
+            </BtnP>
+        }
+
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "email")]
+    public string Email { get; set; } = "";
+
+    [SupplyParameterFromQuery(Name = "token")]
+    public string Token { get; set; } = "";
+
+    private string _novaSenha = "";
+    private string _confirmarSenha = "";
+    private bool _loading;
+    private string? _erro;
+    private bool _sucesso;
+    private bool _linkInvalido;
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Token))
+            _linkInvalido = true;
+    }
+
+    private async Task HandleRedefinir()
+    {
+        if (string.IsNullOrWhiteSpace(_novaSenha))
+        {
+            _erro = "Informe a nova senha.";
+            return;
+        }
+        if (_novaSenha != _confirmarSenha)
+        {
+            _erro = "As senhas não coincidem.";
+            return;
+        }
+        if (_novaSenha.Length < 6)
+        {
+            _erro = "A senha deve ter pelo menos 6 caracteres.";
+            return;
+        }
+
+        _loading = true;
+        _erro = null;
+
+        var erro = await AuthService.RedefinirSenhaAsync(Email, Token, _novaSenha);
+        if (erro is null)
+            _sucesso = true;
+        else
+        {
+            _erro = erro;
+            if (erro.Contains("inválido") || erro.Contains("expirado"))
+                _linkInvalido = true;
+        }
+
+        _loading = false;
+    }
+}

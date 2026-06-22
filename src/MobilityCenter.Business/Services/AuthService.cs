@@ -113,6 +113,40 @@ public class AuthService : IAuthService
         await EnviarEmailConfirmacaoAsync(usuario);
     }
 
+    public async Task EsquecerSenhaAsync(string email)
+    {
+        var usuario = await _userManager.FindByEmailAsync(email);
+        if (usuario is null) return; // silencioso para evitar enumeração de usuários
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(usuario);
+        var tokenEncoded = Uri.EscapeDataString(token);
+        var emailEncoded = Uri.EscapeDataString(email);
+        var frontendUrl = _configuration["App:FrontendUrl"] ?? "http://localhost:5200";
+        var link = $"{frontendUrl}/redefinir-senha?email={emailEncoded}&token={tokenEncoded}";
+
+        _logger.LogInformation("Link de redefinição de senha para {Email}: {Link}", email, link);
+
+        try
+        {
+            var html = GerarHtmlRedefinicaoSenha(usuario.DisplayName, link);
+            await _emailService.SendAsync(email, "Redefinir sua senha — MobilityCenter", html);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao enviar e-mail de redefinição para {Email}.", email);
+        }
+    }
+
+    public async Task RedefinirSenhaAsync(string email, string token, string novaSenha)
+    {
+        var usuario = await _userManager.FindByEmailAsync(email)
+            ?? throw new NotFoundException("Usuário não encontrado.");
+
+        var resultado = await _userManager.ResetPasswordAsync(usuario, token, novaSenha);
+        if (!resultado.Succeeded)
+            throw new AppException("Link inválido ou expirado. Solicite um novo link.", 400);
+    }
+
     private async Task EnviarEmailConfirmacaoAsync(Usuario usuario)
     {
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(usuario);
@@ -239,6 +273,65 @@ public class AuthService : IAuthService
         CreatedAt = u.CreatedAt,
         FotoPerfilUrl = u.FotoPerfilUrl
     };
+
+    private static string GerarHtmlRedefinicaoSenha(string nome, string link) => $"""
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        </head>
+        <body style="margin:0;padding:0;background:#F2F2F7;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#F2F2F7;padding:40px 16px;">
+            <tr><td align="center">
+              <table width="100%" style="max-width:480px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08),0 1px 4px rgba(0,0,0,0.05);">
+                <tr>
+                  <td style="background:linear-gradient(160deg,#7D1128 0%,#5E0D1E 100%);padding:36px 28px;text-align:center;">
+                    <div style="width:60px;height:60px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.25);border-radius:16px;display:inline-block;line-height:60px;margin-bottom:16px;font-size:28px;">
+                      &#x1F512;
+                    </div>
+                    <p style="margin:0;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.03em;line-height:1;">MobilityCenter</p>
+                    <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.65);font-weight:400;">Micromobilidade colaborativa</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:36px 32px 28px;">
+                    <p style="margin:0 0 6px;font-size:21px;font-weight:800;color:#111827;letter-spacing:-0.02em;">Redefinir senha</p>
+                    <p style="margin:0 0 8px;font-size:15px;color:#6B7280;line-height:1.65;">Olá, {System.Net.WebUtility.HtmlEncode(nome)}!</p>
+                    <p style="margin:0 0 28px;font-size:15px;color:#6B7280;line-height:1.65;">
+                      Recebemos uma solicitação para redefinir a senha da sua conta. Clique no botão abaixo para criar uma nova senha.
+                    </p>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                      <tr><td align="center">
+                        <a href="{link}"
+                           style="display:inline-block;background:#7D1128;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:15px 36px;border-radius:12px;letter-spacing:0.01em;box-shadow:0 4px 12px rgba(125,17,40,0.35);">
+                          Redefinir senha
+                        </a>
+                      </td></tr>
+                    </table>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+                      <tr><td style="height:1px;background:#E5E7EB;"></td></tr>
+                    </table>
+                    <p style="margin:0;font-size:12px;color:#9CA3AF;line-height:1.7;">
+                      Se você não solicitou a redefinição de senha, ignore este e-mail com segurança.<br>
+                      Este link expira em <strong style="color:#6B7280;">1 hora</strong>.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 32px;background:#F8F8FA;border-top:1px solid #E5E7EB;">
+                    <p style="margin:0;font-size:11px;color:#9CA3AF;text-align:center;line-height:1.6;">
+                      MobilityCenter &mdash; Maverick Software &bull; mavericksoftware.com.br
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+        </body>
+        </html>
+        """;
 
     private static string GerarHtmlConfirmacao(string nome, string link) => $"""
         <!DOCTYPE html>
