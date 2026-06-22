@@ -1,7 +1,7 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    Extract API endpoints from MobilityCenter.API controllers.
+    Extract API endpoints from Paraki.API controllers.
 
 .DESCRIPTION
     Scans controller files and extracts HTTP endpoints with their attributes,
@@ -11,7 +11,7 @@
     Path to the API project root. Default: current directory.
 
 .EXAMPLE
-    .\extract-api-endpoints.ps1 -ApiPath "C:\repo\src\MobilityCenter.API"
+    .\extract-api-endpoints.ps1 -ApiPath "C:\repo\src\Paraki.API"
 #>
 
 param(

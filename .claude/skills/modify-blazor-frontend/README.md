@@ -1,6 +1,6 @@
-# modify-blazor-frontend Skill
+﻿# modify-blazor-frontend Skill
 
-This skill enables Claude to generate and modify Blazor WASM frontend components for the MobilityCenter project efficiently, without wasting context on the entire solution.
+This skill enables Claude to generate and modify Blazor WASM frontend components for the Paraki project efficiently, without wasting context on the entire solution.
 
 ## Skill Structure
 
@@ -54,11 +54,11 @@ Before making skill improvements, verify the references match current code:
 
 ```bash
 # Check if frontend-patterns.md is still accurate
-# Review actual components in: src/MobilityCenter.Frontend/Components/
-# Review actual services in: src/MobilityCenter.Frontend/Services/
+# Review actual components in: src/Paraki.Frontend/Components/
+# Review actual services in: src/Paraki.Frontend/Services/
 
 # Check if api-contract.md is still accurate
-# Review actual endpoints in: src/MobilityCenter.API/Controllers/
+# Review actual endpoints in: src/Paraki.API/Controllers/
 ```
 
 ### Testing the Skill

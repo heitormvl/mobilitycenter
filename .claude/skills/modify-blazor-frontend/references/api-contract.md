@@ -1,4 +1,4 @@
-# MobilityCenter API Contract
+﻿# Paraki API Contract
 
 Endpoints available for frontend consumption. Base URL: `http://localhost:5000/api` (dev) or production equivalent.
 

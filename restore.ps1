@@ -1,8 +1,8 @@
-# restore.ps1 -- Restaura banco + imagens a partir de um .zip gerado pelo backup.ps1
-# Pre-requisito: container mobilitycenter_db rodando (docker compose up db)
+﻿# restore.ps1 -- Restaura banco + imagens a partir de um .zip gerado pelo backup.ps1
+# Pre-requisito: container paraki_db rodando (docker compose up db)
 #
 # Uso:
-#   .\restore.ps1 -Zip .\mobilitycenter_backup_20260622_1430.zip
+#   .\restore.ps1 -Zip .\paraki_backup_20260622_1430.zip
 
 param(
     [Parameter(Mandatory)]
@@ -13,7 +13,7 @@ $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $Zip)) { throw "Arquivo nao encontrado: $Zip" }
 
-$tempDir = Join-Path $env:TEMP "mobilitycenter_restore_$(Get-Random)"
+$tempDir = Join-Path $env:TEMP "paraki_restore_$(Get-Random)"
 Expand-Archive -Path $Zip -DestinationPath $tempDir
 
 try {
@@ -22,17 +22,17 @@ try {
     if (-not (Test-Path $dumpFile)) { throw "db.dump nao encontrado no zip." }
 
     Write-Host "-> Restaurando banco de dados..."
-    docker cp "$dumpFile" "mobilitycenter_db:/tmp/mc_restore.dump"
+    docker cp "$dumpFile" "paraki_db:/tmp/mc_restore.dump"
     if ($LASTEXITCODE -ne 0) { throw "docker cp falhou (exit $LASTEXITCODE)" }
 
     # --clean descarta objetos existentes antes de recriar; --if-exists evita erro se o schema esta vazio
-    docker exec mobilitycenter_db pg_restore -U mc_user -d mobilitycenter --clean --if-exists --no-owner /tmp/mc_restore.dump
-    docker exec mobilitycenter_db rm /tmp/mc_restore.dump | Out-Null
+    docker exec paraki_db pg_restore -U mc_user -d paraki --clean --if-exists --no-owner /tmp/mc_restore.dump
+    docker exec paraki_db rm /tmp/mc_restore.dump | Out-Null
 
     # 2. Restaurar imagens
     $srcImages = "$tempDir\fotos-perfil"
     if (Test-Path $srcImages) {
-        $destImages = Join-Path $env:TEMP "mobilitycenter\fotos-perfil"
+        $destImages = Join-Path $env:TEMP "paraki\fotos-perfil"
         Write-Host "-> Restaurando imagens para $destImages ..."
         if (Test-Path $destImages) {
             Remove-Item -Path $destImages -Recurse -Force

@@ -1,11 +1,11 @@
----
+﻿---
 name: run-mobilityCenter
-description: Build, launch, and test the MobilityCenter API with PostgreSQL database
+description: Build, launch, and test the Paraki API with PostgreSQL database
 ---
 
-# Run MobilityCenter
+# Run Paraki
 
-MobilityCenter is a .NET 10 ASP.NET Core API with a Blazor WebAssembly frontend and PostgreSQL+PostGIS database. This skill builds and launches the API server on `http://localhost:5000` with automated database setup and migrations.
+Paraki is a .NET 10 ASP.NET Core API with a Blazor WebAssembly frontend and PostgreSQL+PostGIS database. This skill builds and launches the API server on `http://localhost:5000` with automated database setup and migrations.
 
 ## Prerequisites
 
@@ -31,7 +31,7 @@ dotnet --version
 Build the solution and prepare the database:
 
 ```powershell
-cd C:\Users\heito\source\repos\MobilityCenter
+cd C:\Users\heito\source\repos\Paraki
 .\.claude\skills\run-mobilityCenter\driver.ps1 -Action build
 ```
 
@@ -47,7 +47,7 @@ This command:
 Launch the API using the driver script:
 
 ```powershell
-cd C:\Users\heito\source\repos\MobilityCenter
+cd C:\Users\heito\source\repos\Paraki
 .\.claude\skills\run-mobilityCenter\driver.ps1 -Action start -Wait 15
 ```
 
@@ -84,10 +84,10 @@ For interactive development:
 docker compose up -d
 
 # Terminal 1: Run the API with hot reload
-dotnet watch run --project ./src/MobilityCenter.API
+dotnet watch run --project ./src/Paraki.API
 
 # Terminal 2: Optional - run frontend dev server
-dotnet run --project ./src/MobilityCenter.Frontend --urls http://localhost:5200
+dotnet run --project ./src/Paraki.Frontend --urls http://localhost:5200
 ```
 
 The API auto-reloads on file changes when using `dotnet watch run`.
@@ -131,7 +131,7 @@ curl http://localhost:5000/api/usuarios
 
 **3. Database connection timeouts:** On first startup, PostgreSQL may take 10+ seconds to be ready:
    - The driver waits for DB healthcheck (configured in `docker-compose.yml`)
-   - If migrations fail, check Docker logs: `docker logs mobilitycenter_db`
+   - If migrations fail, check Docker logs: `docker logs paraki_db`
 
 **4. Slow API startup on first run:** The first `dotnet run` compiles Roslyn and warms up the runtime:
    - Expect ~15-20s on first run, ~3-5s on subsequent runs
@@ -143,7 +143,7 @@ curl http://localhost:5000/api/usuarios
 
 **6. Frontend is separate:** The Blazor WASM frontend is a separate project:
    - The API hosts Scalar API docs, not the frontend
-   - Frontend runs on port 5200 via: `dotnet run --project ./src/MobilityCenter.Frontend`
+   - Frontend runs on port 5200 via: `dotnet run --project ./src/Paraki.Frontend`
    - Frontend calls the API at `http://localhost:5000` (CORS configured)
 
 ## Troubleshooting
@@ -151,10 +151,10 @@ curl http://localhost:5000/api/usuarios
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `Cannot connect to Docker daemon` | Docker not running | Launch Docker Desktop, wait 30s |
-| `error: database "mobilitycenter" does not exist` | DB creation failed | `docker compose down && docker compose up -d && dotnet ef database update ...` |
+| `error: database "paraki" does not exist` | DB creation failed | `docker compose down && docker compose up -d && dotnet ef database update ...` |
 | `Address already in use (port 5000)` | Another process uses port 5000 | Kill via `netstat -ano \| findstr :5000` or use `-Action stop` |
-| `API returns 404 on /api/bicicletarios` | Service not registered in DI | Check `src/MobilityCenter.API/Program.cs` for `AddBusinessServices()` |
-| `Migrations fail: "Host name resolution failed"` | DNS/DB unreachable | Verify `docker ps` shows `mobilitycenter_db`, check `docker logs mobilitycenter_db` |
+| `API returns 404 on /api/bicicletarios` | Service not registered in DI | Check `src/Paraki.API/Program.cs` for `AddBusinessServices()` |
+| `Migrations fail: "Host name resolution failed"` | DNS/DB unreachable | Verify `docker ps` shows `paraki_db`, check `docker logs paraki_db` |
 | `"No running servers for this workspace"` when using preview tools | Preview server timeout | The API is running via external process, not the preview tool. Use curl directly. |
 
 ## Direct Invocation (For Tests)
@@ -169,7 +169,7 @@ dotnet test
 dotnet test --filter "IntegrationTests"
 ```
 
-See `src/MobilityCenter.Business/Services/` for service classes that can be instantiated and tested directly.
+See `src/Paraki.Business/Services/` for service classes that can be instantiated and tested directly.
 
 ## Verification
 

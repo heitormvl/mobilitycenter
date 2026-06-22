@@ -1,6 +1,6 @@
-<#
+﻿<#
 .SYNOPSIS
-Deploy local da MobilityCenter.
+Deploy local da Paraki.
 Sobe: banco + API + Frontend e expoe ambos via Tailscale.
 
 .EXAMPLE
@@ -83,7 +83,7 @@ $apiBaseUrl = $apiFrontendOrigin
 # ===== GERAR appsettings.Local.json DO FRONTEND =====
 Write-Info "Gerando appsettings.Local.json com ApiBaseUrl: $apiBaseUrl"
 $localSettings = @{ ApiBaseUrl = $apiBaseUrl }
-$localSettings | ConvertTo-Json | Set-Content "src/MobilityCenter.Frontend/wwwroot/appsettings.Local.json" -Encoding utf8
+$localSettings | ConvertTo-Json | Set-Content "src/Paraki.Frontend/wwwroot/appsettings.Local.json" -Encoding utf8
 Write-Ok "appsettings.Local.json gerado (gitignored)"
 
 # ===== GERAR .env PARA CORS =====

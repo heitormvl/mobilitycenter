@@ -1,10 +1,10 @@
-# CLAUDE.md
+﻿# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-**MicroMobilityHub** is a crowdsourced map platform for micromobility infrastructure (bike racks, scooter stations, etc.). Users can discover, rate, and review bike parking facilities with granular filtering for services, access types, and supported vehicle types. Operators can claim and manage their locations.
+**Paraki** is a crowdsourced map platform for micromobility infrastructure (bike racks, scooter stations, etc.). Users can discover, rate, and review bike parking facilities with granular filtering for services, access types, and supported vehicle types. Operators can claim and manage their locations.
 
 ## Technology Stack
 

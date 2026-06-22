@@ -1,10 +1,10 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    Builds, starts, and tests the MobilityCenter API.
+    Builds, starts, and tests the Paraki API.
 
 .DESCRIPTION
-    This driver script handles the complete setup and launch of the MobilityCenter application:
+    This driver script handles the complete setup and launch of the Paraki application:
     - Starts PostgreSQL + PostGIS via Docker
     - Builds the .NET solution
     - Runs database migrations
@@ -31,23 +31,23 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Find the repo root by looking for .git or MobilityCenter.slnx
+# Find the repo root by looking for .git or Paraki.slnx
 $repoRoot = $PWD
 while ($repoRoot -ne [System.IO.Path]::GetPathRoot($repoRoot)) {
-    if ((Test-Path (Join-Path $repoRoot ".git")) -or (Test-Path (Join-Path $repoRoot "MobilityCenter.slnx"))) {
+    if ((Test-Path (Join-Path $repoRoot ".git")) -or (Test-Path (Join-Path $repoRoot "Paraki.slnx"))) {
         break
     }
     $repoRoot = Split-Path $repoRoot -Parent
 }
 
-if (-not (Test-Path (Join-Path $repoRoot "MobilityCenter.slnx"))) {
-    Write-Error "Could not find MobilityCenter repository root. Make sure you're in the repo directory."
+if (-not (Test-Path (Join-Path $repoRoot "Paraki.slnx"))) {
+    Write-Error "Could not find Paraki repository root. Make sure you're in the repo directory."
     exit 1
 }
 
-$apiProj = Join-Path $repoRoot "src\MobilityCenter.API"
-$repoProj = Join-Path $repoRoot "src\MobilityCenter.Repositories"
-$dbContainer = "mobilitycenter_db"
+$apiProj = Join-Path $repoRoot "src\Paraki.API"
+$repoProj = Join-Path $repoRoot "src\Paraki.Repositories"
+$dbContainer = "paraki_db"
 $apiUrl = "http://localhost:5000/api/bicicletarios"
 
 function Write-Status {
@@ -114,7 +114,7 @@ function Start-API {
     Write-Status "Starting API server..."
 
     # Kill any existing dotnet processes running the API
-    $running = Get-Process dotnet -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*dotnet run*" -or $_.MainModule.FileName -like "*MobilityCenter.API*" }
+    $running = Get-Process dotnet -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*dotnet run*" -or $_.MainModule.FileName -like "*Paraki.API*" }
     if ($running) {
         Write-Status "Found existing API process, stopping..."
         $running | Stop-Process -Force -ErrorAction SilentlyContinue

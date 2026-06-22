@@ -1,4 +1,4 @@
-# MicroMobilityHub
+﻿# Paraki
 
 Plataforma de mapa colaborativo para infraestrutura de micromobilidade (bicicletários, estações de scooter, etc). Usuários podem descobrir, avaliar e comentar sobre bicicletários com filtros granulares para serviços, tipos de acesso e veículos suportados.
 
@@ -42,18 +42,18 @@ Plataforma de mapa colaborativo para infraestrutura de micromobilidade (biciclet
 ## Estrutura de Pastas
 
 ```
-MobilityCenter/
+Paraki/
 ├── src/
-│   ├── MobilityCenter.API/              # API ASP.NET Core (Controllers, Middleware)
-│   ├── MobilityCenter.Business/         # Serviços e lógica de negócio
-│   ├── MobilityCenter.Repositories/     # EF Core e acesso a dados
-│   ├── MobilityCenter.Shared/           # Modelos, DTOs, enums
-│   └── MobilityCenter.Frontend/         # Blazor WebAssembly
+│   ├── Paraki.API/              # API ASP.NET Core (Controllers, Middleware)
+│   ├── Paraki.Business/         # Serviços e lógica de negócio
+│   ├── Paraki.Repositories/     # EF Core e acesso a dados
+│   ├── Paraki.Shared/           # Modelos, DTOs, enums
+│   └── Paraki.Frontend/         # Blazor WebAssembly
 │       ├── Pages/                       # Páginas: Mapa, Lista, Detalhe, Adicionar (Step1-3), Avaliar, Login, Perfil
 │       ├── Components/                  # Componentes reutilizáveis: BottomNav, Buttons, Stars, Chip, etc.
 │       └── Services/                    # Serviços HTTP e lógica do cliente
 ├── docker-compose.yml                   # PostgreSQL + PostGIS
-├── MobilityCenter.slnx                  # Arquivo de solução
+├── Paraki.slnx                  # Arquivo de solução
 └── CLAUDE.md                            # Guia de desenvolvimento para Claude Code
 ```
 
@@ -68,8 +68,8 @@ MobilityCenter/
 
 1. **Clone o repositório**
    ```bash
-   git clone https://github.com/heitormvl/mobilitycenter.git
-   cd mobilitycenter
+   git clone https://github.com/heitormvl/paraki.git
+   cd paraki
    ```
 
 2. **Inicie PostgreSQL + PostGIS**
@@ -80,7 +80,7 @@ MobilityCenter/
    Banco estará disponível em:
    - Host: `localhost`
    - Porta: `5432`
-   - Banco: `mobilitycenter`
+   - Banco: `paraki`
    - Usuário: `mc_user`
    - Senha: `mc_dev_password`
 
@@ -101,13 +101,13 @@ MobilityCenter/
 
 6. **Execute as migrações** (quando necessário)
    ```bash
-   dotnet ef migrations add InitialCreate -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
-   dotnet ef database update -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
+   dotnet ef migrations add InitialCreate -p ./src/Paraki.Repositories -s ./src/Paraki.API
+   dotnet ef database update -p ./src/Paraki.Repositories -s ./src/Paraki.API
    ```
 
 7. **Inicie a API**
    ```bash
-   dotnet run --project ./src/MobilityCenter.API
+   dotnet run --project ./src/Paraki.API
    ```
    
    API estará disponível em:
@@ -116,7 +116,7 @@ MobilityCenter/
 
 8. **Inicie o Frontend (Blazor WASM)** (em outra janela do terminal)
    ```bash
-   dotnet run --project ./src/MobilityCenter.Frontend
+   dotnet run --project ./src/Paraki.Frontend
    ```
    
    Frontend estará disponível em:
@@ -150,8 +150,8 @@ MobilityCenter/
 # Build e execução
 dotnet build
 dotnet build -c Release
-dotnet run --project ./src/MobilityCenter.API
-dotnet watch run --project ./src/MobilityCenter.API
+dotnet run --project ./src/Paraki.API
+dotnet watch run --project ./src/Paraki.API
 
 # Testes
 dotnet test
@@ -161,9 +161,9 @@ dotnet test --filter "ClassName.MethodName"
 dotnet format
 
 # Banco de dados
-dotnet ef migrations add MigrationName -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
-dotnet ef database update -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
-dotnet ef database drop -p ./src/MobilityCenter.Repositories -s ./src/MobilityCenter.API
+dotnet ef migrations add MigrationName -p ./src/Paraki.Repositories -s ./src/Paraki.API
+dotnet ef database update -p ./src/Paraki.Repositories -s ./src/Paraki.API
+dotnet ef database drop -p ./src/Paraki.Repositories -s ./src/Paraki.API
 ```
 
 ### Configuração de CORS
@@ -239,8 +239,8 @@ As configurações são carregadas nesta ordem (valores posteriores sobrescrevem
 ## Autenticação
 
 Autenticação baseada em JWT (configurada em `appsettings.{environment}.json`):
-- Issuer: `MobilityCenter`
-- Audience: `MobilityCenter`
+- Issuer: `Paraki`
+- Audience: `Paraki`
 - Secret: Deve ser definido via variável de ambiente em produção
 
 Frontend utiliza JWT token armazenado em localStorage para requisições autenticadas.

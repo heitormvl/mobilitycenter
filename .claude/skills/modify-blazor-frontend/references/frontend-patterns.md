@@ -1,11 +1,11 @@
-# MobilityCenter Frontend Patterns
+﻿# Paraki Frontend Patterns
 
 This document captures the architectural patterns, component library, and service conventions used in the Blazor WASM frontend.
 
 ## Project Structure
 
 ```
-src/MobilityCenter.Frontend/
+src/Paraki.Frontend/
 ├── Components/         # Reusable UI components (.razor)
 ├── Pages/             # Full page components (@page directive)
 ├── Services/          # HTTP and business logic services (.cs)
@@ -97,9 +97,9 @@ Inject as: `HttpClient http` (already configured with auth token header)
 
 ```csharp
 using System.Net.Http.Json;
-using MobilityCenter.Frontend.Models;
+using Paraki.Frontend.Models;
 
-namespace MobilityCenter.Frontend.Services;
+namespace Paraki.Frontend.Services;
 
 public class XyzService(HttpClient http)
 {
@@ -244,7 +244,7 @@ Theme variables available globally (in `wwwroot/css`):
 Models live in `Models/` namespace. Match API response DTO names:
 
 ```csharp
-namespace MobilityCenter.Frontend.Models;
+namespace Paraki.Frontend.Models;
 
 public class XyzDto
 {

@@ -1,0 +1,9 @@
+﻿<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Paraki.API/Paraki.API.csproj" />
+    <Project Path="src/Paraki.Business/Paraki.Business.csproj" />
+    <Project Path="src/Paraki.Repositories/Paraki.Repositories.csproj" />
+    <Project Path="src/Paraki.Shared/Paraki.Shared.csproj" />
+    <Project Path="src/Paraki.Frontend/Paraki.Frontend.csproj" />
+  </Folder>
+</Solution>

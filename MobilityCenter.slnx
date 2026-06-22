@@ -1,8 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/MobilityCenter.API/MobilityCenter.API.csproj" />
-    <Project Path="src/MobilityCenter.Business/MobilityCenter.Business.csproj" />
-    <Project Path="src/MobilityCenter.Repositories/MobilityCenter.Repositories.csproj" />
-    <Project Path="src/MobilityCenter.Shared/MobilityCenter.Shared.csproj" />
-  </Folder>
-</Solution>

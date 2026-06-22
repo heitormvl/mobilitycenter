@@ -1,11 +1,11 @@
----
+﻿---
 name: modify-blazor-frontend
-description: Build and modify Blazor WASM components for MobilityCenter. Use this whenever the user wants to create new pages, components, services, or integrate API endpoints into the frontend. This skill knows the component library, service patterns, and full API contract to avoid wasting context analyzing the entire codebase. Automatically identifies relevant API endpoints and reuses existing patterns from the frontend.
+description: Build and modify Blazor WASM components for Paraki. Use this whenever the user wants to create new pages, components, services, or integrate API endpoints into the frontend. This skill knows the component library, service patterns, and full API contract to avoid wasting context analyzing the entire codebase. Automatically identifies relevant API endpoints and reuses existing patterns from the frontend.
 ---
 
 # Modify Blazor Frontend
 
-Create, modify, and integrate Blazor WebAssembly components for MobilityCenter. This skill provides a focused context on the **frontend architecture only**, with the API contract and component library pre-loaded, so you don't need to read the entire codebase.
+Create, modify, and integrate Blazor WebAssembly components for Paraki. This skill provides a focused context on the **frontend architecture only**, with the API contract and component library pre-loaded, so you don't need to read the entire codebase.
 
 ## When to Use This Skill
 
@@ -56,7 +56,7 @@ The skill produces:
 
 All generated code follows the project's structure and patterns. You paste the files directly into:
 ```
-src/MobilityCenter.Frontend/
+src/Paraki.Frontend/
 ├── Pages/              # .razor pages
 ├── Components/         # .razor reusable components
 ├── Services/           # .cs services
@@ -96,9 +96,9 @@ No formatting or refactoring needed — it's ready to use.
 
 ```csharp
 using System.Net.Http.Json;
-using MobilityCenter.Frontend.Models;
+using Paraki.Frontend.Models;
 
-namespace MobilityCenter.Frontend.Services;
+namespace Paraki.Frontend.Services;
 
 public class YourService(HttpClient http)
 {
@@ -148,7 +148,7 @@ public class YourService(HttpClient http)
 **File:** `Models/YourDto.cs`
 
 ```csharp
-namespace MobilityCenter.Frontend.Models;
+namespace Paraki.Frontend.Models;
 
 public class YourDto
 {
@@ -249,17 +249,17 @@ Likely causes:
 
 Check:
 1. **CSS variables:** Are `var(--bg)`, `var(--text)`, etc. defined in your `wwwroot/css`? They should be inherited from existing pages.
-2. **Component imports:** Did you add `@using MobilityCenter.Frontend.Components` at the top of your page?
+2. **Component imports:** Did you add `@using Paraki.Frontend.Components` at the top of your page?
 3. **Responsive design:** Test on mobile — the frontend uses a mobile-first layout
 
 ### "How do I test the code locally?"
 
 ```bash
 # Terminal 1: Start the API (already running on port 5000)
-dotnet run --project ./src/MobilityCenter.API
+dotnet run --project ./src/Paraki.API
 
 # Terminal 2: Start the Frontend dev server
-dotnet run --project ./src/MobilityCenter.Frontend --urls http://localhost:5200
+dotnet run --project ./src/Paraki.Frontend --urls http://localhost:5200
 
 # Open browser to http://localhost:5200
 ```
