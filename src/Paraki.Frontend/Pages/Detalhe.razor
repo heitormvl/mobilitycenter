@@ -83,14 +83,20 @@ else if (_item != null)
     }
 
     @* Cover photo *@
-    <div class="mc-detail-rise" style="position:relative; background:#111;">
-        @if (_capaUrl != null && !_fotosFalhou.Contains(_capa?.Id ?? "legacy"))
+    <div class="mc-detail-rise" style="position:relative; background:#111;"
+         @ontouchstart="HandleTouchStart" @ontouchend="HandleTouchEnd">
+        @{
+            var _curFoto = _fotos.Count > 0 ? _fotos[_carouselIndex] : null;
+            var _curUrl  = _curFoto != null ? BicicletarioSvc.GetFotoUrl(_curFoto.FotoUrl) : _capaUrl;
+            var _curId   = _curFoto?.Id ?? _capa?.Id ?? "legacy";
+        }
+        @if (_curUrl != null && !_fotosFalhou.Contains(_curId))
         {
-            <img src="@_capaUrl"
+            <img src="@_curUrl"
                  style="width:100%; max-height:320px; object-fit:contain; display:block; cursor:zoom-in;"
                  alt="Foto do local"
-                 @onclick="@(() => { _lightboxUrl = _capaUrl; _lightboxOpen = true; })"
-                 @onerror="@(() => { _fotosFalhou.Add(_capa?.Id ?? "legacy"); StateHasChanged(); })" />
+                 @onclick="@(() => { _lightboxUrl = _curUrl; _lightboxOpen = true; })"
+                 @onerror="@(() => { _fotosFalhou.Add(_curId); StateHasChanged(); })" />
         }
         else
         {
@@ -125,12 +131,13 @@ else if (_item != null)
                 </div>
             }
         }
-        @if (_capa != null && _fotos.Count > 1)
+        @if (_fotos.Count > 1)
         {
             <div style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:5px; pointer-events:none;">
-                @foreach (var _ in _fotos)
+                @for (var di = 0; di < _fotos.Count; di++)
                 {
-                    <div style="width:6px; height:6px; border-radius:var(--r-full); background:rgba(255,255,255,0.5);"></div>
+                    var isActive = di == _carouselIndex;
+                    <div style="width:@(isActive ? "8px" : "6px"); height:@(isActive ? "8px" : "6px"); border-radius:var(--r-full); background:@(isActive ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.4)"); transition:all 0.15s;"></div>
                 }
             </div>
         }
@@ -146,17 +153,19 @@ else if (_item != null)
                 </span>
             </div>
             <div style="display:flex; gap:8px; overflow-x:auto; padding:0 16px 12px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
-                @foreach (var foto in _fotos)
+                @for (var fi = 0; fi < _fotos.Count; fi++)
                 {
+                    var foto = _fotos[fi];
                     var fUrl = BicicletarioSvc.GetFotoUrl(foto.FotoUrl);
                     var fId = foto.Id;
-                    <div style="position:relative; flex-shrink:0; width:160px; height:120px; scroll-snap-align:start; border-radius:var(--r-lg); overflow:hidden; border:2px solid @(foto.IsCapa ? "var(--brand)" : "var(--border)");">
+                    var fIdx = fi;
+                    <div style="position:relative; flex-shrink:0; width:160px; height:120px; scroll-snap-align:start; border-radius:var(--r-lg); overflow:hidden; border:2px solid @(fIdx == _carouselIndex ? "var(--brand)" : "var(--border)");">
                         @if (!_fotosFalhou.Contains(fId))
                         {
                             <img src="@fUrl"
                                  style="width:100%; height:100%; object-fit:cover; cursor:zoom-in;"
                                  alt="Foto"
-                                 @onclick="@(() => { _lightboxUrl = fUrl; _lightboxOpen = true; })"
+                                 @onclick="@(() => { _carouselIndex = fIdx; _lightboxUrl = fUrl; _lightboxOpen = true; })"
                                  @onerror="@(() => { _fotosFalhou.Add(fId); StateHasChanged(); })" />
                         }
                         else
@@ -662,6 +671,8 @@ else if (_item != null)
     private string?   _legacyCoverUrl;
     private string?   _lightboxUrl;
     private bool      _lightboxOpen;
+    private int       _carouselIndex;
+    private double    _touchStartX, _touchStartY;
 
     private FotoModel? _capa => _fotos.FirstOrDefault(f => f.IsCapa) ?? _fotos.FirstOrDefault();
     private string? _capaUrl => _capa != null ? BicicletarioSvc.GetFotoUrl(_capa.FotoUrl) : _legacyCoverUrl;
@@ -948,6 +959,27 @@ else if (_item != null)
         _isSaving = false;
     }
 
+    private void HandleTouchStart(TouchEventArgs e)
+    {
+        if (e.Touches.Length > 0)
+        {
+            _touchStartX = e.Touches[0].ClientX;
+            _touchStartY = e.Touches[0].ClientY;
+        }
+    }
+
+    private void HandleTouchEnd(TouchEventArgs e)
+    {
+        if (e.ChangedTouches.Length == 0 || _fotos.Count <= 1) return;
+        var dx = e.ChangedTouches[0].ClientX - _touchStartX;
+        var dy = e.ChangedTouches[0].ClientY - _touchStartY;
+        if (Math.Abs(dx) <= Math.Abs(dy) || Math.Abs(dx) < 40) return;
+        if (dx < 0 && _carouselIndex < _fotos.Count - 1)
+            _carouselIndex++;
+        else if (dx > 0 && _carouselIndex > 0)
+            _carouselIndex--;
+    }
+
     private async Task CarregarFotosAsync()
     {
         var fotos = await BicicletarioSvc.GetFotosAsync(Id!);
@@ -955,6 +987,7 @@ else if (_item != null)
             _fotos = [.. fotos.OrderBy(f => f.Ordem)];
         else
             _legacyCoverUrl = BicicletarioSvc.GetFotoBicicletarioUrl(Id!);
+        _carouselIndex = 0;
         StateHasChanged();
     }
 
@@ -1050,9 +1083,10 @@ else if (_item != null)
         {
             var removed = _fotos.FirstOrDefault(f => f.Id == fotoId);
             _fotos.Remove(removed!);
-            // If we deleted the cover, promote the next one
             if (removed?.IsCapa == true && _fotos.Count > 0)
                 _fotos[0].IsCapa = true;
+            if (_carouselIndex >= _fotos.Count)
+                _carouselIndex = Math.Max(0, _fotos.Count - 1);
             StateHasChanged();
         }
         else _saveError = err;
