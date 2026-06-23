@@ -14,7 +14,7 @@ primary_region = 'gru'
   AzureStorage__StorageType = 'Local'
   AzureStorage__LocalPath = '/data/fotos'
 
-[mounts]
+[[mounts]]
   source = 'paraki_uploads'
   destination = '/data'
 
