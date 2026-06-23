@@ -35,20 +35,59 @@ window.imageCompressor = {
         });
     },
 
+    _compressViaObjectUrl: function (blob, maxDim, quality) {
+        return new Promise((resolve) => {
+            const url = URL.createObjectURL(blob);
+            const img = new Image();
+            img.onload = function () {
+                let w = img.width, h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim; }
+                    else        { w = Math.round(w * maxDim / h); h = maxDim; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                URL.revokeObjectURL(url);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+            img.src = url;
+        });
+    },
+
     compress: async function (base64, mimeType, maxDim, quality) {
         const normalized = (mimeType || '').toLowerCase();
-        if (normalized === 'image/heic' || normalized === 'image/heif') {
-            try {
-                const blob = this._base64ToBlob(base64, mimeType);
-                const converted = await heic2any({ blob, toType: 'image/jpeg', quality: quality });
-                const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
-                const jpegBase64 = await this._blobToBase64(jpegBlob);
-                return this._compress(jpegBase64, 'image/jpeg', maxDim, quality);
-            } catch {
-                return null;
-            }
+
+        if (normalized !== 'image/heic' && normalized !== 'image/heif') {
+            return this._compress(base64, normalized || 'image/jpeg', maxDim, quality);
         }
-        return this._compress(base64, normalized || 'image/jpeg', maxDim, quality);
+
+        // For HEIC: try native canvas via object URL first (works on Android 12+)
+        const heicBlob = this._base64ToBlob(base64, mimeType);
+        const nativeResult = await this._compressViaObjectUrl(heicBlob, maxDim, quality);
+        if (nativeResult !== null) return nativeResult;
+
+        // Fall back to heic2any for devices without native HEIC support
+        const heic2anyFn = typeof heic2any === 'function'
+            ? heic2any
+            : (window.heic2any && typeof window.heic2any.default === 'function' ? window.heic2any.default : null);
+
+        if (!heic2anyFn) {
+            console.error('[imageCompressor] heic2any not available:', typeof window.heic2any);
+            return null;
+        }
+
+        try {
+            const converted = await heic2anyFn({ blob: heicBlob, toType: 'image/jpeg', quality: quality });
+            const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
+            const jpegBase64 = await this._blobToBase64(jpegBlob);
+            return this._compress(jpegBase64, 'image/jpeg', maxDim, quality);
+        } catch (e) {
+            console.error('[imageCompressor] heic2any conversion failed:', e);
+            return null;
+        }
     },
 
     captureAndCompress: function (inputId, maxDim, quality) {
