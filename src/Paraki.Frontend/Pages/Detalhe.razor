@@ -1,4 +1,5 @@
 ﻿@page "/bicicletario/{Id}"
+@using System.Text.Json
 @using System.Text.Json.Serialization
 @using System.Globalization
 @using System.Net.Http.Headers
@@ -104,12 +105,18 @@ else if (_item != null)
         }
         @if (_isAdmin && _editingFoto)
         {
-            <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.75); padding:14px 16px; display:flex; align-items:center; gap:10px;">
+            <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.75); padding:14px 16px; display:flex; align-items:center; gap:16px;">
                 <label style="flex:1; display:flex; align-items:center; gap:8px; cursor:pointer; color:white; font-size:14px; font-family:var(--font); font-weight:500;">
                     <i class="fa-solid fa-image"></i>
-                    @if (_isSaving) { <span>Enviando...</span> } else { <span>Adicionar foto (webp, png, jpg · max 5MB)</span> }
+                    @if (_isSaving) { <span>Enviando...</span> } else { <span>Galeria</span> }
                     <InputFile OnChange="HandleFotoUpload" accept="image/webp,image/png,image/jpeg,image/heic,image/heif" style="display:none;" disabled="@_isSaving" />
                 </label>
+                <button type="button" @onclick="TirarFotoDetalhe" disabled="@_isSaving"
+                        style="display:flex; align-items:center; gap:8px; color:white; font-size:14px; font-family:var(--font); font-weight:500; background:transparent; border:none; cursor:pointer; padding:0; opacity:@(_isSaving ? "0.5" : "1");">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Câmera</span>
+                </button>
+                <input id="cameraInputDetalhe" type="file" accept="image/*" capture="environment" style="display:none;" />
             </div>
             @if (!string.IsNullOrEmpty(_saveError))
             {
@@ -954,30 +961,63 @@ else if (_item != null)
     private async Task HandleFotoUpload(InputFileChangeEventArgs e)
     {
         var file = e.File;
-        if (file.Size > 5 * 1024 * 1024)
+        const long maxSize = 10L * 1024 * 1024;
+        if (file.Size > maxSize)
         {
-            _saveError = "Arquivo muito grande. Máximo 5MB.";
+            _saveError = "Arquivo muito grande. Máximo 10MB.";
             return;
         }
         _isSaving  = true;
         _saveError = null;
         try
         {
-            using var content = new MultipartFormDataContent();
-            using var stream  = file.OpenReadStream(5 * 1024 * 1024);
-            using var sc      = new StreamContent(stream);
-            sc.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-            content.Add(sc, "foto", file.Name);
-            var (err, novaFoto) = await BicicletarioSvc.UploadFotoAsync(Id!, content);
-            if (err == null && novaFoto != null)
-            {
-                _fotos.Add(novaFoto);
-                _editingFoto = false;
-            }
-            else _saveError = err;
+            using var readStream = file.OpenReadStream(maxSize);
+            var buffer = new byte[file.Size];
+            await readStream.ReadExactlyAsync(buffer);
+            var base64 = Convert.ToBase64String(buffer);
+            var dataUrl = await JS.InvokeAsync<string?>("imageCompressor.compress", base64, file.ContentType, 1200, 0.85);
+            if (dataUrl is null) { _saveError = "Não foi possível comprimir a imagem."; return; }
+            await EnviarFotoDataUrl(dataUrl);
         }
         finally { _isSaving = false; }
     }
+
+    private async Task TirarFotoDetalhe()
+    {
+        _saveError = null;
+        _isSaving  = true;
+        try
+        {
+            var json = await JS.InvokeAsync<string?>("imageCompressor.captureAndCompress", "cameraInputDetalhe", 1200, 0.85);
+            if (json is null) return;
+            var result = JsonSerializer.Deserialize<DetalheCamera>(json);
+            if (result?.DataUrl is null) return;
+            await EnviarFotoDataUrl(result.DataUrl);
+        }
+        catch
+        {
+            _saveError = "Não foi possível capturar a foto.";
+        }
+        finally { _isSaving = false; }
+    }
+
+    private async Task EnviarFotoDataUrl(string dataUrl)
+    {
+        var compressedBytes = Convert.FromBase64String(dataUrl.Split(',')[1]);
+        using var content   = new MultipartFormDataContent();
+        using var bc        = new ByteArrayContent(compressedBytes);
+        bc.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+        content.Add(bc, "foto", "foto.jpg");
+        var (err, novaFoto) = await BicicletarioSvc.UploadFotoAsync(Id!, content);
+        if (err == null && novaFoto != null)
+        {
+            _fotos.Add(novaFoto);
+            _editingFoto = false;
+        }
+        else _saveError = err;
+    }
+
+    private record DetalheCamera([property: JsonPropertyName("dataUrl")] string? DataUrl);
 
     private async Task SetCapaAsync(string fotoId)
     {

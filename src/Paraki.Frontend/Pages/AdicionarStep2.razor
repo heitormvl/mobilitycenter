@@ -3,7 +3,10 @@
 @inject NavigationManager Nav
 @inject AuthService AuthService
 @inject AdicionarStateService AdicionarState
+@inject IJSRuntime JS
 @using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@using System.Text.Json.Serialization
 
 <div class="@_slideClass">
 
@@ -33,29 +36,39 @@ else
             <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">
                 Foto <span style="color:var(--text-4); font-weight:400;">(opcional)</span>
             </label>
-            <label for="fotoInput" style="cursor:pointer; display:block;">
-                <div style="border:1.5px dashed var(--border-2); border-radius:var(--r-lg); overflow:hidden; height:160px; display:flex; align-items:center; justify-content:center; background:var(--bg-page); position:relative;">
-                    @if (_fotoPreview != null)
-                    {
-                        <img src="@_fotoPreview" alt="Preview"
-                             style="width:100%; height:100%; object-fit:cover;" />
-                        <button type="button" @onclick:stopPropagation="true" @onclick="RemoverFoto"
-                                style="position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(0,0,0,0.5); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-                            <i class="fa-solid fa-xmark" style="color:white; font-size:12px;"></i>
-                        </button>
-                    }
-                    else
-                    {
-                        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--text-4);">
-                            <i class="fa-solid fa-camera" style="font-size:24px;"></i>
-                            <span style="font-size:13px; font-family:var(--font);">Toque para adicionar uma foto</span>
-                        </div>
-                    }
-                </div>
-            </label>
+            <div style="border:1.5px dashed var(--border-2); border-radius:var(--r-lg); overflow:hidden; height:160px; display:flex; align-items:center; justify-content:center; background:var(--bg-page); position:relative;">
+                @if (_fotoPreview != null)
+                {
+                    <img src="@_fotoPreview" alt="Preview"
+                         style="width:100%; height:100%; object-fit:cover;" />
+                    <button type="button" @onclick="RemoverFoto"
+                            style="position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(0,0,0,0.5); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                        <i class="fa-solid fa-xmark" style="color:white; font-size:12px;"></i>
+                    </button>
+                }
+                else
+                {
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--text-4);">
+                        <i class="fa-solid fa-image" style="font-size:24px;"></i>
+                        <span style="font-size:13px; font-family:var(--font);">Nenhuma foto selecionada</span>
+                    </div>
+                }
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <label for="fotoInput" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:1px solid var(--border); border-radius:var(--r); cursor:pointer; font-size:13px; color:var(--text-2); font-family:var(--font); background:var(--bg-page);">
+                    <i class="fa-solid fa-image"></i>
+                    <span>Galeria</span>
+                </label>
+                <button type="button" @onclick="TirarFoto" disabled="@_isCameraLoading"
+                        style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:1px solid var(--border); border-radius:var(--r); cursor:pointer; font-size:13px; color:var(--text-2); font-family:var(--font); background:var(--bg-page);">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>@(_isCameraLoading ? "Aguarde..." : "Câmera")</span>
+                </button>
+            </div>
             <InputFile id="fotoInput" OnChange="OnFotoSelecionada"
                        accept="image/webp,image/png,image/jpeg,image/heic,image/heif"
                        style="display:none;" />
+            <input id="cameraInputAdicionar" type="file" accept="image/*" capture="environment" style="display:none;" />
             @if (_fotoError != null)
             {
                 <div style="font-size:12px; color:var(--red); margin-top:6px; font-family:var(--font);">
@@ -225,6 +238,7 @@ else
     private string _slideClass = "";
     private string? _fotoPreview;
     private string? _fotoError;
+    private bool _isCameraLoading;
 
     private static readonly string[] _diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
     // Estado: "ni" = não informado (default), "aberto" = com horários, "fechado" = explicitamente fechado
@@ -283,9 +297,10 @@ else
         _fotoError = null;
         var file = e.File;
 
-        if (file.Size > 5 * 1024 * 1024)
+        const long maxSize = 10L * 1024 * 1024;
+        if (file.Size > maxSize)
         {
-            _fotoError = "A foto deve ter no máximo 5 MB.";
+            _fotoError = "A foto deve ter no máximo 10 MB.";
             return;
         }
 
@@ -298,18 +313,58 @@ else
 
         try
         {
-            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var stream = file.OpenReadStream(maxAllowedSize: maxSize);
             var buffer = new byte[file.Size];
             await stream.ReadExactlyAsync(buffer);
-            AdicionarState.FotoBytes = buffer;
-            AdicionarState.FotoContentType = file.ContentType;
-            _fotoPreview = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+            await AplicarCompressao(buffer, file.ContentType);
         }
         catch
         {
             _fotoError = "Não foi possível ler o arquivo.";
         }
     }
+
+    private async Task TirarFoto()
+    {
+        _fotoError = null;
+        _isCameraLoading = true;
+        try
+        {
+            var json = await JS.InvokeAsync<string?>("imageCompressor.captureAndCompress", "cameraInputAdicionar", 1200, 0.85);
+            if (json is null) return;
+            var result = JsonSerializer.Deserialize<CameraResult>(json);
+            if (result?.DataUrl is null) return;
+            await AplicarDataUrl(result.DataUrl);
+        }
+        catch
+        {
+            _fotoError = "Não foi possível capturar a foto.";
+        }
+        finally
+        {
+            _isCameraLoading = false;
+        }
+    }
+
+    private async Task AplicarCompressao(byte[] bytes, string mimeType)
+    {
+        var base64 = Convert.ToBase64String(bytes);
+        var dataUrl = await JS.InvokeAsync<string?>("imageCompressor.compress", base64, mimeType, 1200, 0.85);
+        if (dataUrl is null) { _fotoError = "Não foi possível comprimir a imagem."; return; }
+        await AplicarDataUrl(dataUrl);
+    }
+
+    private Task AplicarDataUrl(string dataUrl)
+    {
+        var base64Part = dataUrl.Split(',')[1];
+        var compressed = Convert.FromBase64String(base64Part);
+        AdicionarState.FotoBytes = compressed;
+        AdicionarState.FotoContentType = "image/jpeg";
+        _fotoPreview = dataUrl;
+        return Task.CompletedTask;
+    }
+
+    private record CameraResult([property: JsonPropertyName("dataUrl")] string? DataUrl);
 
     private void RemoverFoto()
     {
