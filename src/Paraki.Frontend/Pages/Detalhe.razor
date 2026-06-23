@@ -967,17 +967,30 @@ else if (_item != null)
             _saveError = "Arquivo muito grande. Máximo 10MB.";
             return;
         }
+
+        var tiposPermitidos = new[] { "image/webp", "image/png", "image/jpeg", "image/heic", "image/heif" };
+        var mimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType.ToLowerInvariant();
+        if (!tiposPermitidos.Contains(mimeType))
+        {
+            _saveError = "Use PNG, JPG, WEBP ou HEIC.";
+            return;
+        }
+
         _isSaving  = true;
         _saveError = null;
         try
         {
             using var readStream = file.OpenReadStream(maxSize);
-            var buffer = new byte[file.Size];
-            await readStream.ReadExactlyAsync(buffer);
-            var base64 = Convert.ToBase64String(buffer);
-            var dataUrl = await JS.InvokeAsync<string?>("imageCompressor.compress", base64, file.ContentType, 1200, 0.85);
+            using var ms = new MemoryStream();
+            await readStream.CopyToAsync(ms);
+            var base64 = Convert.ToBase64String(ms.ToArray());
+            var dataUrl = await JS.InvokeAsync<string?>("imageCompressor.compress", base64, mimeType, 1200, 0.85);
             if (dataUrl is null) { _saveError = "Não foi possível comprimir a imagem."; return; }
             await EnviarFotoDataUrl(dataUrl);
+        }
+        catch
+        {
+            _saveError = "Não foi possível ler o arquivo.";
         }
         finally { _isSaving = false; }
     }

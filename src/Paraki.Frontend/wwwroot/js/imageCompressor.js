@@ -19,12 +19,38 @@ window.imageCompressor = {
         });
     },
 
-    compress: function (base64, mimeType, maxDim, quality) {
-        return this._compress(base64, mimeType, maxDim, quality);
+    _base64ToBlob: function (base64, mimeType) {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return new Blob([bytes], { type: mimeType });
     },
 
-    // Clicks a hidden camera input, waits for the user to take/pick a photo,
-    // compresses it, and resolves with JSON { dataUrl, fileName } or null if cancelled.
+    _blobToBase64: function (blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    },
+
+    compress: async function (base64, mimeType, maxDim, quality) {
+        const normalized = (mimeType || '').toLowerCase();
+        if (normalized === 'image/heic' || normalized === 'image/heif') {
+            try {
+                const blob = this._base64ToBlob(base64, mimeType);
+                const converted = await heic2any({ blob, toType: 'image/jpeg', quality: quality });
+                const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
+                const jpegBase64 = await this._blobToBase64(jpegBlob);
+                return this._compress(jpegBase64, 'image/jpeg', maxDim, quality);
+            } catch {
+                return null;
+            }
+        }
+        return this._compress(base64, normalized || 'image/jpeg', maxDim, quality);
+    },
+
     captureAndCompress: function (inputId, maxDim, quality) {
         return new Promise((resolve) => {
             const input = document.getElementById(inputId);
@@ -38,7 +64,7 @@ window.imageCompressor = {
                 const reader = new FileReader();
                 reader.onload = async (ev) => {
                     const base64 = ev.target.result.split(',')[1];
-                    const dataUrl = await imageCompressor._compress(base64, file.type || 'image/jpeg', maxDim, quality);
+                    const dataUrl = await imageCompressor.compress(base64, file.type || 'image/jpeg', maxDim, quality);
                     input.value = '';
                     resolve(dataUrl ? JSON.stringify({ dataUrl: dataUrl, fileName: file.name }) : null);
                 };

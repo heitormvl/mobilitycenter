@@ -305,18 +305,19 @@ else
         }
 
         var tiposPermitidos = new[] { "image/webp", "image/png", "image/jpeg", "image/heic", "image/heif" };
-        if (!tiposPermitidos.Contains(file.ContentType.ToLowerInvariant()))
+        var mimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType.ToLowerInvariant();
+        if (!tiposPermitidos.Contains(mimeType))
         {
-            _fotoError = "Use WEBP, PNG, JPG ou HEIC.";
+            _fotoError = "Use PNG, JPG, WEBP ou HEIC.";
             return;
         }
 
         try
         {
             using var stream = file.OpenReadStream(maxAllowedSize: maxSize);
-            var buffer = new byte[file.Size];
-            await stream.ReadExactlyAsync(buffer);
-            await AplicarCompressao(buffer, file.ContentType);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            await AplicarCompressao(ms.ToArray(), mimeType);
         }
         catch
         {
