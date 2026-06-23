@@ -364,9 +364,7 @@ public class AuthService : IAuthService
               <table width="100%" style="max-width:480px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08),0 1px 4px rgba(0,0,0,0.05);">
                 <tr>
                   <td style="background:linear-gradient(160deg,#7D1128 0%,#5E0D1E 100%);padding:36px 28px;text-align:center;">
-                    <div style="width:60px;height:60px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.25);border-radius:16px;display:inline-block;line-height:60px;margin-bottom:16px;font-size:28px;">
-                      &#x1F512;
-                    </div>
+                    <img src="https://paraki-frontend.pages.dev/icon-192.png" alt="Paraki" width="60" height="60" style="display:block;margin:0 auto 16px;border-radius:16px;" />
                     <p style="margin:0;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.03em;line-height:1;">Paraki</p>
                     <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.65);font-weight:400;">Micromobilidade colaborativa</p>
                   </td>
@@ -425,9 +423,7 @@ public class AuthService : IAuthService
                 <!-- Header -->
                 <tr>
                   <td style="background:linear-gradient(160deg,#7D1128 0%,#5E0D1E 100%);padding:36px 28px;text-align:center;">
-                    <div style="width:60px;height:60px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.25);border-radius:16px;display:inline-block;line-height:60px;margin-bottom:16px;font-size:28px;">
-                      &#x1F6B2;
-                    </div>
+                    <img src="https://paraki-frontend.pages.dev/icon-192.png" alt="Paraki" width="60" height="60" style="display:block;margin:0 auto 16px;border-radius:16px;" />
                     <p style="margin:0;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.03em;line-height:1;">Paraki</p>
                     <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.65);font-weight:400;">Micromobilidade colaborativa</p>
                   </td>
