@@ -645,14 +645,14 @@
 
         var photoHtml = capaUrl != null
             ? $@"<img style=""width:120px;flex-shrink:0;align-self:stretch;object-fit:cover;"" src=""{capaUrl}"" alt="""" />"
-            : @"<div style=""width:120px;flex-shrink:0;align-self:stretch;background:linear-gradient(160deg,#3d2c2c 0%,#2a1a1a 40%,#1a1a1a 100%);position:relative;overflow:hidden;""><div style=""position:absolute;bottom:14px;right:14px;width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;color:#FFF;font-size:22px;""><i class=""fa-solid fa-person-biking""></i></div></div>";
+            : @"<div style=""width:120px;flex-shrink:0;align-self:stretch;background:var(--bg-page);position:relative;overflow:hidden;""><div style=""position:absolute;bottom:14px;right:14px;width:44px;height:44px;border-radius:8px;background:var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:22px;""><i class=""fa-solid fa-person-biking""></i></div></div>";
 
         var full = (int)Math.Round(b.NotaMedia);
         var starsSb = new System.Text.StringBuilder();
         for (int i = 1; i <= 5; i++)
             starsSb.Append(i <= full
-                ? @"<i class=""fa-solid fa-star"" style=""color:#C18B00;font-size:12px;""></i>"
-                : @"<i class=""fa-regular fa-star"" style=""color:#C18B00;font-size:12px;""></i>");
+                ? @"<i class=""fa-solid fa-star"" style=""color:var(--gold);font-size:12px;""></i>"
+                : @"<i class=""fa-regular fa-star"" style=""color:var(--gold);font-size:12px;""></i>");
 
         var ratingTxt = b.TotalAvaliacoes > 0
             ? $"{b.NotaMedia.ToString("F1", CultureInfo.InvariantCulture).Replace('.', ',')} · {b.TotalAvaliacoes} {(b.TotalAvaliacoes == 1 ? "avaliação" : "avaliações")}"
@@ -664,7 +664,7 @@
         if ((b.VeiculosSuportados & 4) != 0) vehicleItems.Add(VehicleGridItem("fa-circle-dot", "Mono"));
         if ((b.VeiculosSuportados & 8) != 0) vehicleItems.Add(VehicleGridItem("fa-bolt", "Patinete"));
         var vehicleGridHtml = vehicleItems.Count > 0
-            ? $@"<div style=""padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#1C1C1E;"">{string.Concat(vehicleItems)}</div>"
+            ? $@"<div style=""padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg);"">{string.Concat(vehicleItems)}</div>"
             : "";
 
         var (accessIcon, accessLabel) = b switch
@@ -676,7 +676,7 @@
             _                        => (null, null)
         };
         var accessHtml = accessIcon != null
-            ? $@"<span style=""display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);font-size:11px;font-weight:600;color:#C8C8D8;""><i class=""fa-solid {accessIcon}"" style=""color:#FFCCD5;font-size:10px;""></i>Acesso: {accessLabel}</span>"
+            ? $@"<span style=""display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;background:var(--bg-page);border:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text-2);""><i class=""fa-solid {accessIcon}"" style=""color:var(--brand);font-size:10px;""></i>Acesso: {accessLabel}</span>"
             : "";
 
         var featureItems = new List<string>();
@@ -689,30 +689,30 @@
         if (b.TemBanheiro)         featureItems.Add(VehicleGridItem("fa-restroom",  "Banheiro"));
 
         var featureDivider = vehicleItems.Count > 0 && featureItems.Count > 0
-            ? @"<div style=""height:1px;background:rgba(255,255,255,0.08);""></div>"
+            ? @"<div style=""height:1px;background:var(--border);""></div>"
             : "";
         var featuresGridHtml = featureItems.Count > 0
-            ? $@"{featureDivider}<div style=""padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#1C1C1E;"">{string.Concat(featureItems)}</div>"
+            ? $@"{featureDivider}<div style=""padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg);"">{string.Concat(featureItems)}</div>"
             : "";
 
-        return $@"<div style=""background:#1C1C1E;border-radius:12px;overflow:hidden;width:300px;box-shadow:0 4px 24px rgba(0,0,0,0.35);"">
+        return $@"<div style=""background:var(--bg);border-radius:12px;overflow:hidden;width:300px;box-shadow:var(--shadow-lg);"">
           <div style=""display:flex;min-height:150px;"">
             {photoHtml}
-            <div style=""flex:1;padding:14px 14px 10px;display:flex;flex-direction:column;gap:6px;background:#1C1C1E;"">
+            <div style=""flex:1;padding:14px 14px 10px;display:flex;flex-direction:column;gap:6px;background:var(--bg);"">
               {statusBadge}
-              <div style=""font-size:15px;font-weight:700;color:#FFFFFF;line-height:1.25;"">{name}</div>
+              <div style=""font-size:15px;font-weight:700;color:var(--text);line-height:1.25;"">{name}</div>
               <div style=""display:flex;align-items:center;gap:6px;"">
                 <div style=""display:flex;gap:2px;"">{starsSb}</div>
-                <span style=""font-size:11px;color:#8A8A9A;"">{WebUtility.HtmlEncode(ratingTxt)}</span>
+                <span style=""font-size:11px;color:var(--text-4);"">{WebUtility.HtmlEncode(ratingTxt)}</span>
               </div>
               {accessHtml}
             </div>
           </div>
-          <div style=""height:1px;background:rgba(255,255,255,0.08);""></div>
+          <div style=""height:1px;background:var(--border);""></div>
           {vehicleGridHtml}
           {featuresGridHtml}
-          <div style=""padding:0 12px 14px;background:#1C1C1E;"">
-            <a href=""/bicicletario/{b.Id}?from=mapa"" onclick=""mapInterop.navigateTo(event,'/bicicletario/{b.Id}?from=mapa',{b.Latitude.ToString(CultureInfo.InvariantCulture)},{b.Longitude.ToString(CultureInfo.InvariantCulture)})"" style=""display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 16px;background:linear-gradient(135deg,#7D1128,#5a0d1c);color:#FFF;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:0.05em;text-decoration:none;"">
+          <div style=""padding:0 12px 14px;background:var(--bg);"">
+            <a href=""/bicicletario/{b.Id}?from=mapa"" onclick=""mapInterop.navigateTo(event,'/bicicletario/{b.Id}?from=mapa',{b.Latitude.ToString(CultureInfo.InvariantCulture)},{b.Longitude.ToString(CultureInfo.InvariantCulture)})"" style=""display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 16px;background:var(--brand);color:#fff;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:0.05em;text-decoration:none;"">
               Ver detalhes <i class=""fa-solid fa-arrow-right""></i>
             </a>
           </div>
@@ -720,7 +720,7 @@
     }
 
     private static string VehicleGridItem(string icon, string label) =>
-        $@"<div style=""display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,0.07);""><i class=""fa-solid {icon}"" style=""color:#FFCCD5;font-size:13px;width:14px;""></i><span style=""font-size:13px;color:#E5E5E5;font-weight:500;"">{WebUtility.HtmlEncode(label)}</span></div>";
+        $@"<div style=""display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;background:var(--bg-page);""><i class=""fa-solid {icon}"" style=""color:var(--brand);font-size:13px;width:14px;""></i><span style=""font-size:13px;color:var(--text-2);font-weight:500;"">{WebUtility.HtmlEncode(label)}</span></div>";
 
     // ─── Filter chip button style ────────────────────────────────────────────
     private static string ChipStyle(bool active) =>
