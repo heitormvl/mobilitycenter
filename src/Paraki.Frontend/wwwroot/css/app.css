@@ -404,8 +404,9 @@ input:focus, textarea:focus {
 .mc-popup .leaflet-popup-content-wrapper {
     border-radius: 18px; box-shadow: var(--shadow-lg);
     padding: 0; overflow: hidden; background: var(--bg);
+    max-width: 300px;
 }
-.mc-popup .leaflet-popup-content { margin: 0; }
+.mc-popup .leaflet-popup-content { margin: 0; width: auto !important; }
 .mc-popup .leaflet-popup-tip { box-shadow: var(--shadow-lg); background: var(--bg); }
 .mc-popup a.leaflet-popup-close-button {
     top: 14px; right: 14px; width: 26px; height: 26px; padding: 0;
@@ -414,7 +415,7 @@ input:focus, textarea:focus {
     border-radius: var(--r-full); transition: background 0.12s, color 0.12s;
 }
 .mc-popup a.leaflet-popup-close-button:hover { background: var(--bg-page); color: var(--text-2); }
-.mc-pop-img { width: 100%; height: 140px; object-fit: cover; display: block; }
+.mc-popup .mc-pop-img { width: 100%; height: 160px; max-height: 160px; object-fit: cover; display: block; }
 .mc-pop { font-family: var(--font); padding: 18px 18px 16px; }
 .mc-pop-title {
     font-size: 16px; font-weight: 700; color: var(--text);
