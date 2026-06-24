@@ -121,7 +121,7 @@ window.mapInterop = {
             });
 
             const marker = L.marker([m.lat, m.lng], { icon })
-                .bindPopup(m.popupHtml, { closeButton: true, minWidth: 268, maxWidth: 300, className: 'mc-popup' });
+                .bindPopup(m.popupHtml, { closeButton: false, minWidth: 268, maxWidth: 300, className: 'mc-popup' });
 
             marker.addTo(inst.markerLayer);
             inst.markers.push(marker);
