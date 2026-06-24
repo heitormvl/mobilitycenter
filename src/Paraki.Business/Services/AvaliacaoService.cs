@@ -33,6 +33,7 @@ public class AvaliacaoService : IAvaliacaoService
                 Id = a.Id,
                 UsuarioId = a.UsuarioId,
                 NomeUsuario = a.Usuario.DisplayName,
+                FotoPerfilUrl = a.Usuario.FotoPerfilUrl,
                 Nota = a.Nota,
                 Comentario = a.Comentario,
                 CriadoEm = a.CriadoEm
@@ -73,6 +74,7 @@ public class AvaliacaoService : IAvaliacaoService
             Id = avaliacao.Id,
             UsuarioId = avaliacao.UsuarioId,
             NomeUsuario = usuario?.DisplayName ?? string.Empty,
+            FotoPerfilUrl = usuario?.FotoPerfilUrl,
             Nota = avaliacao.Nota,
             Comentario = avaliacao.Comentario,
             CriadoEm = avaliacao.CriadoEm

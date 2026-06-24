@@ -353,6 +353,7 @@ public class BicicletarioService : IBicicletarioService
             Id = a.Id,
             UsuarioId = a.UsuarioId,
             NomeUsuario = a.Usuario.DisplayName,
+            FotoPerfilUrl = a.Usuario.FotoPerfilUrl,
             Nota = a.Nota,
             Comentario = a.Comentario,
             CriadoEm = a.CriadoEm

@@ -582,8 +582,18 @@ else if (_item != null)
         {
             <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px; margin-bottom:10px; box-shadow:var(--shadow-xs);">
                 <div style="display:flex; align-items:center; gap:10px; @(string.IsNullOrEmpty(r.Comentario) ? "" : "margin-bottom:8px;")">
-                    <div style="width:32px; height:32px; border-radius:var(--r-full); background:var(--bg-page); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                        <i class="fa-solid fa-user" style="font-size:13px; color:var(--text-4);"></i>
+                    @{
+                        var avatarUrl = r.FotoPerfilUrl != null ? BicicletarioSvc.GetFotoUrl(r.FotoPerfilUrl) : null;
+                    }
+                    <div style="width:32px; height:32px; border-radius:var(--r-full); background:var(--bg-page); overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        @if (avatarUrl != null)
+                        {
+                            <img src="@avatarUrl" style="width:100%; height:100%; object-fit:cover;" alt="@r.NomeUsuario" />
+                        }
+                        else
+                        {
+                            <i class="fa-solid fa-user" style="font-size:13px; color:var(--text-4);"></i>
+                        }
                     </div>
                     <div style="flex:1; min-width:0;">
                         <div style="font-size:13px; font-weight:600; color:var(--text); font-family:var(--font);">@r.NomeUsuario</div>
