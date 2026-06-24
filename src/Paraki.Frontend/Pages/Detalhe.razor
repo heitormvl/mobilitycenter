@@ -984,7 +984,7 @@ else if (_item != null)
     {
         var fotos = await BicicletarioSvc.GetFotosAsync(Id!);
         if (fotos != null)
-            _fotos = [.. fotos.OrderBy(f => f.Ordem)];
+            _fotos = [.. fotos.OrderByDescending(f => f.IsCapa).ThenBy(f => f.Ordem)];
         else
             _legacyCoverUrl = BicicletarioSvc.GetFotoBicicletarioUrl(Id!);
         _carouselIndex = 0;
