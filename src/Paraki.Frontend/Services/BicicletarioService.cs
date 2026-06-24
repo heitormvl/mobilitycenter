@@ -230,6 +230,7 @@ public class BicicletarioDto
     public bool AcessoMensal { get; set; }
     public bool IsDeleted { get; set; }
     public HorarioModel[] Horarios { get; set; } = [];
+    public string? CapaUrl { get; set; }
 }
 
 // Matches BicicletarioDetalheDto (full detail with reviews)

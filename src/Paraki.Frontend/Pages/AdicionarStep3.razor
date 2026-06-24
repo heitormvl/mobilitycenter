@@ -131,13 +131,16 @@ else
 
         if (AdicionarState.HasFoto && id is not null)
         {
-            using var ms = new MemoryStream(AdicionarState.FotoBytes!);
-            using var content = new MultipartFormDataContent();
-            var fileContent = new StreamContent(ms);
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue(AdicionarState.FotoContentType!);
-            var ext = AdicionarState.FotoContentType switch { "image/webp" => ".webp", "image/png" => ".png", _ => ".jpg" };
-            content.Add(fileContent, "foto", $"foto{ext}");
-            await BicicletarioSvc.UploadFotoAsync(id, content);
+            foreach (var foto in AdicionarState.Fotos)
+            {
+                using var ms = new MemoryStream(foto.Bytes);
+                using var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(ms);
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(foto.ContentType);
+                var ext = foto.ContentType switch { "image/webp" => ".webp", "image/png" => ".png", _ => ".jpg" };
+                content.Add(fileContent, "foto", $"foto{ext}");
+                await BicicletarioSvc.UploadFotoAsync(id, content);
+            }
             AdicionarState.ClearFoto();
         }
         AdicionarState.ClearHorarios();

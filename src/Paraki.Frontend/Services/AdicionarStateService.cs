@@ -1,18 +1,18 @@
-﻿namespace Paraki.Frontend.Services;
+namespace Paraki.Frontend.Services;
+
+public class FotoParaUpload
+{
+    public byte[] Bytes { get; set; } = [];
+    public string ContentType { get; set; } = "image/jpeg";
+}
 
 public class AdicionarStateService
 {
-    public byte[]? FotoBytes { get; set; }
-    public string? FotoContentType { get; set; }
-    public bool HasFoto => FotoBytes is not null;
+    public List<FotoParaUpload> Fotos { get; set; } = [];
+    public bool HasFoto => Fotos.Count > 0;
 
     public HorarioModel[] Horarios { get; set; } = [];
 
-    public void ClearFoto()
-    {
-        FotoBytes = null;
-        FotoContentType = null;
-    }
-
+    public void ClearFoto() => Fotos.Clear();
     public void ClearHorarios() => Horarios = [];
 }

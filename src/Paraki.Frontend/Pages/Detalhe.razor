@@ -1071,6 +1071,8 @@ else if (_item != null)
         if (err == null)
         {
             foreach (var f in _fotos) f.IsCapa = (f.Id == fotoId);
+            _fotos = [.. _fotos.OrderByDescending(f => f.IsCapa).ThenBy(f => f.Ordem)];
+            _carouselIndex = 0;
             StateHasChanged();
         }
         else _saveError = err;

@@ -31,40 +31,58 @@ else
 <div style="padding:20px 20px 110px;">
     <div style="display:flex; flex-direction:column; gap:18px;">
 
-        <!-- Foto -->
+        <!-- Fotos -->
         <div>
             <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">
-                Foto <span style="color:var(--text-4); font-weight:400;">(opcional)</span>
+                Fotos <span style="color:var(--text-4); font-weight:400;">(opcional · até @MaxFotos)</span>
             </label>
-            <div style="border:1.5px dashed var(--border-2); border-radius:var(--r-lg); overflow:hidden; height:160px; display:flex; align-items:center; justify-content:center; background:var(--bg-page); position:relative;">
-                @if (_fotoPreview != null)
-                {
-                    <img src="@_fotoPreview" alt="Preview"
-                         style="width:100%; height:100%; object-fit:cover;" />
-                    <button type="button" @onclick="RemoverFoto"
-                            style="position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(0,0,0,0.5); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-                        <i class="fa-solid fa-xmark" style="color:white; font-size:12px;"></i>
-                    </button>
-                }
-                else
-                {
-                    <div style="display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--text-4);">
-                        <i class="fa-solid fa-image" style="font-size:24px;"></i>
-                        <span style="font-size:13px; font-family:var(--font);">Nenhuma foto selecionada</span>
+
+            @if (_fotoPreviews.Count > 0)
+            {
+                <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none;">
+                    @for (var i = 0; i < _fotoPreviews.Count; i++)
+                    {
+                        var idx = i;
+                        <div style="position:relative; flex-shrink:0; width:88px; height:88px; border-radius:var(--r); overflow:hidden; border:1.5px solid var(--border);">
+                            <img src="@_fotoPreviews[idx]" alt="Foto @(idx + 1)"
+                                 style="width:100%; height:100%; object-fit:cover;" />
+                            <button type="button" @onclick="@(() => RemoverFoto(idx))"
+                                    style="position:absolute; top:4px; right:4px; width:22px; height:22px; border-radius:var(--r-full); background:rgba(0,0,0,0.55); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-appearance:none;">
+                                <i class="fa-solid fa-xmark" style="color:white; font-size:10px;"></i>
+                            </button>
+                            @if (idx == 0)
+                            {
+                                <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.45); text-align:center; font-size:10px; color:white; font-family:var(--font); padding:2px 0; pointer-events:none;">capa</div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div style="border:1.5px dashed var(--border-2); border-radius:var(--r-lg); height:88px; display:flex; align-items:center; justify-content:center; background:var(--bg-page); margin-bottom:0;">
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--text-4);">
+                        <i class="fa-solid fa-images" style="font-size:20px;"></i>
+                        <span style="font-size:12px; font-family:var(--font);">Nenhuma foto adicionada</span>
                     </div>
-                }
-            </div>
-            <div style="display:flex; gap:8px; margin-top:8px;">
-                <label for="fotoInput" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:1px solid var(--border); border-radius:var(--r); cursor:pointer; font-size:13px; color:var(--text-2); font-family:var(--font); background:var(--bg-page);">
-                    <i class="fa-solid fa-image"></i>
-                    <span>Galeria</span>
-                </label>
-                <button type="button" @onclick="TirarFoto" disabled="@_isCameraLoading"
-                        style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:1px solid var(--border); border-radius:var(--r); cursor:pointer; font-size:13px; color:var(--text-2); font-family:var(--font); background:var(--bg-page);">
-                    <i class="fa-solid fa-camera"></i>
-                    <span>@(_isCameraLoading ? "Aguarde..." : "Câmera")</span>
-                </button>
-            </div>
+                </div>
+            }
+
+            @if (_fotoPreviews.Count < MaxFotos)
+            {
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <label for="fotoInput" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:1px solid var(--border); border-radius:var(--r); cursor:pointer; font-size:13px; color:var(--text-2); font-family:var(--font); background:var(--bg-page);">
+                        <i class="fa-solid fa-image"></i>
+                        <span>Galeria</span>
+                    </label>
+                    <button type="button" @onclick="TirarFoto" disabled="@_isCameraLoading"
+                            style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:1px solid var(--border); border-radius:var(--r); cursor:pointer; font-size:13px; color:var(--text-2); font-family:var(--font); background:var(--bg-page);">
+                        <i class="fa-solid fa-camera"></i>
+                        <span>@(_isCameraLoading ? "Aguarde..." : "Câmera")</span>
+                    </button>
+                </div>
+            }
+
             <InputFile id="fotoInput" OnChange="OnFotoSelecionada"
                        accept="image/webp,image/png,image/jpeg,image/heic,image/heif"
                        style="display:none;" />
@@ -236,9 +254,10 @@ else
     private string? _nameError;
     private bool _isAuthenticated;
     private string _slideClass = "";
-    private string? _fotoPreview;
+    private List<string> _fotoPreviews = [];
     private string? _fotoError;
     private bool _isCameraLoading;
+    private const int MaxFotos = 5;
 
     private static readonly string[] _diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
     // Estado: "ni" = não informado (default), "aberto" = com horários, "fechado" = explicitamente fechado
@@ -281,8 +300,9 @@ else
         if (!string.IsNullOrEmpty(CapacityParam)) _capacity = CapacityParam;
         if (int.TryParse(AccessTypeParam, out var at)) _accessType = at;
 
-        if (AdicionarState.HasFoto)
-            _fotoPreview = $"data:{AdicionarState.FotoContentType};base64,{Convert.ToBase64String(AdicionarState.FotoBytes!)}";
+        _fotoPreviews = AdicionarState.Fotos
+            .Select(f => $"data:{f.ContentType};base64,{Convert.ToBase64String(f.Bytes)}")
+            .ToList();
 
         foreach (var h in AdicionarState.Horarios)
         {
@@ -359,18 +379,17 @@ else
     {
         var base64Part = dataUrl.Split(',')[1];
         var compressed = Convert.FromBase64String(base64Part);
-        AdicionarState.FotoBytes = compressed;
-        AdicionarState.FotoContentType = "image/jpeg";
-        _fotoPreview = dataUrl;
+        AdicionarState.Fotos.Add(new FotoParaUpload { Bytes = compressed, ContentType = "image/jpeg" });
+        _fotoPreviews.Add(dataUrl);
         return Task.CompletedTask;
     }
 
     private record CameraResult([property: JsonPropertyName("dataUrl")] string? DataUrl);
 
-    private void RemoverFoto()
+    private void RemoverFoto(int index)
     {
-        AdicionarState.ClearFoto();
-        _fotoPreview = null;
+        AdicionarState.Fotos.RemoveAt(index);
+        _fotoPreviews.RemoveAt(index);
     }
 
     private Task GoNext()

@@ -26,4 +26,5 @@ public class BicicletarioResumoDto
     public bool AcessoMensal { get; set; }
     public bool IsDeleted { get; set; }
     public List<HorarioFuncionamentoDto> Horarios { get; set; } = [];
+    public string? CapaUrl { get; set; }
 }

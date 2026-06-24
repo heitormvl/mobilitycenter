@@ -66,6 +66,7 @@ public class BicicletarioService : IBicicletarioService
 
         var entities = await query
             .Include(b => b.Horarios)
+            .Include(b => b.Fotos.Where(f => f.IsCapa))
             .Skip((filtros.Page - 1) * filtros.PageSize)
             .Take(filtros.PageSize)
             .ToListAsync();
@@ -96,7 +97,10 @@ public class BicicletarioService : IBicicletarioService
                 DiaSemana = h.DiaSemana,
                 HoraAbertura = h.HoraAbertura.ToString("HH:mm"),
                 HoraFechamento = h.HoraFechamento.ToString("HH:mm")
-            }).ToList()
+            }).ToList(),
+            CapaUrl = b.Fotos.FirstOrDefault() is { } capa
+                ? $"/api/fotos/bicicletario/{b.Id}/{capa.Id}"
+                : null
         }).ToList();
     }
 

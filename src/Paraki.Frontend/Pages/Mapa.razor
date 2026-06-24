@@ -355,7 +355,8 @@
         _filtered = _all.Where(Matches).ToList();
 
         var markers = _filtered.Select(b => new MapGrid.MapMarker(
-            b.Id, b.Latitude, b.Longitude, b.NotaMedia >= 4.5, BuildPopup(b)));
+            b.Id, b.Latitude, b.Longitude, b.NotaMedia >= 4.5,
+            BuildPopup(b, b.CapaUrl != null ? BicicletarioSvc.GetFotoUrl(b.CapaUrl) : null)));
 
         await _map!.SetMarkersAsync(markers);
         await UpdateVisibleCountAsync();
@@ -496,7 +497,7 @@
     }
 
     // ─── Popup HTML ──────────────────────────────────────────────────────────
-    private static string BuildPopup(BicicletarioDto b)
+    private static string BuildPopup(BicicletarioDto b, string? capaUrl = null)
     {
         var name = WebUtility.HtmlEncode(b.Nome);
         var full = (int)Math.Round(b.NotaMedia);
@@ -521,7 +522,11 @@
             ? $@"<span class=""mc-pop-status"" style=""background:{statusBg};color:{statusColor};"">{statusTxt}</span>"
             : "";
 
-        return $@"<div class=""mc-pop"">
+        var imgHtml = capaUrl != null
+            ? $@"<img class=""mc-pop-img"" src=""{capaUrl}"" alt="""" />"
+            : "";
+
+        return $@"{imgHtml}<div class=""mc-pop"">
             <div class=""mc-pop-title"">{name}</div>
             {statusBadge}
             <div class=""mc-pop-rating""><span class=""mc-pop-stars"">{stars}</span><span class=""mc-pop-rating-txt"">{ratingTxt}</span></div>
