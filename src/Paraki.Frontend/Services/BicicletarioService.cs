@@ -291,8 +291,29 @@ public static class HorarioHelper
         if (h == null) return StatusHorario.Fechado;
         if (!TimeOnly.TryParse(h.HoraAbertura, out var abertura)) return StatusHorario.NaoInformado;
         if (!TimeOnly.TryParse(h.HoraFechamento, out var fechamento)) return StatusHorario.NaoInformado;
-        if (hora < abertura || hora >= fechamento) return StatusHorario.Fechado;
-        if ((fechamento - hora).TotalMinutes <= 30) return StatusHorario.FechaEmBreve;
+
+        // fechamento == 00:00 significa meia-noite (fim do dia), trata como 24:00
+        bool aberto;
+        if (fechamento == TimeOnly.MinValue || fechamento <= abertura)
+        {
+            // turno cruza a meia-noite (ex: 06:00–00:00 ou 22:00–02:00)
+            aberto = hora >= abertura || hora < fechamento;
+        }
+        else
+        {
+            aberto = hora >= abertura && hora < fechamento;
+        }
+
+        if (!aberto) return StatusHorario.Fechado;
+
+        // minutos restantes (com suporte a turno que cruza meia-noite)
+        double minutosRestantes = fechamento == TimeOnly.MinValue
+            ? (TimeOnly.MaxValue - hora).TotalMinutes + 1
+            : fechamento > hora
+                ? (fechamento - hora).TotalMinutes
+                : (TimeOnly.MaxValue - hora).TotalMinutes + fechamento.ToTimeSpan().TotalMinutes + 1;
+
+        if (minutosRestantes <= 30) return StatusHorario.FechaEmBreve;
         return StatusHorario.Aberto;
     }
 
