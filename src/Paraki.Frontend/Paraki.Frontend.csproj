@@ -18,4 +18,72 @@
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
 
+  <!--
+    Fingerprints custom wwwroot assets on publish: computes an 8-char SHA-256 prefix
+    for each JS/CSS file, renames it (e.g. mapInterop.a1b2c3d4.js) and rewrites the
+    matching reference in the published index.html. Runs only during dotnet publish.
+  -->
+  <UsingTask TaskName="FingerprintPublishedAssets"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <IndexPath ParameterType="System.String" Required="true" />
+      <Assets   ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <WebRoot  ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var root = WebRoot.TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+        var html = File.ReadAllText(IndexPath);
+        foreach (var asset in Assets)
+        {
+            var full = asset.ItemSpec;
+            if (!File.Exists(full)) continue;
+            var data = File.ReadAllBytes(full);
+            var sha  = SHA256.Create();
+            var hash = BitConverter.ToString(sha.ComputeHash(data)).Replace("-","").Substring(0,8).ToLowerInvariant();
+            sha.Dispose();
+            var dir        = Path.GetDirectoryName(full);
+            var stem       = Path.GetFileNameWithoutExtension(full);
+            var ext        = Path.GetExtension(full);
+            var hashedFull = Path.Combine(dir, stem + "." + hash + ext);
+            File.Copy(full, hashedFull, true);
+            File.Delete(full);
+            // Rename pre-compressed variants so the web server can still find them
+            foreach (var compExt in new[] { ".br", ".gz" })
+            {
+                var comp = full + compExt;
+                if (File.Exists(comp)) { File.Copy(comp, hashedFull + compExt, true); File.Delete(comp); }
+            }
+            // Derive root-relative paths for HTML replacement
+            var rel       = full.StartsWith(root, StringComparison.OrdinalIgnoreCase)
+                            ? full.Substring(root.Length).Replace('\\', '/')
+                            : Path.GetFileName(full);
+            var hashedRel = hashedFull.StartsWith(root, StringComparison.OrdinalIgnoreCase)
+                            ? hashedFull.Substring(root.Length).Replace('\\', '/')
+                            : Path.GetFileName(hashedFull);
+            html = html.Replace(rel, hashedRel);
+        }
+        File.WriteAllText(IndexPath, html);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="FingerprintCustomStaticAssetsOnPublish" AfterTargets="Publish">
+    <PropertyGroup>
+      <_WwwRoot>$(PublishDir)wwwroot\</_WwwRoot>
+    </PropertyGroup>
+    <ItemGroup>
+      <_AssetsToFingerprint Include="$(_WwwRoot)js\*.js;$(_WwwRoot)css\app.css"
+                            Condition="Exists('$(_WwwRoot)')" />
+    </ItemGroup>
+    <FingerprintPublishedAssets
+      IndexPath="$(_WwwRoot)index.html"
+      Assets="@(_AssetsToFingerprint)"
+      WebRoot="$(_WwwRoot)"
+      Condition="Exists('$(_WwwRoot)index.html')" />
+  </Target>
+
 </Project>
