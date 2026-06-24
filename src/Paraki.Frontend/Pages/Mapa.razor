@@ -336,8 +336,12 @@
 
     private async Task<(double lat, double lng)?> GetCachedLocationAsync()
     {
-        var arr = await JS.InvokeAsync<double[]?>("mapInterop.getCachedLocation");
-        return arr is { Length: 2 } ? (arr[0], arr[1]) : null;
+        try
+        {
+            var arr = await JS.InvokeAsync<double[]?>("mapInterop.getCachedLocation");
+            return arr is { Length: 2 } ? (arr[0], arr[1]) : null;
+        }
+        catch { return null; }
     }
 
     private async Task<(double? lat, double? lng)> GetUserLocationAsync()
