@@ -296,16 +296,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        double? lat = null, lng = null;
-        try
-        {
-            var arr = await JS.InvokeAsync<double[]>("mapInterop.getUserLocation");
-            lat = arr[0];
-            lng = arr[1];
-        }
-        catch { /* no geolocation — load without distance filter */ }
+        // Read last known location from cache (instant localStorage read).
+        var cached = await GetCachedLocationAsync();
 
-        var result = await BicicletarioSvc.GetAllAsync(lat, lng);
+        // Start GPS in background (capped at 5 s) while data loads.
+        var geoTask = GetUserLocationAsync();
+
+        // First load uses cached coords so the map is already distance-sorted.
+        var result = await BicicletarioSvc.GetAllAsync(cached?.lat, cached?.lng);
         if (result == null)
             _loadError = "Não foi possível carregar os bicicletários.";
         else
@@ -314,6 +312,50 @@
         _isLoading = false;
         _dataLoaded = true;
         await TryRenderMarkersAsync();
+
+        // GPS resolve: persist to cache; reload only if user moved more than 500 m.
+        var (lat, lng) = await geoTask;
+        if (lat.HasValue && lng.HasValue)
+        {
+            await JS.InvokeVoidAsync("mapInterop.setCachedLocation", lat.Value, lng.Value);
+
+            var movedFar = cached == null
+                || DistanceKm(cached.Value.lat, cached.Value.lng, lat.Value, lng.Value) > 0.5;
+
+            if (movedFar)
+            {
+                var located = await BicicletarioSvc.GetAllAsync(lat, lng);
+                if (located != null)
+                {
+                    _all = located;
+                    await TryRenderMarkersAsync();
+                }
+            }
+        }
+    }
+
+    private async Task<(double lat, double lng)?> GetCachedLocationAsync()
+    {
+        var arr = await JS.InvokeAsync<double[]?>("mapInterop.getCachedLocation");
+        return arr is { Length: 2 } ? (arr[0], arr[1]) : null;
+    }
+
+    private async Task<(double? lat, double? lng)> GetUserLocationAsync()
+    {
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var arr = await JS.InvokeAsync<double[]>("mapInterop.getUserLocation", cts.Token);
+            return (arr[0], arr[1]);
+        }
+        catch { return (null, null); }
+    }
+
+    private static double DistanceKm(double lat1, double lng1, double lat2, double lng2)
+    {
+        var dlat = (lat2 - lat1) * 111.0;
+        var dlng = (lng2 - lng1) * 111.0 * Math.Cos(lat1 * Math.PI / 180.0);
+        return Math.Sqrt(dlat * dlat + dlng * dlng);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

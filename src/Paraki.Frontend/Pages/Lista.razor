@@ -152,17 +152,46 @@
         var userInfo = await AuthSvc.GetUserInfoAsync();
         _isAdmin = userInfo?.Type == 2;
 
+        // Apply cached location before loading so Filtered sorts by distance on first render.
+        var cached = await GetCachedLocationAsync();
+        if (cached.HasValue)
+        {
+            _userLat = cached.Value.lat;
+            _userLng = cached.Value.lng;
+            _hasLocation = true;
+        }
+
+        // GPS runs in background while the list loads immediately.
+        var geoTask = GetUserLocationAsync();
+        await CarregarAsync();
+
+        // GPS resolve: persist to cache and re-sort if location changed.
+        var (lat, lng) = await geoTask;
+        if (lat.HasValue && lng.HasValue)
+        {
+            await JS.InvokeVoidAsync("mapInterop.setCachedLocation", lat.Value, lng.Value);
+            _userLat = lat.Value;
+            _userLng = lng.Value;
+            _hasLocation = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<(double lat, double lng)?> GetCachedLocationAsync()
+    {
+        var arr = await JS.InvokeAsync<double[]?>("mapInterop.getCachedLocation");
+        return arr is { Length: 2 } ? (arr[0], arr[1]) : null;
+    }
+
+    private async Task<(double? lat, double? lng)> GetUserLocationAsync()
+    {
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             var arr = await JS.InvokeAsync<double[]>("mapInterop.getUserLocation", cts.Token);
-            _userLat = arr[0];
-            _userLng = arr[1];
-            _hasLocation = true;
+            return (arr[0], arr[1]);
         }
-        catch { }
-
-        await CarregarAsync();
+        catch { return (null, null); }
     }
 
     private async Task NavigateToMapaAsync()

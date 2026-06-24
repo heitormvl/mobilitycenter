@@ -64,21 +64,48 @@ public class BicicletarioService : IBicicletarioService
             _ => query.OrderBy(b => b.Nome)
         };
 
-        var entities = await query
-            .Include(b => b.Horarios)
-            .Include(b => b.Fotos.Where(f => f.IsCapa))
+        // Project to SQL to compute NotaMedia/TotalAvaliacoes as aggregates (no N+1).
+        // Horarios are selected as raw TimeOnly values and formatted in memory.
+        var rows = await query
             .Skip((filtros.Page - 1) * filtros.PageSize)
             .Take(filtros.PageSize)
+            .Select(b => new
+            {
+                b.Id,
+                b.Nome,
+                b.Latitude,
+                b.Longitude,
+                NotaMedia = b.Avaliacoes.Average(a => (double?)a.Nota) ?? 0.0,
+                TotalAvaliacoes = b.Avaliacoes.Count(),
+                b.VeiculosSuportados,
+                b.TemTomada,
+                b.TemCalibrador,
+                b.TemVestiario,
+                b.TemArmario,
+                b.TemEspacoManutencao,
+                b.TemCadeado,
+                b.TemBanheiro,
+                b.AcessoLivre,
+                b.AcessoPago,
+                b.AcessoCadastro,
+                b.AcessoMensal,
+                IsDeleted = b.Deletado,
+                Horarios = b.Horarios
+                    .OrderBy(h => h.DiaSemana)
+                    .Select(h => new { h.DiaSemana, h.HoraAbertura, h.HoraFechamento })
+                    .ToList(),
+                CapaId = b.Fotos.Where(f => f.IsCapa).Select(f => (Guid?)f.Id).FirstOrDefault()
+            })
             .ToListAsync();
 
-        return entities.Select(b => new BicicletarioResumoDto
+        return rows.Select(b => new BicicletarioResumoDto
         {
             Id = b.Id,
             Nome = b.Nome,
             Latitude = b.Latitude,
             Longitude = b.Longitude,
-            NotaMedia = b.Avaliacoes.Select(a => (double?)a.Nota).Average() ?? 0,
-            TotalAvaliacoes = b.Avaliacoes.Count,
+            NotaMedia = b.NotaMedia,
+            TotalAvaliacoes = b.TotalAvaliacoes,
             VeiculosSuportados = b.VeiculosSuportados,
             TemTomada = b.TemTomada,
             TemCalibrador = b.TemCalibrador,
@@ -91,17 +118,17 @@ public class BicicletarioService : IBicicletarioService
             AcessoPago = b.AcessoPago,
             AcessoCadastro = b.AcessoCadastro,
             AcessoMensal = b.AcessoMensal,
-            IsDeleted = b.Deletado,
-            Horarios = b.Horarios.OrderBy(h => h.DiaSemana).Select(h => new HorarioFuncionamentoDto
+            IsDeleted = b.IsDeleted,
+            Horarios = b.Horarios.Select(h => new HorarioFuncionamentoDto
             {
                 DiaSemana = h.DiaSemana,
                 HoraAbertura = h.HoraAbertura.ToString("HH:mm"),
                 HoraFechamento = h.HoraFechamento.ToString("HH:mm")
             }).ToList(),
-            CapaUrl = b.Fotos.FirstOrDefault() is { } capa
-                ? $"/api/fotos/bicicletario/{b.Id}/{capa.Id}"
+            CapaUrl = b.CapaId.HasValue
+                ? $"/api/fotos/bicicletario/{b.Id}/{b.CapaId.Value}"
                 : null
-        }).ToList();
+        });
     }
 
     public async Task<BicicletarioDetalheDto> ObterPorIdAsync(Guid id)

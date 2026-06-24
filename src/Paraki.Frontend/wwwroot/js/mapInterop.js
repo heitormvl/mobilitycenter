@@ -258,6 +258,17 @@ window.mapInterop = {
         });
     },
 
+    getCachedLocation: function () {
+        try {
+            const s = localStorage.getItem('paraki-location');
+            return s ? JSON.parse(s) : null;
+        } catch (_) { return null; }
+    },
+
+    setCachedLocation: function (lat, lng) {
+        try { localStorage.setItem('paraki-location', JSON.stringify([lat, lng])); } catch (_) {}
+    },
+
     destroy: function (mapId) {
         const inst = this._instances[mapId];
         if (inst) {
