@@ -115,7 +115,7 @@ else if (_item != null)
                 <label style="flex:1; display:flex; align-items:center; gap:8px; cursor:pointer; color:white; font-size:14px; font-family:var(--font); font-weight:500;">
                     <i class="fa-solid fa-image"></i>
                     @if (_isSaving) { <span>Enviando...</span> } else { <span>Galeria</span> }
-                    <InputFile OnChange="HandleFotoUpload" accept="image/webp,image/png,image/jpeg,image/heic,image/heif" style="display:none;" disabled="@_isSaving" />
+                    <InputFile @key="_fotoUploadKey" multiple OnChange="HandleFotoUpload" accept="image/webp,image/png,image/jpeg,image/heic,image/heif" style="display:none;" disabled="@_isSaving" />
                 </label>
                 <button type="button" @onclick="TirarFotoDetalhe" disabled="@_isSaving"
                         style="display:flex; align-items:center; gap:8px; color:white; font-size:14px; font-family:var(--font); font-weight:500; background:transparent; border:none; cursor:pointer; padding:0; opacity:@(_isSaving ? "0.5" : "1");">
@@ -716,6 +716,7 @@ else if (_item != null)
     private bool    _isSaving;
     private string? _saveError;
     private string? _deleteError;
+    private int     _fotoUploadKey;
 
     // Pre-computed display data
     private (string Icon, string Label, bool Ok)[] _servicos = [];
@@ -993,39 +994,38 @@ else if (_item != null)
 
     private async Task HandleFotoUpload(InputFileChangeEventArgs e)
     {
-        var file = e.File;
         const long maxSize = 10L * 1024 * 1024;
-        if (file.Size > maxSize)
-        {
-            _saveError = "Arquivo muito grande. Máximo 10MB.";
-            return;
-        }
-
         var tiposPermitidos = new[] { "image/webp", "image/png", "image/jpeg", "image/heic", "image/heif" };
-        var mimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType.ToLowerInvariant();
-        if (!tiposPermitidos.Contains(mimeType))
-        {
-            _saveError = "Use PNG, JPG, WEBP ou HEIC.";
-            return;
-        }
 
         _isSaving  = true;
         _saveError = null;
         try
         {
-            using var readStream = file.OpenReadStream(maxSize);
-            using var ms = new MemoryStream();
-            await readStream.CopyToAsync(ms);
-            var base64 = Convert.ToBase64String(ms.ToArray());
-            var dataUrl = await JS.InvokeAsync<string?>("imageCompressor.compress", base64, mimeType, 1200, 0.85);
-            if (dataUrl is null) { _saveError = "Não foi possível comprimir a imagem."; return; }
-            await EnviarFotoDataUrl(dataUrl);
+            var files = e.GetMultipleFiles(10);
+            foreach (var file in files)
+            {
+                if (file.Size > maxSize) { _saveError = "Uma foto deve ter no máximo 10 MB."; continue; }
+                var mimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType.ToLowerInvariant();
+                if (!tiposPermitidos.Contains(mimeType)) { _saveError = "Use PNG, JPG, WEBP ou HEIC."; continue; }
+                try
+                {
+                    using var readStream = file.OpenReadStream(maxSize);
+                    using var ms = new MemoryStream();
+                    await readStream.CopyToAsync(ms);
+                    var base64 = Convert.ToBase64String(ms.ToArray());
+                    var dataUrl = await JS.InvokeAsync<string?>("imageCompressor.compress", base64, mimeType, 1200, 0.85);
+                    if (dataUrl is null) { _saveError = "Não foi possível comprimir a imagem."; continue; }
+                    await EnviarFotoDataUrl(dataUrl);
+                }
+                catch { _saveError = "Não foi possível ler o arquivo."; }
+            }
         }
-        catch
+        finally
         {
-            _saveError = "Não foi possível ler o arquivo.";
+            _isSaving = false;
+            _fotoUploadKey++;
+            if (_saveError == null) _editingFoto = false;
         }
-        finally { _isSaving = false; }
     }
 
     private async Task TirarFotoDetalhe()
@@ -1044,7 +1044,11 @@ else if (_item != null)
         {
             _saveError = "Não foi possível capturar a foto.";
         }
-        finally { _isSaving = false; }
+        finally
+        {
+            _isSaving = false;
+            _editingFoto = false;
+        }
     }
 
     private async Task EnviarFotoDataUrl(string dataUrl)
@@ -1056,11 +1060,9 @@ else if (_item != null)
         content.Add(bc, "foto", "foto.jpg");
         var (err, novaFoto) = await BicicletarioSvc.UploadFotoAsync(Id!, content);
         if (err == null && novaFoto != null)
-        {
             _fotos.Add(novaFoto);
-            _editingFoto = false;
-        }
-        else _saveError = err;
+        else
+            _saveError = err;
     }
 
     private record DetalheCamera([property: JsonPropertyName("dataUrl")] string? DataUrl);

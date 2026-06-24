@@ -83,7 +83,7 @@ else
                 </div>
             }
 
-            <InputFile id="fotoInput" OnChange="OnFotoSelecionada"
+            <InputFile @key="_fotoInputKey" id="fotoInput" multiple OnChange="OnFotoSelecionada"
                        accept="image/webp,image/png,image/jpeg,image/heic,image/heif"
                        style="display:none;" />
             <input id="cameraInputAdicionar" type="file" accept="image/*" capture="environment" style="display:none;" />
@@ -257,6 +257,7 @@ else
     private List<string> _fotoPreviews = [];
     private string? _fotoError;
     private bool _isCameraLoading;
+    private int _fotoInputKey = 0;
     private const int MaxFotos = 5;
 
     private static readonly string[] _diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -315,34 +316,28 @@ else
     private async Task OnFotoSelecionada(InputFileChangeEventArgs e)
     {
         _fotoError = null;
-        var file = e.File;
-
         const long maxSize = 10L * 1024 * 1024;
-        if (file.Size > maxSize)
-        {
-            _fotoError = "A foto deve ter no máximo 10 MB.";
-            return;
-        }
-
         var tiposPermitidos = new[] { "image/webp", "image/png", "image/jpeg", "image/heic", "image/heif" };
-        var mimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType.ToLowerInvariant();
-        if (!tiposPermitidos.Contains(mimeType))
+
+        var vagas = MaxFotos - _fotoPreviews.Count;
+        var files = e.GetMultipleFiles(vagas);
+
+        foreach (var file in files)
         {
-            _fotoError = "Use PNG, JPG, WEBP ou HEIC.";
-            return;
+            if (file.Size > maxSize) { _fotoError = "Uma foto deve ter no máximo 10 MB."; continue; }
+            var mimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType.ToLowerInvariant();
+            if (!tiposPermitidos.Contains(mimeType)) { _fotoError = "Use PNG, JPG, WEBP ou HEIC."; continue; }
+            try
+            {
+                using var stream = file.OpenReadStream(maxAllowedSize: maxSize);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                await AplicarCompressao(ms.ToArray(), mimeType);
+            }
+            catch { _fotoError = "Não foi possível ler o arquivo."; }
         }
 
-        try
-        {
-            using var stream = file.OpenReadStream(maxAllowedSize: maxSize);
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            await AplicarCompressao(ms.ToArray(), mimeType);
-        }
-        catch
-        {
-            _fotoError = "Não foi possível ler o arquivo.";
-        }
+        _fotoInputKey++;
     }
 
     private async Task TirarFoto()
