@@ -208,10 +208,12 @@ html, body {
     animation: navVertFade 0.38s ease both;
 }
 @media (min-width: 900px) {
-    #page-host[data-nav-enter="down"] > * {
+    /* pc-filter-panel uses translateX(-100%) to stay hidden — exclude it so the
+       nav translateY doesn't override that and flash it into view mid-animation. */
+    #page-host[data-nav-enter="down"] > *:not(.pc-filter-panel) {
         animation: navFromBottom 0.38s cubic-bezier(0.32, 0.72, 0, 1) both;
     }
-    #page-host[data-nav-enter="up"] > * {
+    #page-host[data-nav-enter="up"] > *:not(.pc-filter-panel) {
         animation: navFromTop 0.38s cubic-bezier(0.32, 0.72, 0, 1) both;
     }
 }
@@ -513,6 +515,26 @@ input:focus, textarea:focus {
 }
 .side-nav__collapse-btn:hover { background: var(--bg-page); color: var(--text-2); }
 
+/* PC filter aside — anchored to the right edge of the list, slides LTR from behind it */
+.pc-filter-panel {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: calc(var(--sidebar-w) + 320px); /* flush with list's right edge */
+    width: 260px;
+    height: 100vh;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    flex-direction: column;
+    z-index: 29; /* behind pc-map-panel (30) so it emerges from behind the list */
+    overflow: hidden;
+    transform: translateX(-100%); /* starts hidden behind the list */
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.pc-filter-panel--open {
+    transform: translateX(0); /* slides right (LTR) into view */
+}
+
 /* PC map panel */
 .pc-map-panel {
     display: none;
@@ -525,7 +547,7 @@ input:focus, textarea:focus {
     border-right: 1px solid var(--border);
     flex-direction: column;
     z-index: 30;
-    transition: left 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    transition: left 0.32s cubic-bezier(0.32, 0.72, 0, 1);
     box-shadow: 2px 0 12px rgba(0,0,0,0.06);
 }
 
@@ -540,6 +562,8 @@ input:focus, textarea:focus {
     .bottom-nav { display: none !important; }
 
     .mobile-only { display: none !important; }
+
+    .pc-filter-panel { display: flex; }
 
     .pc-map-panel { display: flex; }
 

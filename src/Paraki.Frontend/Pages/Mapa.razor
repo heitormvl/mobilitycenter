@@ -13,6 +13,66 @@
     private bool _focusApplied;
 }
 
+<!-- PC Filter Panel (slides LTR from behind the list, hidden on mobile) -->
+<div class="pc-filter-panel @(_pcFiltersOpen ? "pc-filter-panel--open" : "")">
+    <div style="padding:16px; border-bottom:1px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:16px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">Filtros</span>
+        <span @onclick="ClearFiltersAsync" style="font-size:12px; color:var(--brand); font-weight:600; font-family:var(--font); cursor:pointer;">Limpar tudo</span>
+    </div>
+
+    <div style="flex:1; overflow-y:auto; padding:16px 14px; display:flex; flex-direction:column; gap:20px;">
+        <div>
+            <div style="font-family:var(--font); font-size:11px; font-weight:700; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:10px;">Tipo de veículo</div>
+            <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                <button @onclick="@(() => ToggleVeiculoAsync(1))" style="@ChipStyle((_selVeiculos & 1) != 0)"><i class="fa-solid fa-bicycle"></i> Bicicleta</button>
+                <button @onclick="@(() => ToggleVeiculoAsync(2))" style="@ChipStyle((_selVeiculos & 2) != 0)"><i class="fa-solid fa-person-biking"></i> Scooter</button>
+                <button @onclick="@(() => ToggleVeiculoAsync(4))" style="@ChipStyle((_selVeiculos & 4) != 0)"><i class="fa-solid fa-circle-dot"></i> Monociclo</button>
+                <button @onclick="@(() => ToggleVeiculoAsync(8))" style="@ChipStyle((_selVeiculos & 8) != 0)"><i class="fa-solid fa-bolt"></i> Patinete</button>
+            </div>
+        </div>
+
+        <div>
+            <div style="font-family:var(--font); font-size:11px; font-weight:700; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:10px;">Serviços</div>
+            <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                <button @onclick="@(() => ToggleServiceAsync("tomada"))" style="@ChipStyle(_fTomada)"><i class="fa-solid fa-plug"></i> Tomada</button>
+                <button @onclick="@(() => ToggleServiceAsync("calibrador"))" style="@ChipStyle(_fCalibrador)"><i class="fa-solid fa-gauge"></i> Calibrador</button>
+                <button @onclick="@(() => ToggleServiceAsync("vestiario"))" style="@ChipStyle(_fVestiario)"><i class="fa-solid fa-shirt"></i> Vestiário</button>
+                <button @onclick="@(() => ToggleServiceAsync("armario"))" style="@ChipStyle(_fArmario)"><i class="fa-solid fa-box"></i> Armário</button>
+                <button @onclick="@(() => ToggleServiceAsync("manutencao"))" style="@ChipStyle(_fManutencao)"><i class="fa-solid fa-wrench"></i> Manutenção</button>
+                <button @onclick="@(() => ToggleServiceAsync("cadeado"))" style="@ChipStyle(_fCadeado)"><i class="fa-solid fa-lock"></i> Cadeado</button>
+                <button @onclick="@(() => ToggleServiceAsync("banheiro"))" style="@ChipStyle(_fBanheiro)"><i class="fa-solid fa-restroom"></i> Banheiro</button>
+            </div>
+        </div>
+
+        <div>
+            <div style="font-family:var(--font); font-size:11px; font-weight:700; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:10px;">Acesso</div>
+            <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                <button @onclick="@(() => ToggleAccessAsync("livre"))" style="@ChipStyle(_fLivre)"><i class="fa-solid fa-unlock"></i> Livre</button>
+                <button @onclick="@(() => ToggleAccessAsync("pago"))" style="@ChipStyle(_fPago)"><i class="fa-solid fa-coins"></i> Pago</button>
+                <button @onclick="@(() => ToggleAccessAsync("cadastro"))" style="@ChipStyle(_fCadastro)"><i class="fa-solid fa-id-card"></i> Cadastro</button>
+                <button @onclick="@(() => ToggleAccessAsync("mensal"))" style="@ChipStyle(_fMensal)"><i class="fa-solid fa-calendar"></i> Mensal</button>
+            </div>
+        </div>
+
+        <div>
+            <div style="font-family:var(--font); font-size:11px; font-weight:700; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:10px;">Avaliação mínima</div>
+            <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                <button @onclick="@(() => SetMinNotaAsync(0))" style="@ChipStyle(_minNota == 0)">Todas</button>
+                <button @onclick="@(() => SetMinNotaAsync(3))" style="@ChipStyle(_minNota == 3)"><i class="fa-solid fa-star" style="color:var(--gold);"></i> 3+</button>
+                <button @onclick="@(() => SetMinNotaAsync(4))" style="@ChipStyle(_minNota == 4)"><i class="fa-solid fa-star" style="color:var(--gold);"></i> 4+</button>
+                <button @onclick="@(() => SetMinNotaAsync(4.5))" style="@ChipStyle(_minNota == 4.5)"><i class="fa-solid fa-star" style="color:var(--gold);"></i> 4,5+</button>
+            </div>
+        </div>
+    </div>
+
+    <div style="padding:12px 14px; border-top:1px solid var(--border); flex-shrink:0;">
+        <div style="background:var(--brand); border-radius:var(--r-xl); height:42px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; font-weight:700; color:#fff; font-family:var(--font);"
+             @onclick="@(() => _pcFiltersOpen = false)">
+            Ver @_filtered.Count @(_filtered.Count == 1 ? "resultado" : "resultados")
+        </div>
+    </div>
+</div>
+
 <!-- PC Side Panel (hidden on mobile) -->
 <div class="pc-map-panel">
     <!-- Search + filter -->
@@ -27,9 +87,9 @@
                 <i class="fa-solid fa-xmark" style="color:var(--text-4); font-size:13px; cursor:pointer;" @onclick="ClearSearch"></i>
             }
             <div style="width:1px; height:16px; background:var(--border);"></div>
-            <div style="position:relative; cursor:pointer;" @onclick="@(() => _showFilters = true)">
-                <i class="fa-solid fa-sliders" style="color:var(--brand); font-size:13px;"></i>
-                @if (ActiveFilterCount > 0)
+            <div style="position:relative; cursor:pointer;" @onclick="@(() => _pcFiltersOpen = !_pcFiltersOpen)">
+                <i class="fa-solid @(_pcFiltersOpen ? "fa-xmark" : "fa-sliders")" style="color:var(--brand); font-size:13px;"></i>
+                @if (ActiveFilterCount > 0 && !_pcFiltersOpen)
                 {
                     <span style="position:absolute; top:-7px; right:-8px; min-width:14px; height:14px; padding:0 3px; border-radius:var(--r-full); background:var(--brand); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; font-family:var(--font);">@ActiveFilterCount</span>
                 }
@@ -573,6 +633,7 @@
     // Filter state
     private bool _showFilters;
     private bool _closingFilters;
+    private bool _pcFiltersOpen;
     private string _search = "";
     private int _selVeiculos;                       // TipoVeiculo bitmask: Bicicleta=1, Scooter=2, Monociclo=4, Patinete=8
     private bool _fTomada, _fCalibrador, _fVestiario, _fArmario, _fManutencao, _fCadeado, _fBanheiro;
