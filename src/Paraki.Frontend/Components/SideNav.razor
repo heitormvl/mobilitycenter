@@ -1,0 +1,57 @@
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<aside class="side-nav @(_collapsed ? "side-nav--collapsed" : "")">
+    <div class="side-nav__header">
+        <div class="side-nav__logo">
+            <i class="fa-solid fa-person-biking"></i>
+        </div>
+        <span class="side-nav__brand-name">Paraki</span>
+    </div>
+
+    <nav class="side-nav__items">
+        @foreach (var item in _items)
+        {
+            var on = item.Id == Active;
+            <div class="side-nav__item @(on ? "side-nav__item--active" : "") @(item.Fab ? "side-nav__item--fab" : "")"
+                 @onclick="@(() => NavigateTo(item.Id, item.Route))"
+                 title="@item.Label">
+                <div class="side-nav__item-icon">
+                    <i class="fa-solid @item.Icon"></i>
+                </div>
+                <span class="side-nav__item-label">@item.Label</span>
+            </div>
+        }
+    </nav>
+
+    <button class="side-nav__collapse-btn" @onclick="ToggleCollapseAsync" title="@(_collapsed ? "Expandir menu" : "Recolher menu")">
+        <i class="fa-solid @(_collapsed ? "fa-chevron-right" : "fa-chevron-left")"></i>
+    </button>
+</aside>
+
+@code {
+    [Parameter] public string Active { get; set; } = "";
+
+    private bool _collapsed;
+
+    private readonly (string Id, string Icon, string Label, bool Fab, string Route)[] _items =
+    [
+        ("mapa",   "fa-map-location-dot", "Mapa",      false, "/"),
+        ("lista",  "fa-list",             "Lista",     false, "/lista"),
+        ("add",    "fa-plus",             "Adicionar", true,  "/adicionar"),
+        ("perfil", "fa-user",             "Perfil",    false, "/perfil"),
+    ];
+
+    private async Task ToggleCollapseAsync()
+    {
+        _collapsed = !_collapsed;
+        await JS.InvokeVoidAsync("setCssVar", "--sidebar-w", _collapsed ? "64px" : "240px");
+    }
+
+    private async Task NavigateTo(string targetId, string route)
+    {
+        if (targetId == Active) return;
+        await JS.InvokeVoidAsync("navTransition.prepare", Active, targetId);
+        Nav.NavigateTo(route);
+    }
+}

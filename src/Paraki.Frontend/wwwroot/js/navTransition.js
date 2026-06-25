@@ -1,3 +1,7 @@
+window.setCssVar = function (name, value) {
+    document.documentElement.style.setProperty(name, value);
+};
+
 window.navTransition = (function () {
     var _order = { mapa: 0, lista: 1, add: 2, perfil: 3 };
     var _safetyTimer = null;
@@ -8,7 +12,10 @@ window.navTransition = (function () {
             var to   = _order[toId]   ?? -1;
             if (from < 0 || to < 0 || from === to) return;
 
-            var dir = to > from ? 'rtl' : 'ltr';
+            var isPC = window.matchMedia('(min-width: 900px)').matches;
+            var dir = isPC
+                ? (to > from ? 'down' : 'up')
+                : (to > from ? 'rtl'  : 'ltr');
             document.documentElement.setAttribute('data-nav-dir', dir);
 
             // Safety valve: if onPageRender never fires (e.g. target uses a

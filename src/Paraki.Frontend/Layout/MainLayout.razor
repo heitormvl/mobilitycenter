@@ -3,11 +3,16 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 
+@{var activeTab = GetActiveTab();}
+@if (activeTab != "")
+{
+    <SideNav Active="@activeTab" />
+}
+
 <div id="page-host">
     @Body
 </div>
 
-@{var activeTab = GetActiveTab();}
 @if (activeTab != "")
 {
     <BottomNav Active="@activeTab" />

@@ -198,6 +198,36 @@ html, body {
     to   { transform: translateX(0);     }
 }
 
+/* ── PC vertical nav transitions ────────────────────────── */
+/* #page-host gets opacity-only (transform would create a containing block for
+   position:fixed children like pc-map-panel, displacing them mid-animation).
+   Children get the translateY slide directly — safe because the transform is
+   on the child itself, not on an ancestor of a fixed-position element.        */
+#page-host[data-nav-enter="down"],
+#page-host[data-nav-enter="up"] {
+    animation: navVertFade 0.38s ease both;
+}
+@media (min-width: 900px) {
+    #page-host[data-nav-enter="down"] > * {
+        animation: navFromBottom 0.38s cubic-bezier(0.32, 0.72, 0, 1) both;
+    }
+    #page-host[data-nav-enter="up"] > * {
+        animation: navFromTop 0.38s cubic-bezier(0.32, 0.72, 0, 1) both;
+    }
+}
+@keyframes navVertFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes navFromBottom {
+    from { transform: translateY(56px); }
+    to   { transform: translateY(0); }
+}
+@keyframes navFromTop {
+    from { transform: translateY(-56px); }
+    to   { transform: translateY(0); }
+}
+
 /* ── Back-to-map collapse / grow ─────────────────────────── */
 #page-host[data-nav-collapse] {
     animation: navCollapse 0.42s cubic-bezier(0.4, 0, 0.6, 1) both;
@@ -381,6 +411,145 @@ input:focus, textarea:focus {
 }
 .toast-exit > div {
     animation: toast-hide 0.18s ease-in both;
+}
+
+/* ── Responsive sidebar ──────────────────────────────────────── */
+:root { --sidebar-w: 0px; }
+
+.side-nav {
+    display: none;
+    position: fixed;
+    left: 0; top: 0;
+    width: 240px;
+    height: 100vh;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    flex-direction: column;
+    z-index: 200;
+    transition: width 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    overflow: hidden;
+}
+.side-nav--collapsed { width: 64px; }
+
+.side-nav__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 14px 16px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.side-nav__logo {
+    width: 36px; height: 36px; flex-shrink: 0;
+    background: var(--brand); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 17px;
+}
+.side-nav__brand-name {
+    font-size: 18px; font-weight: 800; color: var(--text);
+    letter-spacing: -0.03em; font-family: var(--font);
+    white-space: nowrap;
+    opacity: 1; transition: opacity 0.18s ease;
+}
+.side-nav--collapsed .side-nav__brand-name { opacity: 0; pointer-events: none; }
+
+.side-nav__items {
+    flex: 1;
+    padding: 4px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+}
+.side-nav__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 10px;
+    border-radius: var(--r-lg);
+    cursor: pointer;
+    transition: background 0.14s ease;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.side-nav__item:hover { background: var(--bg-page); }
+.side-nav__item--active { background: var(--brand-soft); }
+.side-nav__item--active .side-nav__item-icon i { color: var(--brand); }
+.side-nav__item--active .side-nav__item-label { color: var(--brand); font-weight: 700; }
+
+.side-nav__item--fab .side-nav__item-icon {
+    width: 36px; height: 36px;
+    background: var(--brand); border-radius: var(--r-full);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.side-nav__item--fab .side-nav__item-icon i { color: #fff; font-size: 14px; }
+
+.side-nav__item-icon {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.side-nav__item-icon i { font-size: 18px; color: var(--text-3); }
+
+.side-nav__item-label {
+    font-size: 14px; font-weight: 500; color: var(--text-2);
+    font-family: var(--font);
+    opacity: 1; transition: opacity 0.18s ease;
+}
+.side-nav--collapsed .side-nav__item-label { opacity: 0; pointer-events: none; }
+
+.side-nav__collapse-btn {
+    margin: 10px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    background: transparent;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-4); font-size: 12px;
+    transition: background 0.14s, color 0.14s;
+    flex-shrink: 0;
+}
+.side-nav__collapse-btn:hover { background: var(--bg-page); color: var(--text-2); }
+
+/* PC map panel */
+.pc-map-panel {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-w);
+    width: 320px;
+    height: 100vh;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    flex-direction: column;
+    z-index: 30;
+    transition: left 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+}
+
+/* Visibility helpers */
+.mobile-only { display: block; }
+
+@media (min-width: 900px) {
+    :root { --sidebar-w: 240px; }
+
+    .side-nav { display: flex; }
+
+    .bottom-nav { display: none !important; }
+
+    .mobile-only { display: none !important; }
+
+    .pc-map-panel { display: flex; }
+
+    #page-host {
+        margin-left: var(--sidebar-w);
+        transition: margin-left 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    /* Location button: no bottom sheet on PC, pin to bottom-right */
+    .location-btn { bottom: 24px !important; }
 }
 
 /* ── Map markers ─────────────────────────────────────────────── */
