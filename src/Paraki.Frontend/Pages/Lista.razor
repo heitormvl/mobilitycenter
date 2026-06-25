@@ -50,7 +50,7 @@
 </div>
 
 <!-- Cards -->
-<div style="padding:0 16px 88px; display:flex; flex-direction:column; gap:10px; overflow-y:auto;">
+<div class="lista-cards-container" style="padding:0 16px 88px; display:flex; flex-direction:column; gap:10px; overflow-y:auto;">
 
     @if (_isLoading)
     {
@@ -97,7 +97,7 @@
             bool listaHasFeatures = item.TemTomada || item.TemCalibrador || item.TemVestiario
                                  || item.TemArmario || item.TemEspacoManutencao || item.TemCadeado || item.TemBanheiro;
 
-            <div style="background:var(--bg); border-radius:var(--r-lg); overflow:hidden; border:1px solid @(item.IsDeleted ? "var(--border-2)" : "var(--border)"); box-shadow:var(--shadow-sm); cursor:pointer; opacity:@(item.IsDeleted ? "0.65" : "1");"
+            <div class="lista-card" style="background:var(--bg); border-radius:var(--r-lg); overflow:hidden; border:1px solid @(item.IsDeleted ? "var(--border-2)" : "var(--border)"); box-shadow:var(--shadow-sm); cursor:pointer; opacity:@(item.IsDeleted ? "0.65" : "1");"
                  @onclick="@(() => Nav.NavigateTo($"/bicicletario/{id}"))">
 
                 <div style="padding:12px 14px; display:flex; flex-direction:column; gap:5px;">
