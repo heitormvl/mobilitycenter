@@ -608,6 +608,95 @@ input:focus, textarea:focus {
     }
 }
 
+/* ── Adicionar: PC 3-column layout ──────────────────────────── */
+.adicionar-pc-layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+.adicionar-pc-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+    min-width: 0;
+}
+.adicionar-pc-col:last-child { border-right: none; }
+.adicionar-pc-col-hdr {
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+}
+.adicionar-pc-col-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.adicionar-pc-map-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+}
+.adicionar-pc-map-wrap > div:first-child {
+    position: absolute !important;
+    inset: 0 !important;
+    height: auto !important;
+}
+.adicionar-map-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 10px 12px 12px;
+    background: var(--nav-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border);
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+/* ── Adicionar: mobile step layout ───────────────────────────── */
+.adicionar-mob-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+.adicionar-mob-hdr {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    flex-shrink: 0;
+}
+.adicionar-mob-content {
+    flex: 1;
+    padding-bottom: 148px;
+}
+.adicionar-mob-footer {
+    position: fixed;
+    bottom: 68px;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    gap: 10px;
+}
+
 /* ── Map markers ─────────────────────────────────────────────── */
 .mc-pin { background: none; border: none; }
 .mc-pin-dot {

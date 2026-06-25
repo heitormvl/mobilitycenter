@@ -1,134 +1,682 @@
 @page "/adicionar"
-@layout AdicionarLayout
+@layout MainLayout
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject IHttpClientFactory HttpFactory
 @inject AuthService AuthService
+@inject BicicletarioService BicicletarioSvc
+@inject ToastService ToastSvc
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Net.Http.Headers
 
-<div class="@_slideClass">
-
-@if (!_isAuthenticated)
+@* ── Loading ───────────────────────────────────────────────────── *@
+@if (_isPc is null)
 {
-    <div style="padding:48px 28px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:16px;">
-        <div style="width:64px; height:64px; border-radius:var(--r-full); background:var(--bg-page); border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center;">
-            <i class="fa-solid fa-lock" style="font-size:24px; color:var(--text-4);"></i>
+    <div style="height:100vh;"></div>
+}
+
+@* ── Acesso restrito ───────────────────────────────────────────── *@
+else if (!_isAuthenticated)
+{
+    <div style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 60px);padding:40px 24px;">
+        <div style="text-align:center;max-width:320px;display:flex;flex-direction:column;align-items:center;gap:16px;">
+            <div style="width:64px;height:64px;border-radius:var(--r-full);background:var(--bg-page);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;">
+                <i class="fa-solid fa-lock" style="font-size:24px;color:var(--text-4);"></i>
+            </div>
+            <div>
+                <div style="font-size:17px;font-weight:700;color:var(--text);font-family:var(--font);letter-spacing:-0.02em;margin-bottom:6px;">Acesso restrito</div>
+                <div style="font-size:14px;color:var(--text-3);font-family:var(--font);line-height:1.5;">Para adicionar um bicicletário você precisa estar logado.</div>
+            </div>
+            <BtnP Style="width:100%;margin-top:8px;" OnClick="@(() => Nav.NavigateTo("/login"))">
+                <i class="fa-solid fa-right-to-bracket" style="margin-right:8px;"></i> Fazer login
+            </BtnP>
         </div>
-        <div>
-            <div style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:6px;">Acesso restrito</div>
-            <div style="font-size:14px; color:var(--text-3); font-family:var(--font); line-height:1.5;">Para adicionar um bicicletário você precisa estar logado.</div>
-        </div>
-        <BtnP Style="width:100%; margin-top:8px;" OnClick="@(() => Nav.NavigateTo("/login"))">
-            <i class="fa-solid fa-right-to-bracket" style="margin-right:8px;"></i> Fazer login
-        </BtnP>
     </div>
 }
+
+@* ── PC: 3 colunas ─────────────────────────────────────────────── *@
+else if (_isPc == true)
+{
+<div class="adicionar-pc-layout">
+
+    @* Coluna 1 — Localização *@
+    <div class="adicionar-pc-col">
+        <div class="adicionar-pc-col-hdr">
+            <SecLabel>Localização</SecLabel>
+        </div>
+        <div class="adicionar-pc-map-wrap">
+            <MapGrid @ref="_map" H="0" />
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);pointer-events:none;z-index:400;">
+                <i class="fa-solid fa-location-dot" style="color:var(--brand);font-size:40px;filter:drop-shadow(0 3px 8px rgba(125,17,40,0.45));"></i>
+            </div>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:30px;border:2px dashed rgba(125,17,40,0.3);border-radius:var(--r-full);margin-top:2px;pointer-events:none;z-index:400;"></div>
+            <div class="adicionar-map-overlay">
+                <div style="display:flex;gap:6px;">
+                    <div style="flex:1;position:relative;">
+                        <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-4);font-size:11px;pointer-events:none;z-index:1;"></i>
+                        <input type="text" value="@_searchText"
+                               @oninput="@((e) => _searchText = e.Value?.ToString() ?? "")"
+                               @onkeydown="OnSearchKeyDown"
+                               placeholder="Buscar endereço..."
+                               style="width:100%;border:1.5px solid var(--border);border-radius:var(--r);padding:9px 10px 9px 32px;background:var(--bg);color:var(--text);font-size:13px;font-family:var(--font);-webkit-appearance:none;box-sizing:border-box;" />
+                    </div>
+                    <button @onclick="SearchAddressAsync"
+                            style="width:38px;height:38px;border-radius:var(--r);background:var(--brand);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:@(_isSearching ? "0.6" : "1");">
+                        @if (_isSearching) { <i class="fa-solid fa-spinner fa-spin" style="color:white;font-size:11px;"></i> }
+                        else               { <i class="fa-solid fa-magnifying-glass" style="color:white;font-size:11px;"></i> }
+                    </button>
+                </div>
+                @if (_searchError != null)
+                {
+                    <div style="font-size:11px;color:var(--red);padding:5px 8px;background:var(--red-bg);border-radius:var(--r);border:1px solid var(--red-border);font-family:var(--font);">
+                        <i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>@_searchError
+                    </div>
+                }
+                <BtnO OnClick="UseCurrentLocationAsync">
+                    @if (_isLocating) { <i class="fa-solid fa-spinner fa-spin" style="color:var(--brand);font-size:12px;"></i><span>Obtendo localização...</span> }
+                    else              { <i class="fa-solid fa-location-crosshairs" style="color:var(--brand);font-size:12px;"></i><span>Usar minha localização</span> }
+                </BtnO>
+                @if (_locationError != null)
+                {
+                    <div style="font-size:11px;color:var(--red);padding:5px 8px;background:var(--red-bg);border-radius:var(--r);border:1px solid var(--red-border);font-family:var(--font);">
+                        <i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>@_locationError
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* Coluna 2 — Dados básicos *@
+    <div class="adicionar-pc-col">
+        <div class="adicionar-pc-col-hdr">
+            <SecLabel>Dados básicos</SecLabel>
+        </div>
+        <div class="adicionar-pc-col-body">
+            @PcBasicData
+        </div>
+    </div>
+
+    @* Coluna 3 — Serviços e veículos *@
+    <div class="adicionar-pc-col">
+        <div class="adicionar-pc-col-hdr">
+            <SecLabel>Serviços e veículos</SecLabel>
+        </div>
+        <div class="adicionar-pc-col-body">
+            @PcServices
+            @if (_nameError != null)
+            {
+                <div style="font-size:12px;color:var(--red);padding:8px 12px;background:var(--red-bg);border-radius:var(--r);border:1px solid var(--red-border);font-family:var(--font);">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:5px;"></i>@_nameError
+                </div>
+            }
+            @if (_publishError != null)
+            {
+                <div style="font-size:12px;color:var(--red);padding:8px 12px;background:var(--red-bg);border-radius:var(--r);border:1px solid var(--red-border);font-family:var(--font);">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:5px;"></i>@_publishError
+                </div>
+            }
+            <BtnP OnClick="PublishAsync">
+                @if (_isPublishing) { <i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i><span>Publicando...</span> }
+                else                { <span>Publicar bicicletário</span> }
+            </BtnP>
+        </div>
+    </div>
+
+</div>
+}
+
+@* ── Mobile: steps ──────────────────────────────────────────────── *@
 else
 {
+<div class="adicionar-mob-layout">
 
-<div style="padding:20px 20px 100px;">
-    <div style="margin-bottom:20px;">
-        <h2 style="font-size:20px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:4px;">Localização</h2>
-        <p style="font-size:14px; color:var(--text-3); font-family:var(--font);">Arraste o mapa para posicionar o marcador</p>
+    <div class="adicionar-mob-hdr">
+        <button @onclick="GoBackMobile"
+                style="width:34px;height:34px;border-radius:var(--r-full);background:var(--bg-page);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-chevron-left" style="color:var(--text-2);font-size:13px;"></i>
+        </button>
+        <div style="font-size:17px;font-weight:700;color:var(--text);font-family:var(--font);letter-spacing:-0.02em;">@MobileTitle</div>
     </div>
 
-    <!-- Map with fixed center pin -->
-    <div style="border-radius:var(--r-lg); overflow:hidden; border:1.5px solid var(--border); position:relative; margin-bottom:20px; box-shadow:var(--shadow-sm);">
-        <MapGrid @ref="_map" H="280" />
-        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -100%); pointer-events:none; z-index:400;">
-            <i class="fa-solid fa-location-dot" style="color:var(--brand); font-size:44px; filter:drop-shadow(0 3px 8px rgba(125,17,40,0.45));"></i>
-        </div>
-        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:36px; height:36px; border:2px dashed rgba(125,17,40,0.3); border-radius:var(--r-full); margin-top:4px; pointer-events:none; z-index:400;"></div>
-    </div>
+    <div class="adicionar-mob-content">
 
-    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
-        <div style="flex:1; height:1px; background:var(--border);"></div>
-        <span style="font-size:12px; color:var(--text-4); font-family:var(--font); font-weight:500;">ou</span>
-        <div style="flex:1; height:1px; background:var(--border);"></div>
-    </div>
-
-    <div style="display:flex; flex-direction:column; gap:10px;">
-
-        <!-- Address search -->
-        <div style="display:flex; gap:8px;">
-            <div style="flex:1; position:relative; font-family:var(--font);">
-                <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-4); font-size:13px; pointer-events:none; z-index:1;"></i>
-                <input type="text"
-                       value="@_searchText"
-                       @oninput="@((e) => _searchText = e.Value?.ToString() ?? "")"
-                       @onkeydown="OnSearchKeyDown"
-                       placeholder="Buscar endereço..."
-                       style="width:100%; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 14px 12px 40px; background:var(--bg); color:var(--text); font-size:15px; font-family:var(--font); line-height:1.4; -webkit-appearance:none; box-sizing:border-box;" />
+        @* Mapa: sempre renderizado, oculto fora do step 0 *@
+        <div style="@(_mobileStep != 0 ? "display:none" : "")">
+            <div style="position:relative;">
+                <MapGrid @ref="_map" H="260" />
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);pointer-events:none;z-index:400;">
+                    <i class="fa-solid fa-location-dot" style="color:var(--brand);font-size:44px;filter:drop-shadow(0 3px 8px rgba(125,17,40,0.45));"></i>
+                </div>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border:2px dashed rgba(125,17,40,0.3);border-radius:var(--r-full);margin-top:4px;pointer-events:none;z-index:400;"></div>
             </div>
-            <button @onclick="SearchAddressAsync"
-                    style="width:48px; height:48px; border-radius:var(--r); background:var(--brand); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; opacity:@(_isSearching ? "0.6" : "1");">
-                @if (_isSearching)
-                {
-                    <i class="fa-solid fa-spinner fa-spin" style="color:white; font-size:14px;"></i>
-                }
-                else
-                {
-                    <i class="fa-solid fa-magnifying-glass" style="color:white; font-size:14px;"></i>
-                }
-            </button>
         </div>
 
-        @if (_searchError != null)
+        @* Step 0: busca de endereço *@
+        @if (_mobileStep == 0)
         {
-            <div style="font-size:13px; color:var(--red); font-family:var(--font); padding:8px 12px; background:var(--red-bg); border-radius:var(--r); border:1px solid var(--red-border);">
-                <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>@_searchError
+            <div style="padding:16px 20px 0;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                    <div style="flex:1;height:1px;background:var(--border);"></div>
+                    <span style="font-size:12px;color:var(--text-4);font-family:var(--font);font-weight:500;">ou</span>
+                    <div style="flex:1;height:1px;background:var(--border);"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <div style="display:flex;gap:8px;">
+                        <div style="flex:1;position:relative;font-family:var(--font);">
+                            <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-4);font-size:13px;pointer-events:none;z-index:1;"></i>
+                            <input type="text" value="@_searchText"
+                                   @oninput="@((e) => _searchText = e.Value?.ToString() ?? "")"
+                                   @onkeydown="OnSearchKeyDown"
+                                   placeholder="Buscar endereço..."
+                                   style="width:100%;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px 12px 40px;background:var(--bg);color:var(--text);font-size:15px;font-family:var(--font);line-height:1.4;-webkit-appearance:none;box-sizing:border-box;" />
+                        </div>
+                        <button @onclick="SearchAddressAsync"
+                                style="width:48px;height:48px;border-radius:var(--r);background:var(--brand);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:@(_isSearching ? "0.6" : "1");">
+                            @if (_isSearching) { <i class="fa-solid fa-spinner fa-spin" style="color:white;font-size:14px;"></i> }
+                            else               { <i class="fa-solid fa-magnifying-glass" style="color:white;font-size:14px;"></i> }
+                        </button>
+                    </div>
+                    @if (_searchError != null)
+                    {
+                        <div style="font-size:13px;color:var(--red);font-family:var(--font);padding:8px 12px;background:var(--red-bg);border-radius:var(--r);border:1px solid var(--red-border);">
+                            <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>@_searchError
+                        </div>
+                    }
+                    <BtnO OnClick="UseCurrentLocationAsync">
+                        @if (_isLocating) { <i class="fa-solid fa-spinner fa-spin" style="color:var(--brand);font-size:14px;"></i><span>Obtendo localização...</span> }
+                        else              { <i class="fa-solid fa-location-crosshairs" style="color:var(--brand);font-size:14px;"></i><span>Usar minha localização atual</span> }
+                    </BtnO>
+                    @if (_locationError != null)
+                    {
+                        <div style="font-size:13px;color:var(--red);font-family:var(--font);padding:8px 12px;background:var(--red-bg);border-radius:var(--r);border:1px solid var(--red-border);">
+                            <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>@_locationError
+                        </div>
+                    }
+                </div>
             </div>
         }
 
-        <!-- Current location button -->
-        <BtnO OnClick="UseCurrentLocationAsync">
-            @if (_isLocating)
+        @* Step 1: dados básicos *@
+        else if (_mobileStep == 1)
+        {
+            <div style="padding:20px 20px 0;display:flex;flex-direction:column;gap:18px;">
+                @MobBasicData
+            </div>
+        }
+
+        @* Step 2: serviços *@
+        else
+        {
+            <div style="padding:20px 20px 0;display:flex;flex-direction:column;gap:14px;">
+                @MobServices
+                @if (_publishError != null)
+                {
+                    <div style="font-size:13px;color:var(--red);padding:10px 14px;background:var(--red-bg);border-radius:var(--r);border:1px solid var(--red-border);font-family:var(--font);">
+                        <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>@_publishError
+                    </div>
+                }
+            </div>
+        }
+
+    </div>
+
+    <div class="adicionar-mob-footer">
+        <div style="flex:1;">
+            <BtnO OnClick="GoBackMobile">
+                <i class="fa-solid fa-chevron-left" style="font-size:12px;"></i> Voltar
+            </BtnO>
+        </div>
+        <div style="flex:1.5;">
+            <BtnP OnClick="GoNextMobileAsync">
+                @if (_isPublishing)        { <i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i><span>Publicando...</span> }
+                else if (_mobileStep == 2) { <span>Publicar bicicletário</span> }
+                else                       { <span>Próximo →</span> }
+            </BtnP>
+        </div>
+    </div>
+
+</div>
+}
+
+@* ── Render fragments compartilhados ────────────────────────────── *@
+
+@* Dados básicos: fotos, nome, capacidade, acesso, horários *@
+@code {
+    private RenderFragment PcBasicData =>
+    @<div style="display:contents;">
+
+        @* Fotos *@
+        <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:8px;font-family:var(--font);">
+                Fotos <span style="color:var(--text-4);font-weight:400;">(opcional · até @MaxFotos)</span>
+            </label>
+            @if (_fotoPreviews.Count > 0)
             {
-                <i class="fa-solid fa-spinner fa-spin" style="color:var(--brand); font-size:14px;"></i>
-                <span>Obtendo localização...</span>
+                <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;">
+                    @for (var i = 0; i < _fotoPreviews.Count; i++)
+                    {
+                        var idx = i;
+                        <div style="position:relative;flex-shrink:0;width:72px;height:72px;border-radius:var(--r);overflow:hidden;border:1.5px solid var(--border);">
+                            <img src="@_fotoPreviews[idx]" alt="Foto @(idx+1)" style="width:100%;height:100%;object-fit:cover;" />
+                            <button type="button" @onclick="@(() => RemoverFoto(idx))"
+                                    style="position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:var(--r-full);background:rgba(0,0,0,0.55);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-appearance:none;">
+                                <i class="fa-solid fa-xmark" style="color:white;font-size:8px;"></i>
+                            </button>
+                            @if (idx == 0)
+                            {
+                                <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.45);text-align:center;font-size:9px;color:white;font-family:var(--font);padding:2px 0;pointer-events:none;">capa</div>
+                            }
+                        </div>
+                    }
+                </div>
             }
             else
             {
-                <i class="fa-solid fa-location-crosshairs" style="color:var(--brand); font-size:14px;"></i>
-                <span>Usar minha localização atual</span>
+                <div style="border:1.5px dashed var(--border-2);border-radius:var(--r-lg);height:64px;display:flex;align-items:center;justify-content:center;background:var(--bg-page);">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-4);">
+                        <i class="fa-solid fa-images" style="font-size:16px;"></i>
+                        <span style="font-size:11px;font-family:var(--font);">Nenhuma foto</span>
+                    </div>
+                </div>
             }
-        </BtnO>
+            @if (_fotoPreviews.Count < MaxFotos)
+            {
+                <div style="display:flex;gap:6px;margin-top:7px;">
+                    <label for="fotoInputPc" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:11px;color:var(--text-2);font-family:var(--font);background:var(--bg-page);">
+                        <i class="fa-solid fa-image"></i><span>Galeria</span>
+                    </label>
+                    <button type="button" @onclick="TirarFotoPc" disabled="@_isCameraLoading"
+                            style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:11px;color:var(--text-2);font-family:var(--font);background:var(--bg-page);">
+                        <i class="fa-solid fa-camera"></i><span>@(_isCameraLoading ? "..." : "Câmera")</span>
+                    </button>
+                </div>
+            }
+            <InputFile @key="_fotoInputKey" id="fotoInputPc" multiple OnChange="OnFotoSelecionada"
+                       accept="image/webp,image/png,image/jpeg,image/heic,image/heif" style="display:none;" />
+            <input id="cameraInputPc" type="file" accept="image/*" capture="environment" style="display:none;" />
+            @if (_fotoError != null)
+            {
+                <div style="font-size:11px;color:var(--red);margin-top:4px;font-family:var(--font);">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:3px;"></i>@_fotoError
+                </div>
+            }
+        </div>
 
-        @if (_locationError != null)
-        {
-            <div style="font-size:13px; color:var(--red); font-family:var(--font); padding:8px 12px; background:var(--red-bg); border-radius:var(--r); border:1px solid var(--red-border);">
-                <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>@_locationError
+        @* Nome *@
+        <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:8px;font-family:var(--font);">
+                Nome do bicicletário <span style="color:var(--brand);">*</span>
+            </label>
+            <WfInput Placeholder="Ex: Bicicletário Parque das Flores" Value="@_name" ValueChanged="@((v) => { _name = v; _nameError = null; })" />
+        </div>
+
+        @* Capacidade *@
+        <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:8px;font-family:var(--font);">
+                Capacidade <span style="color:var(--text-4);font-weight:400;">(vagas)</span>
+            </label>
+            <WfInput Placeholder="Ex: 20" Type="number" IconClass="fa-hashtag" Value="@_capacity" ValueChanged="@((v) => _capacity = v)" />
+        </div>
+
+        @* Tipo de acesso *@
+        <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:10px;font-family:var(--font);">Tipo de acesso</label>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+                <div @onclick="@(() => _accessType = 0)" style="cursor:pointer;"><RadioItem Checked="@(_accessType == 0)">Livre — sem restrições</RadioItem></div>
+                <div @onclick="@(() => _accessType = 1)" style="cursor:pointer;"><RadioItem Checked="@(_accessType == 1)">Pago — tarifa por uso</RadioItem></div>
+                <div @onclick="@(() => _accessType = 2)" style="cursor:pointer;"><RadioItem Checked="@(_accessType == 2)">Requer cadastro prévio</RadioItem></div>
+                <div @onclick="@(() => _accessType = 3)" style="cursor:pointer;"><RadioItem Checked="@(_accessType == 3)">Mensalidade</RadioItem></div>
             </div>
-        }
+        </div>
 
-    </div>
-</div>
+        @* Horários *@
+        <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:10px;font-family:var(--font);">
+                Horários <span style="color:var(--text-4);font-weight:400;">(opcional)</span>
+            </label>
+            <div style="background:var(--bg-page);border:1px solid var(--border);border-radius:var(--r);padding:9px;margin-bottom:9px;">
+                <div style="font-size:10px;font-weight:600;color:var(--text-4);font-family:var(--font);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:7px;">Aplicar em grupo</div>
+                <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:7px;">
+                    <input type="time" value="@_presetAbertura" @oninput="@(e => _presetAbertura = e.Value?.ToString() ?? _presetAbertura)"
+                           style="border:1px solid var(--border);border-radius:var(--r);padding:3px 5px;font-family:var(--font);font-size:11px;background:var(--bg);color:var(--text);outline:none;" />
+                    <span style="color:var(--text-4);font-size:11px;">–</span>
+                    <input type="time" value="@_presetFechamento" @oninput="@(e => _presetFechamento = e.Value?.ToString() ?? _presetFechamento)"
+                           style="border:1px solid var(--border);border-radius:var(--r);padding:3px 5px;font-family:var(--font);font-size:11px;background:var(--bg);color:var(--text);outline:none;" />
+                </div>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                    @foreach (var (label, dias) in _presets)
+                    {
+                        var d = dias;
+                        <button type="button" @onclick="@(() => AplicarPreset(d))" style="@PresetBtnStyle">@label</button>
+                    }
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+                @for (var i = 0; i < 7; i++)
+                {
+                    var idx = i;
+                    var h = _horarios[idx];
+                    <div style="display:flex;align-items:center;gap:5px;">
+                        <button type="button" @onclick="@(() => { h.Ciclar(); StateHasChanged(); })" style="@HorarioBtnStyle(h.Estado)">
+                            @_diasSemana[idx]
+                        </button>
+                        @if (h.Estado == "aberto")
+                        {
+                            <input type="time" value="@h.Abertura" @oninput="@(e => { h.Abertura = e.Value?.ToString() ?? h.Abertura; StateHasChanged(); })"
+                                   style="flex:1;border:1px solid var(--border);border-radius:var(--r);padding:3px 5px;font-family:var(--font);font-size:11px;background:var(--bg-page);color:var(--text);outline:none;" />
+                            <span style="color:var(--text-4);font-size:10px;">–</span>
+                            <input type="time" value="@h.Fechamento" @oninput="@(e => { h.Fechamento = e.Value?.ToString() ?? h.Fechamento; StateHasChanged(); })"
+                                   style="flex:1;border:1px solid var(--border);border-radius:var(--r);padding:3px 5px;font-family:var(--font);font-size:11px;background:var(--bg-page);color:var(--text);outline:none;" />
+                        }
+                        else if (h.Estado == "fechado") { <span style="font-size:11px;color:var(--text-3);font-family:var(--font);">Fechado</span> }
+                        else                            { <span style="font-size:11px;color:var(--text-4);font-family:var(--font);">—</span> }
+                    </div>
+                }
+            </div>
+        </div>
 
+    </div>;
+
+    private RenderFragment PcServices =>
+    @<div style="display:contents;">
+        <div style="background:var(--bg);border-radius:var(--r-lg);border:1px solid var(--border);padding:14px;">
+            <SecLabel>Serviços disponíveis</SecLabel>
+            @foreach (var s in _servicos)
+            {
+                var item = s;
+                <div @onclick="() => item.Checked = !item.Checked">
+                    <CheckItem Checked="@item.Checked">
+                        <div style="display:flex;align-items:center;gap:9px;font-family:var(--font);font-size:13px;color:var(--text-2);">
+                            <div style="width:24px;height:24px;border-radius:var(--r-sm);background:var(--bg-page);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i class="fa-solid @item.Icon" style="color:var(--text-4);font-size:10px;"></i>
+                            </div>
+                            <span>@item.Label</span>
+                        </div>
+                    </CheckItem>
+                </div>
+            }
+        </div>
+        <div style="background:var(--bg);border-radius:var(--r-lg);border:1px solid var(--border);padding:14px;">
+            <SecLabel>Veículos suportados</SecLabel>
+            @foreach (var v in _veiculos)
+            {
+                var item = v;
+                <div @onclick="() => item.Checked = !item.Checked">
+                    <CheckItem Checked="@item.Checked">
+                        <div style="display:flex;align-items:center;gap:9px;font-family:var(--font);font-size:13px;color:var(--text-2);">
+                            <div style="width:24px;height:24px;border-radius:var(--r-sm);background:var(--bg-page);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i class="fa-solid @item.Icon" style="color:var(--text-4);font-size:10px;"></i>
+                            </div>
+                            <span>@item.Label</span>
+                        </div>
+                    </CheckItem>
+                </div>
+            }
+        </div>
+    </div>;
+
+    private RenderFragment MobBasicData =>
+    @<div style="display:contents;">
+
+        @* Fotos (mobile) *@
+        <div>
+            <label style="display:block;font-size:13px;font-weight:500;color:var(--text-2);margin-bottom:8px;font-family:var(--font);">
+                Fotos <span style="color:var(--text-4);font-weight:400;">(opcional · até @MaxFotos)</span>
+            </label>
+            @if (_fotoPreviews.Count > 0)
+            {
+                <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;">
+                    @for (var i = 0; i < _fotoPreviews.Count; i++)
+                    {
+                        var idx = i;
+                        <div style="position:relative;flex-shrink:0;width:88px;height:88px;border-radius:var(--r);overflow:hidden;border:1.5px solid var(--border);">
+                            <img src="@_fotoPreviews[idx]" alt="Foto @(idx+1)" style="width:100%;height:100%;object-fit:cover;" />
+                            <button type="button" @onclick="@(() => RemoverFoto(idx))"
+                                    style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:var(--r-full);background:rgba(0,0,0,0.55);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-appearance:none;">
+                                <i class="fa-solid fa-xmark" style="color:white;font-size:10px;"></i>
+                            </button>
+                            @if (idx == 0)
+                            {
+                                <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.45);text-align:center;font-size:10px;color:white;font-family:var(--font);padding:2px 0;pointer-events:none;">capa</div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div style="border:1.5px dashed var(--border-2);border-radius:var(--r-lg);height:88px;display:flex;align-items:center;justify-content:center;background:var(--bg-page);">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--text-4);">
+                        <i class="fa-solid fa-images" style="font-size:20px;"></i>
+                        <span style="font-size:12px;font-family:var(--font);">Nenhuma foto adicionada</span>
+                    </div>
+                </div>
+            }
+            @if (_fotoPreviews.Count < MaxFotos)
+            {
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                    <label for="fotoInputMob" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;color:var(--text-2);font-family:var(--font);background:var(--bg-page);">
+                        <i class="fa-solid fa-image"></i><span>Galeria</span>
+                    </label>
+                    <button type="button" @onclick="TirarFotoMob" disabled="@_isCameraLoading"
+                            style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;color:var(--text-2);font-family:var(--font);background:var(--bg-page);">
+                        <i class="fa-solid fa-camera"></i><span>@(_isCameraLoading ? "Aguarde..." : "Câmera")</span>
+                    </button>
+                </div>
+            }
+            <InputFile @key="_fotoInputKey" id="fotoInputMob" multiple OnChange="OnFotoSelecionada"
+                       accept="image/webp,image/png,image/jpeg,image/heic,image/heif" style="display:none;" />
+            <input id="cameraInputMob" type="file" accept="image/*" capture="environment" style="display:none;" />
+            @if (_fotoError != null)
+            {
+                <div style="font-size:12px;color:var(--red);margin-top:6px;font-family:var(--font);">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>@_fotoError
+                </div>
+            }
+        </div>
+
+        @* Nome *@
+        <div>
+            <label style="display:block;font-size:13px;font-weight:500;color:var(--text-2);margin-bottom:8px;font-family:var(--font);">
+                Nome do bicicletário <span style="color:var(--brand);">*</span>
+            </label>
+            <WfInput Placeholder="Ex: Bicicletário Parque das Flores" Value="@_name" ValueChanged="@((v) => { _name = v; _nameError = null; })" />
+            @if (_nameError != null)
+            {
+                <div style="font-size:12px;color:var(--red);margin-top:6px;font-family:var(--font);">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>@_nameError
+                </div>
+            }
+        </div>
+
+        @* Capacidade *@
+        <div>
+            <label style="display:block;font-size:13px;font-weight:500;color:var(--text-2);margin-bottom:8px;font-family:var(--font);">
+                Capacidade <span style="color:var(--text-4);font-weight:400;">(número de vagas)</span>
+            </label>
+            <WfInput Placeholder="Ex: 20" Type="number" IconClass="fa-hashtag" Value="@_capacity" ValueChanged="@((v) => _capacity = v)" />
+        </div>
+
+        @* Tipo de acesso *@
+        <div>
+            <label style="display:block;font-size:13px;font-weight:500;color:var(--text-2);margin-bottom:10px;font-family:var(--font);">Tipo de acesso</label>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div @onclick="@(() => _accessType = 0)" style="cursor:pointer;"><RadioItem Checked="@(_accessType == 0)">Livre — sem restrições</RadioItem></div>
+                <div @onclick="@(() => _accessType = 1)" style="cursor:pointer;"><RadioItem Checked="@(_accessType == 1)">Pago — tarifa por uso</RadioItem></div>
+                <div @onclick="@(() => _accessType = 2)" style="cursor:pointer;"><RadioItem Checked="@(_accessType == 2)">Requer cadastro prévio</RadioItem></div>
+                <div @onclick="@(() => _accessType = 3)" style="cursor:pointer;"><RadioItem Checked="@(_accessType == 3)">Mensalidade</RadioItem></div>
+            </div>
+        </div>
+
+        @* Horários *@
+        <div>
+            <label style="display:block;font-size:13px;font-weight:500;color:var(--text-2);margin-bottom:10px;font-family:var(--font);">
+                Horário de funcionamento <span style="color:var(--text-4);font-weight:400;">(opcional)</span>
+            </label>
+            <div style="background:var(--bg-page);border:1px solid var(--border);border-radius:var(--r);padding:10px;margin-bottom:10px;">
+                <div style="font-size:11px;font-weight:600;color:var(--text-4);font-family:var(--font);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Aplicar em grupo</div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+                    <input type="time" value="@_presetAbertura" @oninput="@(e => _presetAbertura = e.Value?.ToString() ?? _presetAbertura)"
+                           style="border:1px solid var(--border);border-radius:var(--r);padding:4px 8px;font-family:var(--font);font-size:13px;background:var(--bg);color:var(--text);outline:none;" />
+                    <span style="color:var(--text-4);font-size:12px;">–</span>
+                    <input type="time" value="@_presetFechamento" @oninput="@(e => _presetFechamento = e.Value?.ToString() ?? _presetFechamento)"
+                           style="border:1px solid var(--border);border-radius:var(--r);padding:4px 8px;font-family:var(--font);font-size:13px;background:var(--bg);color:var(--text);outline:none;" />
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    @foreach (var (label, dias) in _presets)
+                    {
+                        var d = dias;
+                        <button type="button" @onclick="@(() => AplicarPreset(d))"
+                                style="padding:4px 10px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg);font-family:var(--font);font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;">
+                            @label
+                        </button>
+                    }
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+                @for (var i = 0; i < 7; i++)
+                {
+                    var idx = i;
+                    var h = _horarios[idx];
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" @onclick="@(() => { h.Ciclar(); StateHasChanged(); })" style="@HorarioBtnStyle(h.Estado)">
+                            @_diasSemana[idx]
+                        </button>
+                        @if (h.Estado == "aberto")
+                        {
+                            <input type="time" value="@h.Abertura" @oninput="@(e => { h.Abertura = e.Value?.ToString() ?? h.Abertura; StateHasChanged(); })"
+                                   style="flex:1;border:1px solid var(--border);border-radius:var(--r);padding:4px 8px;font-family:var(--font);font-size:13px;background:var(--bg-page);color:var(--text);outline:none;" />
+                            <span style="color:var(--text-4);font-size:12px;">–</span>
+                            <input type="time" value="@h.Fechamento" @oninput="@(e => { h.Fechamento = e.Value?.ToString() ?? h.Fechamento; StateHasChanged(); })"
+                                   style="flex:1;border:1px solid var(--border);border-radius:var(--r);padding:4px 8px;font-family:var(--font);font-size:13px;background:var(--bg-page);color:var(--text);outline:none;" />
+                        }
+                        else if (h.Estado == "fechado") { <span style="font-size:12px;color:var(--text-3);font-family:var(--font);">Fechado</span> }
+                        else                            { <span style="font-size:12px;color:var(--text-4);font-family:var(--font);">—</span> }
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>;
+
+    private RenderFragment MobServices =>
+    @<div style="display:contents;">
+        <div style="background:var(--bg);border-radius:var(--r-lg);border:1px solid var(--border);padding:16px;">
+            <SecLabel>Serviços disponíveis</SecLabel>
+            @foreach (var s in _servicos)
+            {
+                var item = s;
+                <div @onclick="() => item.Checked = !item.Checked">
+                    <CheckItem Checked="@item.Checked">
+                        <div style="display:flex;align-items:center;gap:10px;font-family:var(--font);font-size:14px;color:var(--text-2);">
+                            <div style="width:28px;height:28px;border-radius:var(--r-sm);background:var(--bg-page);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i class="fa-solid @item.Icon" style="color:var(--text-4);font-size:12px;"></i>
+                            </div>
+                            <span>@item.Label</span>
+                        </div>
+                    </CheckItem>
+                </div>
+            }
+        </div>
+        <div style="background:var(--bg);border-radius:var(--r-lg);border:1px solid var(--border);padding:16px;">
+            <SecLabel>Veículos suportados</SecLabel>
+            @foreach (var v in _veiculos)
+            {
+                var item = v;
+                <div @onclick="() => item.Checked = !item.Checked">
+                    <CheckItem Checked="@item.Checked">
+                        <div style="display:flex;align-items:center;gap:10px;font-family:var(--font);font-size:14px;color:var(--text-2);">
+                            <div style="width:28px;height:28px;border-radius:var(--r-sm);background:var(--bg-page);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i class="fa-solid @item.Icon" style="color:var(--text-4);font-size:12px;"></i>
+                            </div>
+                            <span>@item.Label</span>
+                        </div>
+                    </CheckItem>
+                </div>
+            }
+        </div>
+    </div>;
 }
-</div>
 
 @code {
-    [Parameter]
-    [SupplyParameterFromQuery(Name = "dir")]
-    public string? Dir { get; set; }
 
-    [CascadingParameter] public AdicionarLayout Layout { get; set; } = default!;
-
+    // ── Localização ───────────────────────────────────────────────
     private MapGrid? _map;
-    private string _searchText = "";
-    private bool _isSearching;
-    private bool _isLocating;
-    private string? _searchError;
-    private string? _locationError;
-    private bool _isAuthenticated;
-    private string _slideClass = "";
+    private string   _searchText = "";
+    private bool     _isSearching;
+    private bool     _isLocating;
+    private string?  _searchError;
+    private string?  _locationError;
+
+    // ── Dados básicos ─────────────────────────────────────────────
+    private string  _name = "";
+    private string  _capacity = "";
+    private int     _accessType = 0;
+    private string? _nameError;
+
+    private List<string>       _fotoPreviews = [];
+    private List<FotoParaUpload> _fotos      = [];
+    private string? _fotoError;
+    private bool    _isCameraLoading;
+    private int     _fotoInputKey = 0;
+    private const int MaxFotos = 5;
+
+    private static readonly string[] _diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    private HorarioItem[] _horarios = Enumerable.Range(0, 7).Select(_ => new HorarioItem()).ToArray();
+    private string _presetAbertura  = "08:00";
+    private string _presetFechamento = "18:00";
+
+    private static readonly (string Label, int[] Dias)[] _presets =
+    [
+        ("Todos",     new[] { 0,1,2,3,4,5,6 }),
+        ("Dias úteis",new[] { 1,2,3,4,5     }),
+        ("Seg–Sáb",   new[] { 1,2,3,4,5,6   }),
+        ("Sáb",       new[] { 6              }),
+        ("Dom",       new[] { 0              }),
+    ];
+
+    // ── Serviços ──────────────────────────────────────────────────
+    private CheckOption[] _servicos =
+    [
+        new("fa-plug",     "Tomada elétrica",        true),
+        new("fa-gauge",    "Calibrador de pneus",     true),
+        new("fa-box",      "Armário / guarda-volume", false),
+        new("fa-wrench",   "Espaço de manutenção",    false),
+        new("fa-lock",     "Cadeado próprio",         false),
+        new("fa-restroom", "Banheiro",                false),
+    ];
+    private CheckOption[] _veiculos =
+    [
+        new("fa-bicycle",       "Bicicleta",         true),
+        new("fa-person-biking", "Scooter",           false),
+        new("fa-bolt",          "Patinete elétrico", false),
+        new("fa-circle-dot",    "Monociclo",         false),
+    ];
+    private string? _publishError;
+
+    // ── UI / Lifecycle ────────────────────────────────────────────
+    private bool? _isPc;
+    private bool  _isAuthenticated;
+    private int   _mobileStep = 0;
+    private bool  _isPublishing;
+
+    private string MobileTitle => _mobileStep switch
+    {
+        0 => "Adicionar bicicletário",
+        1 => "Dados básicos",
+        _ => "Serviços e veículos"
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        _slideClass = Dir == "back" ? "page-slide-back" : "page-slide-forward";
-        Layout.SetNext("Próximo →", GoToNextAsync);
+        _isPc = await JS.InvokeAsync<bool>("matchesMedia", "(min-width: 900px)");
         var user = await AuthService.GetUserInfoAsync();
         _isAuthenticated = user is not null;
     }
+
+    // ── Localização ───────────────────────────────────────────────
 
     private async Task OnSearchKeyDown(KeyboardEventArgs e)
     {
@@ -141,13 +689,11 @@ else
         _isSearching = true;
         _searchError = null;
         StateHasChanged();
-
         try
         {
-            var client = HttpFactory.CreateClient("geocoder");
+            var client  = HttpFactory.CreateClient("geocoder");
             var results = await client.GetFromJsonAsync<NominatimResult[]>(
                 $"search?format=json&q={Uri.EscapeDataString(_searchText)}&limit=1&addressdetails=0");
-
             if (results?.Length > 0)
             {
                 var lat = double.Parse(results[0].Lat, System.Globalization.CultureInfo.InvariantCulture);
@@ -159,15 +705,8 @@ else
                 _searchError = "Endereço não encontrado. Tente ser mais específico.";
             }
         }
-        catch
-        {
-            _searchError = "Erro ao buscar endereço. Verifique sua conexão.";
-        }
-        finally
-        {
-            _isSearching = false;
-            StateHasChanged();
-        }
+        catch { _searchError = "Erro ao buscar endereço. Verifique sua conexão."; }
+        finally { _isSearching = false; StateHasChanged(); }
     }
 
     private async Task UseCurrentLocationAsync()
@@ -176,21 +715,14 @@ else
         _isLocating = true;
         _locationError = null;
         StateHasChanged();
-
         try
         {
             var arr = await JS.InvokeAsync<double[]>("mapInterop.getUserLocation");
-            var lat = arr[0];
-            var lng = arr[1];
-
-            await _map!.PanToAsync(lat, lng);
-
+            await _map!.PanToAsync(arr[0], arr[1]);
             var client = HttpFactory.CreateClient("geocoder");
             var result = await client.GetFromJsonAsync<NominatimReverseResult>(
-                $"reverse?format=json&lat={lat.ToString(System.Globalization.CultureInfo.InvariantCulture)}&lon={lng.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
-
-            if (result?.DisplayName is not null)
-                _searchText = result.DisplayName;
+                $"reverse?format=json&lat={arr[0].ToString(System.Globalization.CultureInfo.InvariantCulture)}&lon={arr[1].ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+            if (result?.DisplayName is not null) _searchText = result.DisplayName;
         }
         catch (Exception ex)
         {
@@ -198,21 +730,216 @@ else
                 ? "Permissão de localização negada. Verifique as configurações do navegador."
                 : "Não foi possível obter sua localização.";
         }
-        finally
+        finally { _isLocating = false; StateHasChanged(); }
+    }
+
+    // ── Fotos ─────────────────────────────────────────────────────
+
+    private async Task OnFotoSelecionada(InputFileChangeEventArgs e)
+    {
+        _fotoError = null;
+        const long maxSize = 10L * 1024 * 1024;
+        var tiposPermitidos = new[] { "image/webp", "image/png", "image/jpeg", "image/heic", "image/heif" };
+        foreach (var file in e.GetMultipleFiles(MaxFotos - _fotoPreviews.Count))
         {
-            _isLocating = false;
-            StateHasChanged();
+            if (file.Size > maxSize) { _fotoError = "Uma foto deve ter no máximo 10 MB."; continue; }
+            var mime = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType.ToLowerInvariant();
+            if (!tiposPermitidos.Contains(mime)) { _fotoError = "Use PNG, JPG, WEBP ou HEIC."; continue; }
+            try
+            {
+                using var stream = file.OpenReadStream(maxAllowedSize: maxSize);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                await AplicarCompressao(ms.ToArray(), mime);
+            }
+            catch { _fotoError = "Não foi possível ler o arquivo."; }
+        }
+        _fotoInputKey++;
+    }
+
+    private async Task TirarFotoPc()  => await TirarFotoComId("cameraInputPc");
+    private async Task TirarFotoMob() => await TirarFotoComId("cameraInputMob");
+
+    private async Task TirarFotoComId(string inputId)
+    {
+        _fotoError = null;
+        _isCameraLoading = true;
+        try
+        {
+            var json = await JS.InvokeAsync<string?>("imageCompressor.captureAndCompress", inputId, 1200, 0.85);
+            if (json is null) return;
+            var result = JsonSerializer.Deserialize<CameraResult>(json);
+            if (result?.DataUrl is null) return;
+            await AplicarDataUrl(result.DataUrl);
+        }
+        catch { _fotoError = "Não foi possível capturar a foto."; }
+        finally { _isCameraLoading = false; }
+    }
+
+    private async Task AplicarCompressao(byte[] bytes, string mimeType)
+    {
+        var dataUrl = await JS.InvokeAsync<string?>("imageCompressor.compress",
+            Convert.ToBase64String(bytes), mimeType, 1200, 0.85);
+        if (dataUrl is null) { _fotoError = "Não foi possível comprimir a imagem."; return; }
+        await AplicarDataUrl(dataUrl);
+    }
+
+    private Task AplicarDataUrl(string dataUrl)
+    {
+        var base64 = dataUrl.Split(',')[1];
+        _fotos.Add(new FotoParaUpload { Bytes = Convert.FromBase64String(base64), ContentType = "image/jpeg" });
+        _fotoPreviews.Add(dataUrl);
+        return Task.CompletedTask;
+    }
+
+    private void RemoverFoto(int index)
+    {
+        _fotos.RemoveAt(index);
+        _fotoPreviews.RemoveAt(index);
+    }
+
+    // ── Horários ──────────────────────────────────────────────────
+
+    private void AplicarPreset(int[] dias)
+    {
+        foreach (var d in dias)
+        {
+            _horarios[d].Estado    = "aberto";
+            _horarios[d].Abertura  = _presetAbertura;
+            _horarios[d].Fechamento = _presetFechamento;
         }
     }
 
-    private async Task GoToNextAsync()
+    private const string PresetBtnStyle =
+        "padding:3px 8px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg);font-family:var(--font);font-size:11px;font-weight:600;color:var(--text-2);cursor:pointer;";
+
+    private static string HorarioBtnStyle(string estado) => estado switch
     {
+        "aberto"  => "width:40px;font-size:11px;font-weight:600;padding:3px 6px;border-radius:var(--r);border:1px solid var(--brand);background:var(--brand-soft);color:var(--brand);cursor:pointer;font-family:var(--font);flex-shrink:0;",
+        "fechado" => "width:40px;font-size:11px;font-weight:600;padding:3px 6px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg-page);color:var(--text-3);cursor:pointer;font-family:var(--font);flex-shrink:0;text-decoration:line-through;",
+        _         => "width:40px;font-size:11px;font-weight:600;padding:3px 6px;border-radius:var(--r);border:1px dashed var(--border-2);background:var(--bg-page);color:var(--text-4);cursor:pointer;font-family:var(--font);flex-shrink:0;",
+    };
+
+    // ── Navegação mobile ──────────────────────────────────────────
+
+    private async Task GoNextMobileAsync()
+    {
+        if (_mobileStep == 0)
+        {
+            if (await _map!.GetCenterAsync() is null) return;
+            _mobileStep = 1;
+        }
+        else if (_mobileStep == 1)
+        {
+            if (string.IsNullOrWhiteSpace(_name))
+            {
+                _nameError = "O nome do bicicletário é obrigatório.";
+                return;
+            }
+            _mobileStep = 2;
+        }
+        else
+        {
+            await PublishAsync();
+        }
+    }
+
+    private void GoBackMobile()
+    {
+        if (_mobileStep == 0) Nav.NavigateTo("/");
+        else _mobileStep--;
+    }
+
+    // ── Publicar ──────────────────────────────────────────────────
+
+    private async Task PublishAsync()
+    {
+        _nameError     = null;
+        _publishError  = null;
+
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _nameError = "O nome do bicicletário é obrigatório.";
+            return;
+        }
+
         var center = await _map!.GetCenterAsync();
         if (center is null) return;
 
-        var lat = center.Value.Lat.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        var lng = center.Value.Lng.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        Nav.NavigateTo($"/adicionar/dados?lat={lat}&lng={lng}");
+        _isPublishing = true;
+        StateHasChanged();
+        try
+        {
+            var (error, id) = await BicicletarioSvc.CreateAsync(BuildRequest(center.Value.Lat, center.Value.Lng));
+            if (error != null) { _publishError = error; return; }
+
+            if (_fotos.Count > 0 && id is not null)
+            {
+                foreach (var foto in _fotos)
+                {
+                    using var ms      = new MemoryStream(foto.Bytes);
+                    using var content = new MultipartFormDataContent();
+                    var fileContent   = new StreamContent(ms);
+                    fileContent.Headers.ContentType = new MediaTypeHeaderValue(foto.ContentType);
+                    var ext = foto.ContentType switch { "image/webp" => ".webp", "image/png" => ".png", _ => ".jpg" };
+                    content.Add(fileContent, "foto", $"foto{ext}");
+                    await BicicletarioSvc.UploadFotoAsync(id, content);
+                }
+            }
+
+            ToastSvc.Show("Bicicletário publicado com sucesso!");
+            Nav.NavigateTo("/", forceLoad: false);
+        }
+        finally { _isPublishing = false; StateHasChanged(); }
+    }
+
+    private CreateBicicletarioRequest BuildRequest(double lat, double lng)
+    {
+        var hs = _horarios
+            .Select((h, i) => h.Estado == "aberto"
+                ? new HorarioModel { DiaSemana = i, HoraAbertura = h.Abertura, HoraFechamento = h.Fechamento }
+                : null)
+            .Where(h => h != null).Select(h => h!).ToArray();
+
+        return new CreateBicicletarioRequest
+        {
+            Nome                = _name.Trim(),
+            Latitude            = lat,
+            Longitude           = lng,
+            TemTomada           = _servicos[0].Checked,
+            TemCalibrador       = _servicos[1].Checked,
+            TemArmario          = _servicos[2].Checked,
+            TemEspacoManutencao = _servicos[3].Checked,
+            TemCadeado          = _servicos[4].Checked,
+            TemBanheiro         = _servicos[5].Checked,
+            TemVestiario        = false,
+            AcessoLivre         = _accessType == 0,
+            AcessoPago          = _accessType == 1,
+            AcessoCadastro      = _accessType == 2,
+            AcessoMensal        = _accessType == 3,
+            VeiculosSuportados  = (_veiculos[0].Checked ? 1 : 0)
+                                | (_veiculos[1].Checked ? 2 : 0)
+                                | (_veiculos[2].Checked ? 8 : 0)
+                                | (_veiculos[3].Checked ? 4 : 0),
+            Horarios            = hs.Length > 0 ? hs : null,
+        };
+    }
+
+    // ── Inner types ───────────────────────────────────────────────
+
+    private class HorarioItem
+    {
+        public string Estado    = "ni";
+        public string Abertura  = "08:00";
+        public string Fechamento = "18:00";
+        public void Ciclar() => Estado = Estado switch { "ni" => "aberto", "aberto" => "fechado", _ => "ni" };
+    }
+
+    private class CheckOption(string icon, string label, bool @checked)
+    {
+        public string Icon    { get; } = icon;
+        public string Label   { get; } = label;
+        public bool   Checked { get; set; } = @checked;
     }
 
     private class NominatimResult
@@ -223,7 +950,9 @@ else
 
     private class NominatimReverseResult
     {
-        [System.Text.Json.Serialization.JsonPropertyName("display_name")]
+        [JsonPropertyName("display_name")]
         public string? DisplayName { get; set; }
     }
+
+    private record CameraResult([property: JsonPropertyName("dataUrl")] string? DataUrl);
 }

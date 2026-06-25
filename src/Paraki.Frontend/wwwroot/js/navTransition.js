@@ -2,6 +2,10 @@ window.setCssVar = function (name, value) {
     document.documentElement.style.setProperty(name, value);
 };
 
+window.matchesMedia = function (query) {
+    return window.matchMedia(query).matches;
+};
+
 window.navTransition = (function () {
     var _order = { mapa: 0, lista: 1, add: 2, perfil: 3 };
     var _safetyTimer = null;
