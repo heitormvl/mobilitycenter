@@ -553,6 +553,8 @@ input:focus, textarea:focus {
 
 /* Visibility helpers */
 .mobile-only { display: block; }
+.perfil-right { display: none; }
+.perfil-resumo-label { display: none; }
 
 @media (min-width: 900px) {
     :root { --sidebar-w: 240px; }
@@ -574,6 +576,23 @@ input:focus, textarea:focus {
 
     /* Location button: no bottom sheet on PC, pin to bottom-right */
     .location-btn { bottom: 24px !important; }
+
+    /* Perfil PC 2-column layout */
+    .perfil-content {
+        padding: 24px 24px 24px !important;
+    }
+    .perfil-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+    .perfil-right {
+        display: block;
+    }
+    .perfil-resumo-label {
+        display: block;
+    }
 
     /* Lista page — 2-column card grid */
     .lista-cards-container {

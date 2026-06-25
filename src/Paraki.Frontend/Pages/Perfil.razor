@@ -1,6 +1,7 @@
 @page "/perfil"
 @inject NavigationManager Nav
 @inject AuthService AuthService
+@inject LocalStorageService LocalStorage
 @inject IJSRuntime JS
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Net.Http.Headers
@@ -43,80 +44,212 @@
     <StatusBar />
     <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 20px 14px;">
         <h1 style="font-size:24px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em;">Perfil</h1>
-        <button @onclick="@(() => _showConfig = true)" style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+        <button class="mobile-only" @onclick="@(() => _showConfig = true)"
+                style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
             <i class="fa-solid fa-gear" style="color:var(--text-3); font-size:15px;"></i>
         </button>
     </div>
 </div>
 
-<div style="padding:20px 20px 88px; overflow-y:auto;">
+<div class="perfil-content" style="padding:20px 20px 88px; overflow-y:auto;">
     @if (_loading)
     {
         <div style="text-align:center; padding:40px; color:var(--text-4); font-family:var(--font);">Carregando...</div>
     }
     else if (_user != null)
     {
-        <!-- Avatar + name -->
-        <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:24px 20px; margin-bottom:14px; text-align:center; box-shadow:var(--shadow-sm);">
-            <div style="position:relative; display:inline-block; margin-bottom:14px;">
-                <label for="fotoInput" style="cursor:pointer; display:block;">
-                    <div style="width:80px; height:80px; border-radius:var(--r-full); background:var(--bg-page); border:3px solid var(--brand); display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        @if (!string.IsNullOrEmpty(_user.FotoPerfilUrl) && !_fotoErro)
+        <div class="perfil-layout">
+
+            <!-- Left column: account details -->
+            <div>
+                <div class="perfil-resumo-label"><SecLabel>Resumo</SecLabel></div>
+                <!-- Avatar + name -->
+                <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:24px 20px; margin-bottom:14px; text-align:center; box-shadow:var(--shadow-sm);">
+                    <div style="position:relative; display:inline-block; margin-bottom:14px;">
+                        <label for="fotoInput" style="cursor:pointer; display:block;">
+                            <div style="width:80px; height:80px; border-radius:var(--r-full); background:var(--bg-page); border:3px solid var(--brand); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                                @if (!string.IsNullOrEmpty(_user.FotoPerfilUrl) && !_fotoErro)
+                                {
+                                    <img src="@_user.FotoPerfilUrl" alt="Foto de perfil"
+                                         @onerror="() => { _fotoErro = true; StateHasChanged(); }"
+                                         style="width:100%; height:100%; object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <i class="fa-solid fa-user" style="font-size:30px; color:var(--text-4);"></i>
+                                }
+                            </div>
+                        </label>
+                        <label for="fotoInput" style="cursor:pointer; position:absolute; bottom:0; right:0; width:24px; height:24px; border-radius:var(--r-full); background:var(--brand); border:2.5px solid var(--bg); display:flex; align-items:center; justify-content:center;">
+                            <i class="fa-solid fa-pen" style="font-size:9px; color:white;"></i>
+                        </label>
+                    </div>
+
+                    <InputFile id="fotoInput" OnChange="OnFotoSelecionada"
+                               accept="image/webp,image/png,image/jpeg,image/heic,image/heif"
+                               style="display:none;" />
+
+                    <div style="font-size:20px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:4px;">@_user.DisplayName</div>
+                    <div style="font-size:13px; color:var(--text-4); font-family:var(--font);">Membro desde @_user.CreatedAt.ToString("MMMM \\de yyyy")</div>
+                </div>
+
+                <!-- Stats -->
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:24px;">
+                    <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px 10px; text-align:center; box-shadow:var(--shadow-sm);">
+                        <div style="font-size:26px; font-weight:800; color:var(--brand); font-family:var(--font); letter-spacing:-0.02em; line-height:1;">@_totalAvaliacoes</div>
+                        <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:5px; font-weight:500;">Avaliações</div>
+                    </div>
+                    <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px 10px; text-align:center; box-shadow:var(--shadow-sm);">
+                        <div style="font-size:26px; font-weight:800; color:var(--brand); font-family:var(--font); letter-spacing:-0.02em; line-height:1;">@_totalAdicionados</div>
+                        <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:5px; font-weight:500;">Adicionados</div>
+                    </div>
+                    <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px 10px; text-align:center; box-shadow:var(--shadow-sm);">
+                        <div style="font-size:26px; font-weight:800; color:var(--brand); font-family:var(--font); letter-spacing:-0.02em; line-height:1;">—</div>
+                        <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:5px; font-weight:500;">Visitados</div>
+                    </div>
+                </div>
+
+                <!-- Sign out -->
+                <button @onclick="HandleSignOut"
+                        style="width:100%; background:var(--bg); border:1.5px solid var(--border); border-radius:var(--r-lg); padding:14px 20px; font-family:var(--font); font-size:15px; font-weight:500; color:var(--red); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <i class="fa-solid fa-arrow-right-from-bracket" style="font-size:14px;"></i>
+                    Sair da conta
+                </button>
+            </div>
+
+            <!-- Right column: settings inline (PC only) -->
+            <div class="perfil-right">
+
+                <!-- Aparência -->
+                <SecLabel>Aparência</SecLabel>
+                <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:16px 20px; margin:8px 0 24px; box-shadow:var(--shadow-sm);">
+                    <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0 0 12px;">Escolha o tema da interface</p>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                        @foreach (var opt in _temaOpcoes)
                         {
-                            <img src="@_user.FotoPerfilUrl" alt="Foto de perfil"
-                                 @onerror="() => { _fotoErro = true; StateHasChanged(); }"
-                                 style="width:100%; height:100%; object-fit:cover;" />
-                        }
-                        else
-                        {
-                            <i class="fa-solid fa-user" style="font-size:30px; color:var(--text-4);"></i>
+                            var ativo = _tema == opt.Value;
+                            <button @onclick="@(() => AplicarTema(opt.Value))"
+                                    style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 8px; border-radius:var(--r-lg); border:2px solid @(ativo ? "var(--brand)" : "var(--border)"); background:@(ativo ? "var(--brand-soft)" : "var(--bg-page)"); cursor:pointer; transition:all .15s;">
+                                <i class="fa-solid @opt.Icon" style="font-size:18px; color:@(ativo ? "var(--brand)" : "var(--text-3)");"></i>
+                                <span style="font-size:12px; font-weight:@(ativo ? "700" : "500"); color:@(ativo ? "var(--brand)" : "var(--text-3)"); font-family:var(--font);">@opt.Label</span>
+                            </button>
                         }
                     </div>
-                </label>
-                <label for="fotoInput" style="cursor:pointer; position:absolute; bottom:0; right:0; width:24px; height:24px; border-radius:var(--r-full); background:var(--brand); border:2.5px solid var(--bg); display:flex; align-items:center; justify-content:center;">
-                    <i class="fa-solid fa-pen" style="font-size:9px; color:white;"></i>
-                </label>
-            </div>
+                </div>
 
-            <InputFile id="fotoInput" OnChange="OnFotoSelecionada"
-                       accept="image/webp,image/png,image/jpeg,image/heic,image/heif"
-                       style="display:none;" />
+                <!-- Dados da conta -->
+                <SecLabel>Dados da conta</SecLabel>
+                <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; margin:8px 0 24px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:16px;">
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Nome</label>
+                        <WfInput @bind-Value="_cfgNome" Placeholder="Seu nome completo" IconClass="fa-user" />
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">E-mail</label>
+                        <WfInput @bind-Value="_cfgEmail" Placeholder="seu@email.com" IconClass="fa-envelope" Type="email" />
+                    </div>
+                    @if (_cfgErroDados != null)
+                    {
+                        <div style="background:#FEF2F2; border:1px solid #FCA5A5; border-radius:var(--r); padding:12px 14px; font-family:var(--font); font-size:13px; color:var(--red);">@_cfgErroDados</div>
+                    }
+                    @if (_cfgOkDados)
+                    {
+                        <div style="background:#F0FDF4; border:1px solid #86EFAC; border-radius:var(--r); padding:12px 14px; font-family:var(--font); font-size:13px; color:#15803D;">Dados atualizados com sucesso.</div>
+                    }
+                    <BtnP OnClick="CfgSalvarDados">
+                        @if (_cfgSalvandoDados) { <span>Salvando...</span> } else { <span>Salvar alterações</span> }
+                    </BtnP>
+                </div>
 
-            <div style="font-size:20px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:4px;">@_user.DisplayName</div>
-            <div style="font-size:13px; color:var(--text-4); font-family:var(--font);">Membro desde @_user.CreatedAt.ToString("MMMM \\de yyyy")</div>
-        </div>
+                <!-- Alterar senha -->
+                <SecLabel>Alterar senha</SecLabel>
+                <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; margin:8px 0 24px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:16px;">
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Senha atual</label>
+                        <WfInput @bind-Value="_cfgSenhaAtual" Placeholder="••••••••" IconClass="fa-lock" Type="password" />
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Nova senha</label>
+                        <WfInput @bind-Value="_cfgNovaSenha" Placeholder="Mínimo 6 caracteres" IconClass="fa-lock" Type="password" />
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Confirmar nova senha</label>
+                        <WfInput @bind-Value="_cfgConfirmarSenha" Placeholder="Repita a nova senha" IconClass="fa-lock" Type="password" />
+                    </div>
+                    @if (_cfgErroSenha != null)
+                    {
+                        <div style="background:#FEF2F2; border:1px solid #FCA5A5; border-radius:var(--r); padding:12px 14px; font-family:var(--font); font-size:13px; color:var(--red);">@_cfgErroSenha</div>
+                    }
+                    @if (_cfgOkSenha)
+                    {
+                        <div style="background:#F0FDF4; border:1px solid #86EFAC; border-radius:var(--r); padding:12px 14px; font-family:var(--font); font-size:13px; color:#15803D;">Senha alterada com sucesso.</div>
+                    }
+                    <BtnP OnClick="CfgSalvarSenha">
+                        @if (_cfgSalvandoSenha) { <span>Salvando...</span> } else { <span>Alterar senha</span> }
+                    </BtnP>
+                </div>
 
-        <!-- Stats -->
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:24px;">
-            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px 10px; text-align:center; box-shadow:var(--shadow-sm);">
-                <div style="font-size:26px; font-weight:800; color:var(--brand); font-family:var(--font); letter-spacing:-0.02em; line-height:1;">@_totalAvaliacoes</div>
-                <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:5px; font-weight:500;">Avaliações</div>
-            </div>
-            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px 10px; text-align:center; box-shadow:var(--shadow-sm);">
-                <div style="font-size:26px; font-weight:800; color:var(--brand); font-family:var(--font); letter-spacing:-0.02em; line-height:1;">@_totalAdicionados</div>
-                <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:5px; font-weight:500;">Adicionados</div>
-            </div>
-            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px 10px; text-align:center; box-shadow:var(--shadow-sm);">
-                <div style="font-size:26px; font-weight:800; color:var(--brand); font-family:var(--font); letter-spacing:-0.02em; line-height:1;">—</div>
-                <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:5px; font-weight:500;">Visitados</div>
-            </div>
-        </div>
+                <!-- Zona de perigo -->
+                <SecLabel>Zona de perigo</SecLabel>
+                <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--red-border); margin:8px 0 24px; box-shadow:var(--shadow-sm); overflow:hidden;">
+                    @if (!_cfgConfirmandoExclusao)
+                    {
+                        <button @onclick="@(() => _cfgConfirmandoExclusao = true)"
+                                style="width:100%; display:flex; align-items:center; gap:12px; padding:16px 20px; background:transparent; border:none; cursor:pointer; text-align:left;">
+                            <i class="fa-solid fa-trash" style="font-size:15px; color:var(--red); width:18px; text-align:center;"></i>
+                            <span style="font-size:15px; color:var(--red); font-family:var(--font); font-weight:500;">Excluir conta</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <div style="padding:20px;">
+                            <p style="font-size:14px; font-weight:700; color:var(--red); font-family:var(--font); margin:0 0 8px;">Tem certeza?</p>
+                            <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0 0 16px; line-height:1.55;">
+                                Esta ação é permanente e não pode ser desfeita. Sua conta, avaliações e dados pessoais serão excluídos.
+                            </p>
+                            @if (_cfgErroExclusao is not null)
+                            {
+                                <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:var(--red);">@_cfgErroExclusao</div>
+                            }
+                            <div style="display:flex; gap:10px;">
+                                <button @onclick="@(() => { _cfgConfirmandoExclusao = false; _cfgErroExclusao = null; })"
+                                        style="flex:1; padding:13px; border-radius:var(--r-lg); border:1.5px solid var(--border); background:var(--bg-page); color:var(--text-2); font-family:var(--font); font-size:14px; font-weight:500; cursor:pointer;">
+                                    Cancelar
+                                </button>
+                                <button @onclick="CfgConfirmarExclusao" disabled="@_cfgExcluindo"
+                                        style="flex:1; padding:13px; border-radius:var(--r-lg); border:none; background:var(--red); color:white; font-family:var(--font); font-size:14px; font-weight:600; cursor:pointer; opacity:@(_cfgExcluindo ? "0.6" : "1");">
+                                    @(_cfgExcluindo ? "Excluindo..." : "Excluir conta")
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
 
-        <!-- Sign out -->
-        <div style="margin-top:20px;">
-            <button @onclick="HandleSignOut" style="width:100%; background:var(--bg); border:1.5px solid var(--border); border-radius:var(--r-lg); padding:14px 20px; font-family:var(--font); font-size:15px; font-weight:500; color:var(--red); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                <i class="fa-solid fa-arrow-right-from-bracket" style="font-size:14px;"></i>
-                Sair da conta
-            </button>
+                <!-- Legal -->
+                <SecLabel>Legal</SecLabel>
+                <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); margin:8px 0 0; box-shadow:var(--shadow-sm); overflow:hidden;">
+                    <a href="/politica-de-privacidade"
+                       style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; text-decoration:none; color:inherit;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <i class="fa-solid fa-shield-halved" style="font-size:15px; color:var(--text-3); width:18px; text-align:center;"></i>
+                            <span style="font-size:15px; color:var(--text); font-family:var(--font); font-weight:500;">Política de Privacidade</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right" style="font-size:12px; color:var(--text-4);"></i>
+                    </a>
+                </div>
+
+            </div>
         </div>
     }
 </div>
 
-@if (_showConfig)
-{
-    <ConfiguracoesSheet User="_user" OnClose="@(() => _showConfig = false)" />
-}
-
+<!-- Settings sheet: mobile only (gear button hidden on PC, so _showConfig stays false on PC) -->
+<div class="mobile-only">
+    @if (_showConfig)
+    {
+        <ConfiguracoesSheet User="_user" OnClose="@(() => _showConfig = false)" />
+    }
+</div>
 
 @code {
     private bool _showConfig;
@@ -132,6 +265,33 @@
     private string? _imageSrc;
     private bool _uploading;
     private string? _erroUpload;
+
+    // ── PC inline settings state ────────────────────────────────
+    private string _tema = "system";
+    private record TemaOpcao(string Value, string Label, string Icon);
+    private readonly TemaOpcao[] _temaOpcoes =
+    [
+        new("light",  "Claro",   "fa-sun"),
+        new("system", "Sistema", "fa-circle-half-stroke"),
+        new("dark",   "Escuro",  "fa-moon"),
+    ];
+
+    private string _cfgNome = "";
+    private string _cfgEmail = "";
+    private bool _cfgSalvandoDados;
+    private string? _cfgErroDados;
+    private bool _cfgOkDados;
+
+    private string _cfgSenhaAtual = "";
+    private string _cfgNovaSenha = "";
+    private string _cfgConfirmarSenha = "";
+    private bool _cfgSalvandoSenha;
+    private string? _cfgErroSenha;
+    private bool _cfgOkSenha;
+
+    private bool _cfgConfirmandoExclusao;
+    private bool _cfgExcluindo;
+    private string? _cfgErroExclusao;
 
     protected override async Task OnInitializedAsync()
     {
@@ -153,6 +313,11 @@
         }
 
         _loading = false;
+
+        _cfgNome  = _user.DisplayName;
+        _cfgEmail = _user.Email;
+        _tema = await LocalStorage.GetItemAsync("tema") ?? "system";
+        await AplicarTemaNoDocumento(_tema);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -206,14 +371,10 @@
         try
         {
             var dataUrl = await JS.InvokeAsync<string>("fotoCropper.getCroppedDataUrl");
-            if (dataUrl is null)
-            {
-                _erroUpload = "Erro ao processar a imagem.";
-                return;
-            }
+            if (dataUrl is null) { _erroUpload = "Erro ao processar a imagem."; return; }
 
             var base64 = dataUrl.Split(',')[1];
-            var bytes = Convert.FromBase64String(base64);
+            var bytes   = Convert.FromBase64String(base64);
 
             using var ms = new MemoryStream(bytes);
             using var content = new MultipartFormDataContent();
@@ -222,11 +383,7 @@
             content.Add(fileContent, "foto", "foto.png");
 
             var url = await AuthService.UploadFotoAsync(content);
-            if (url is null)
-            {
-                _erroUpload = "Erro ao salvar a foto. Tente novamente.";
-                return;
-            }
+            if (url is null) { _erroUpload = "Erro ao salvar a foto. Tente novamente."; return; }
 
             _user!.FotoPerfilUrl = url;
             _showCropModal = false;
@@ -252,6 +409,94 @@
     private async Task HandleSignOut()
     {
         await AuthService.LogoutAsync();
+        Nav.NavigateTo("/login");
+    }
+
+    // ── PC inline settings methods ──────────────────────────────
+
+    private async Task AplicarTema(string valor)
+    {
+        _tema = valor;
+        await LocalStorage.SetItemAsync("tema", valor);
+        await AplicarTemaNoDocumento(valor);
+    }
+
+    private async Task AplicarTemaNoDocumento(string valor)
+    {
+        if (valor == "system")
+            await JS.InvokeVoidAsync("document.documentElement.removeAttribute", "data-theme");
+        else
+            await JS.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", valor);
+    }
+
+    private async Task CfgSalvarDados()
+    {
+        if (_cfgSalvandoDados) return;
+        _cfgErroDados = null;
+        _cfgOkDados = false;
+
+        if (string.IsNullOrWhiteSpace(_cfgNome) || string.IsNullOrWhiteSpace(_cfgEmail))
+        {
+            _cfgErroDados = "Preencha nome e e-mail.";
+            return;
+        }
+
+        _cfgSalvandoDados = true;
+        _cfgErroDados = await AuthService.AtualizarPerfilAsync(_cfgNome.Trim(), _cfgEmail.Trim());
+        _cfgOkDados = _cfgErroDados is null;
+        if (_cfgOkDados && _user is not null)
+        {
+            _user.DisplayName = _cfgNome.Trim();
+            _user.Email       = _cfgEmail.Trim();
+        }
+        _cfgSalvandoDados = false;
+    }
+
+    private async Task CfgSalvarSenha()
+    {
+        if (_cfgSalvandoSenha) return;
+        _cfgErroSenha = null;
+        _cfgOkSenha   = false;
+
+        if (string.IsNullOrWhiteSpace(_cfgSenhaAtual) ||
+            string.IsNullOrWhiteSpace(_cfgNovaSenha)  ||
+            string.IsNullOrWhiteSpace(_cfgConfirmarSenha))
+        {
+            _cfgErroSenha = "Preencha todos os campos.";
+            return;
+        }
+        if (_cfgNovaSenha != _cfgConfirmarSenha)
+        {
+            _cfgErroSenha = "A confirmação não corresponde à nova senha.";
+            return;
+        }
+
+        _cfgSalvandoSenha = true;
+        _cfgErroSenha = await AuthService.AlterarSenhaAsync(_cfgSenhaAtual, _cfgNovaSenha);
+        _cfgOkSenha   = _cfgErroSenha is null;
+        if (_cfgOkSenha)
+        {
+            _cfgSenhaAtual     = "";
+            _cfgNovaSenha      = "";
+            _cfgConfirmarSenha = "";
+        }
+        _cfgSalvandoSenha = false;
+    }
+
+    private async Task CfgConfirmarExclusao()
+    {
+        if (_cfgExcluindo) return;
+        _cfgExcluindo     = true;
+        _cfgErroExclusao  = null;
+
+        var erro = await AuthService.ExcluirContaAsync();
+        if (erro is not null)
+        {
+            _cfgErroExclusao = erro;
+            _cfgExcluindo    = false;
+            return;
+        }
+
         Nav.NavigateTo("/login");
     }
 }
