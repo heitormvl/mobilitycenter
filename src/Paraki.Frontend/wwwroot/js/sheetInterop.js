@@ -108,6 +108,22 @@ window.sheetInterop = (function () {
 
         getViewportHeight() {
             return window.innerHeight;
+        },
+
+        watchResize(dotnetRef) {
+            let t = null;
+            this._resizeHandler = () => {
+                clearTimeout(t);
+                t = setTimeout(() => dotnetRef.invokeMethodAsync('OnWindowResized', window.innerHeight), 150);
+            };
+            window.addEventListener('resize', this._resizeHandler);
+        },
+
+        stopWatchResize() {
+            if (this._resizeHandler) {
+                window.removeEventListener('resize', this._resizeHandler);
+                this._resizeHandler = null;
+            }
         }
     };
 })();

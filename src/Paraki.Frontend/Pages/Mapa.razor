@@ -722,7 +722,15 @@
         _dotnetRef = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("sheetInterop.init", _dotnetRef, _sheetRef, _handleRef, PeekTranslateY);
         await JS.InvokeVoidAsync("mapInterop.setNavRef", _dotnetRef);
+        await JS.InvokeVoidAsync("sheetInterop.watchResize", _dotnetRef);
         StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnWindowResized(int height)
+    {
+        _mapHeight = height;
+        await InvokeAsync(StateHasChanged);
     }
 
     [JSInvokable]
@@ -735,7 +743,11 @@
         StateHasChanged();
     }
 
-    public void Dispose() => _dotnetRef?.Dispose();
+    public void Dispose()
+    {
+        JS.InvokeVoidAsync("sheetInterop.stopWatchResize");
+        _dotnetRef?.Dispose();
+    }
 
     private async Task OnMapReady()
     {

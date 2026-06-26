@@ -178,6 +178,11 @@ window.mapInterop = {
         marker.openPopup();
     },
 
+    invalidateSize: function (mapId) {
+        const inst = this._instances[mapId];
+        if (inst) inst.map.invalidateSize();
+    },
+
     getBounds: function (mapId) {
         const inst = this._instances[mapId];
         if (!inst) return null;

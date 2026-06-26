@@ -15,11 +15,13 @@
     private ElementReference _container;
     private readonly string _id = Guid.NewGuid().ToString("N");
     private DotNetObjectReference<MapGrid>? _selfRef;
+    private int _renderedH;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            _renderedH = H;
             await JS.InvokeVoidAsync("mapInterop.initMap", _container, _id);
 
             if (OnViewChanged.HasDelegate)
@@ -30,6 +32,13 @@
 
             if (OnReady.HasDelegate)
                 await OnReady.InvokeAsync();
+        }
+        else if (H != _renderedH)
+        {
+            _renderedH = H;
+            await JS.InvokeVoidAsync("mapInterop.invalidateSize", _id);
+            if (OnViewChanged.HasDelegate)
+                await OnViewChanged.InvokeAsync();
         }
     }
 
