@@ -123,6 +123,20 @@ window.mapInterop = {
             const marker = L.marker([m.lat, m.lng], { icon })
                 .bindPopup(m.popupHtml, { closeButton: false, minWidth: 268, maxWidth: 300, className: 'mc-popup' });
 
+            // When the popup opens from a direct tap (not _applyFocus), pan so the
+            // pin+popup combo is fully visible and clear of the search bar (~72px).
+            marker.on('popupopen', () => {
+                if (inst.pendingFocus) return; // _applyFocus will handle positioning
+                const map = inst.map;
+                const zoom = map.getZoom();
+                const latlng = marker.getLatLng();
+                const pinPx = map.project(latlng, zoom);
+                // Shift viewport up: 140px accounts for popup height + search bar
+                const centerPx = pinPx.subtract([0, 140]);
+                const centerLatLng = map.unproject(centerPx, zoom);
+                map.panTo(centerLatLng, { animate: true, duration: 0.25 });
+            });
+
             marker.addTo(inst.markerLayer);
             inst.markers.push(marker);
             inst.markersById[m.id] = marker;
