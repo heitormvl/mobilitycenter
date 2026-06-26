@@ -82,9 +82,135 @@ else if (_item != null)
         </div>
     }
 
+    @* Mobile-only: capa full-bleed *@
+    <div class="mc-mob-cover mc-detail-rise" style="position:relative; background:#111;"
+         @ontouchstart="HandleTouchStart" @ontouchend="HandleTouchEnd">
+        @{
+            var _mobFoto = _fotos.Count > 0 ? _fotos[_carouselIndex] : null;
+            var _mobUrl  = _mobFoto != null ? BicicletarioSvc.GetFotoUrl(_mobFoto.FotoUrl) : _capaUrl;
+            var _mobId   = _mobFoto?.Id ?? _capa?.Id ?? "legacy";
+        }
+        @if (_mobUrl != null && !_fotosFalhou.Contains(_mobId))
+        {
+            <img src="@_mobUrl"
+                 style="width:100%; max-height:320px; object-fit:contain; display:block; cursor:zoom-in;"
+                 alt="Foto do local"
+                 @onclick="@(() => { _lightboxUrl = _mobUrl; _lightboxOpen = true; })"
+                 @onerror="@(() => { _fotosFalhou.Add(_mobId); StateHasChanged(); })" />
+        }
+        else
+        {
+            <ImgPH H="200" Label="Foto do local" />
+        }
+        @if (_isAdmin)
+        {
+            <button @onclick="@(() => { _editingFoto = !_editingFoto; _saveError = null; })"
+                    style="position:absolute; top:12px; right:12px; width:36px; height:36px; border-radius:var(--r-full); background:rgba(0,0,0,0.5); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                <i class="fa-solid @(_editingFoto ? "fa-xmark" : "fa-plus")" style="font-size:13px; color:white;"></i>
+            </button>
+        }
+        @if (_isAdmin && _editingFoto)
+        {
+            <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.75); padding:14px 16px; display:flex; align-items:center; gap:16px;">
+                <label style="flex:1; display:flex; align-items:center; gap:8px; cursor:pointer; color:white; font-size:14px; font-family:var(--font); font-weight:500;">
+                    <i class="fa-solid fa-image"></i>
+                    @if (_isSaving) { <span>Enviando...</span> } else { <span>Galeria</span> }
+                    <InputFile @key="_fotoUploadKey" multiple OnChange="HandleFotoUpload" accept="image/webp,image/png,image/jpeg,image/heic,image/heif" style="display:none;" disabled="@_isSaving" />
+                </label>
+                <button type="button" @onclick="TirarFotoDetalhe" disabled="@_isSaving"
+                        style="display:flex; align-items:center; gap:8px; color:white; font-size:14px; font-family:var(--font); font-weight:500; background:transparent; border:none; cursor:pointer; padding:0; opacity:@(_isSaving ? "0.5" : "1");">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Câmera</span>
+                </button>
+                <input id="cameraInputDetalhe" type="file" accept="image/*" capture="environment" style="display:none;" />
+            </div>
+            @if (!string.IsNullOrEmpty(_saveError))
+            {
+                <div style="position:absolute; top:0; left:0; right:0; background:rgba(220,38,38,0.85); padding:8px 14px; font-size:12px; color:white; font-family:var(--font);">
+                    @_saveError
+                </div>
+            }
+        }
+        @if (_fotos.Count > 1)
+        {
+            <div style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:5px; pointer-events:none;">
+                @for (var di = 0; di < _fotos.Count; di++)
+                {
+                    var isActive = di == _carouselIndex;
+                    <div style="width:@(isActive ? "8px" : "6px"); height:@(isActive ? "8px" : "6px"); border-radius:var(--r-full); background:@(isActive ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.4)"); transition:all 0.15s;"></div>
+                }
+            </div>
+        }
+    </div>
+
+    @* Mobile-only: carrossel de miniaturas *@
+    @if (_fotos.Count > 1 || _isAdmin)
+    {
+        <div class="mc-mob-carousel" style="padding:12px 0 0;">
+            <div style="padding:0 16px 8px; display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:11px; font-weight:600; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:0.07em;">
+                    Fotos (@_fotos.Count)
+                </span>
+            </div>
+            <div style="display:flex; gap:8px; overflow-x:auto; padding:0 16px 12px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
+                @for (var fi = 0; fi < _fotos.Count; fi++)
+                {
+                    var foto = _fotos[fi];
+                    var fUrl = BicicletarioSvc.GetFotoUrl(foto.FotoUrl);
+                    var fId = foto.Id;
+                    var fIdx = fi;
+                    <div style="position:relative; flex-shrink:0; width:160px; height:120px; scroll-snap-align:start; border-radius:var(--r-lg); overflow:hidden; border:2px solid @(fIdx == _carouselIndex ? "var(--brand)" : "var(--border)");">
+                        @if (!_fotosFalhou.Contains(fId))
+                        {
+                            <img src="@fUrl"
+                                 style="width:100%; height:100%; object-fit:cover; cursor:zoom-in;"
+                                 alt="Foto"
+                                 @onclick="@(() => { _carouselIndex = fIdx; _lightboxUrl = fUrl; _lightboxOpen = true; })"
+                                 @onerror="@(() => { _fotosFalhou.Add(fId); StateHasChanged(); })" />
+                        }
+                        else
+                        {
+                            <div style="width:100%; height:100%; background:var(--bg-page); display:flex; align-items:center; justify-content:center;">
+                                <i class="fa-solid fa-image" style="color:var(--text-4); font-size:24px;"></i>
+                            </div>
+                        }
+                        @if (foto.IsCapa)
+                        {
+                            <div style="position:absolute; top:6px; left:6px; background:var(--brand); border-radius:var(--r-full); padding:3px 8px; display:flex; align-items:center; gap:4px; pointer-events:none;">
+                                <i class="fa-solid fa-star" style="font-size:9px; color:white;"></i>
+                                <span style="font-size:10px; font-weight:700; color:white; font-family:var(--font);">Capa</span>
+                            </div>
+                        }
+                        @if (_isAdmin && !foto.IsCapa)
+                        {
+                            <button @onclick="@(async () => await SetCapaAsync(fId))"
+                                    title="Definir como capa"
+                                    style="position:absolute; top:6px; right:6px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-appearance:none;">
+                                <i class="fa-regular fa-star" style="font-size:11px; color:white;"></i>
+                            </button>
+                            <button @onclick="@(async () => await DeleteFotoAsync(fId))"
+                                    title="Excluir foto"
+                                    style="position:absolute; bottom:6px; right:6px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(220,38,38,0.7); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-appearance:none;">
+                                <i class="fa-solid fa-trash" style="font-size:10px; color:white;"></i>
+                            </button>
+                        }
+                        @if (_isAdmin && foto.IsCapa)
+                        {
+                            <button @onclick="@(async () => await DeleteFotoAsync(fId))"
+                                    title="Excluir foto"
+                                    style="position:absolute; bottom:6px; right:6px; width:28px; height:28px; border-radius:var(--r-full); background:rgba(220,38,38,0.7); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-appearance:none;">
+                                <i class="fa-solid fa-trash" style="font-size:10px; color:white;"></i>
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
     @* Scrollable body *@
     <div class="mc-detail-body">
-    <div class="mc-detail-left mc-detail-rise">
+    <div class="mc-detail-left">
 
         @* Imagem principal *@
         <div class="mc-photo-main" @ontouchstart="HandleTouchStart" @ontouchend="HandleTouchEnd">
@@ -144,7 +270,6 @@ else if (_item != null)
                         <i class="fa-solid fa-camera"></i>
                         <span>Câmera</span>
                     </button>
-                    <input id="cameraInputDetalhe" type="file" accept="image/*" capture="environment" style="display:none;" />
                 </div>
                 @if (!string.IsNullOrEmpty(_saveError))
                 {
@@ -157,7 +282,7 @@ else if (_item != null)
 
 
         @* Stars + address *@
-        <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:16px; box-shadow:var(--shadow-xs);">
+        <div class="mc-detail-stars">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
                 <Stars N="@((int)Math.Round(_item.NotaMedia))" Size="15" />
                 <span style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font);">
@@ -182,8 +307,71 @@ else if (_item != null)
             }
         </div>
 
+        @* Services card *@
+        <div class="mc-servicos-card" style="background:var(--bg); border-radius:var(--r-lg); border:1px solid @(_editingServicos ? "var(--brand)" : "var(--border)"); padding:16px; margin-bottom:12px; box-shadow:var(--shadow-xs); transition:border-color 0.15s;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div style="font-family:var(--font); font-size:11px; font-weight:600; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase;">Serviços</div>
+                @if (_isAdmin && !_editingServicos)
+                {
+                    <button @onclick="StartEditServicos"
+                            style="width:28px; height:28px; border-radius:var(--r-full); border:1px solid var(--border); background:var(--bg-page); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i class="fa-solid fa-pen" style="font-size:10px; color:var(--text-3);"></i>
+                    </button>
+                }
+            </div>
+
+            @if (!_editingServicos)
+            {
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    @foreach (var s in _servicos)
+                    {
+                        <div style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:500; padding:5px 11px; border-radius:var(--r-full); font-family:var(--font); border:1px solid @(s.Ok ? "#BBF7D0" : "var(--border)"); background:@(s.Ok ? "var(--green-bg)" : "var(--bg-page)"); color:@(s.Ok ? "var(--green)" : "var(--text-4)");">
+                            <i class="fa-solid @s.Icon" style="font-size:10px;"></i>
+                            <span>@s.Label</span>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button @onclick="@(() => _eTemTomada = !_eTemTomada)" style="@ChipToggleStyle(_eTemTomada)">
+                        <i class="fa-solid fa-plug" style="font-size:10px;"></i> Tomada
+                    </button>
+                    <button @onclick="@(() => _eTemCalibrador = !_eTemCalibrador)" style="@ChipToggleStyle(_eTemCalibrador)">
+                        <i class="fa-solid fa-gauge" style="font-size:10px;"></i> Calibrador
+                    </button>
+                    <button @onclick="@(() => _eTemVestiario = !_eTemVestiario)" style="@ChipToggleStyle(_eTemVestiario)">
+                        <i class="fa-solid fa-shirt" style="font-size:10px;"></i> Vestiário
+                    </button>
+                    <button @onclick="@(() => _eTemArmario = !_eTemArmario)" style="@ChipToggleStyle(_eTemArmario)">
+                        <i class="fa-solid fa-box" style="font-size:10px;"></i> Armário
+                    </button>
+                    <button @onclick="@(() => _eTemEspacoManutencao = !_eTemEspacoManutencao)" style="@ChipToggleStyle(_eTemEspacoManutencao)">
+                        <i class="fa-solid fa-wrench" style="font-size:10px;"></i> Manutenção
+                    </button>
+                    <button @onclick="@(() => _eTemCadeado = !_eTemCadeado)" style="@ChipToggleStyle(_eTemCadeado)">
+                        <i class="fa-solid fa-lock" style="font-size:10px;"></i> Cadeado
+                    </button>
+                    <button @onclick="@(() => _eTemBanheiro = !_eTemBanheiro)" style="@ChipToggleStyle(_eTemBanheiro)">
+                        <i class="fa-solid fa-restroom" style="font-size:10px;"></i> Banheiro
+                    </button>
+                </div>
+                @if (!string.IsNullOrEmpty(_saveError))
+                {
+                    <div style="font-size:12px; color:#DC2626; margin-top:8px; font-family:var(--font);">@_saveError</div>
+                }
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
+                    <BtnP OnClick="SaveServicos" Style="@(_isSaving ? "opacity:0.6; pointer-events:none;" : "")">
+                        @(_isSaving ? "Salvando..." : "Salvar")
+                    </BtnP>
+                    <BtnO OnClick="@(() => { _editingServicos = false; _saveError = null; })">Cancelar</BtnO>
+                </div>
+            }
+        </div>
+
         @* Access + Vehicles 2-col (stacks to 1-col when editing either) *@
-        <div style="display:grid; grid-template-columns:@(_editingAcesso || _editingVeiculos ? "1fr" : "1fr 1fr"); gap:10px; transition:grid-template-columns 0.15s;">
+        <div class="mc-acesso-veic" style="display:grid; grid-template-columns:@(_editingAcesso || _editingVeiculos ? "1fr" : "1fr 1fr"); gap:10px; margin-bottom:20px; transition:grid-template-columns 0.15s;">
 
             @* Acesso card *@
             <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid @(_editingAcesso ? "var(--brand)" : "var(--border)"); padding:14px; box-shadow:var(--shadow-xs); transition:border-color 0.15s;">
@@ -305,69 +493,6 @@ else if (_item != null)
                     </div>
                 }
             </div>
-        </div>
-
-        @* Services card *@
-        <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid @(_editingServicos ? "var(--brand)" : "var(--border)"); padding:16px; box-shadow:var(--shadow-xs); transition:border-color 0.15s;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                <div style="font-family:var(--font); font-size:11px; font-weight:600; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase;">Serviços</div>
-                @if (_isAdmin && !_editingServicos)
-                {
-                    <button @onclick="StartEditServicos"
-                            style="width:28px; height:28px; border-radius:var(--r-full); border:1px solid var(--border); background:var(--bg-page); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                        <i class="fa-solid fa-pen" style="font-size:10px; color:var(--text-3);"></i>
-                    </button>
-                }
-            </div>
-
-            @if (!_editingServicos)
-            {
-                <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                    @foreach (var s in _servicos)
-                    {
-                        <div style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:500; padding:5px 11px; border-radius:var(--r-full); font-family:var(--font); border:1px solid @(s.Ok ? "#BBF7D0" : "var(--border)"); background:@(s.Ok ? "var(--green-bg)" : "var(--bg-page)"); color:@(s.Ok ? "var(--green)" : "var(--text-4)");">
-                            <i class="fa-solid @s.Icon" style="font-size:10px;"></i>
-                            <span>@s.Label</span>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                    <button @onclick="@(() => _eTemTomada = !_eTemTomada)" style="@ChipToggleStyle(_eTemTomada)">
-                        <i class="fa-solid fa-plug" style="font-size:10px;"></i> Tomada
-                    </button>
-                    <button @onclick="@(() => _eTemCalibrador = !_eTemCalibrador)" style="@ChipToggleStyle(_eTemCalibrador)">
-                        <i class="fa-solid fa-gauge" style="font-size:10px;"></i> Calibrador
-                    </button>
-                    <button @onclick="@(() => _eTemVestiario = !_eTemVestiario)" style="@ChipToggleStyle(_eTemVestiario)">
-                        <i class="fa-solid fa-shirt" style="font-size:10px;"></i> Vestiário
-                    </button>
-                    <button @onclick="@(() => _eTemArmario = !_eTemArmario)" style="@ChipToggleStyle(_eTemArmario)">
-                        <i class="fa-solid fa-box" style="font-size:10px;"></i> Armário
-                    </button>
-                    <button @onclick="@(() => _eTemEspacoManutencao = !_eTemEspacoManutencao)" style="@ChipToggleStyle(_eTemEspacoManutencao)">
-                        <i class="fa-solid fa-wrench" style="font-size:10px;"></i> Manutenção
-                    </button>
-                    <button @onclick="@(() => _eTemCadeado = !_eTemCadeado)" style="@ChipToggleStyle(_eTemCadeado)">
-                        <i class="fa-solid fa-lock" style="font-size:10px;"></i> Cadeado
-                    </button>
-                    <button @onclick="@(() => _eTemBanheiro = !_eTemBanheiro)" style="@ChipToggleStyle(_eTemBanheiro)">
-                        <i class="fa-solid fa-restroom" style="font-size:10px;"></i> Banheiro
-                    </button>
-                </div>
-                @if (!string.IsNullOrEmpty(_saveError))
-                {
-                    <div style="font-size:12px; color:#DC2626; margin-top:8px; font-family:var(--font);">@_saveError</div>
-                }
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
-                    <BtnP OnClick="SaveServicos" Style="@(_isSaving ? "opacity:0.6; pointer-events:none;" : "")">
-                        @(_isSaving ? "Salvando..." : "Salvar")
-                    </BtnP>
-                    <BtnO OnClick="@(() => { _editingServicos = false; _saveError = null; })">Cancelar</BtnO>
-                </div>
-            }
         </div>
 
         @* Horários de Funcionamento *@
@@ -594,7 +719,7 @@ else if (_item != null)
         </div>
 
         @* Reviews *@
-        <div style="margin-bottom:0;">
+        <div style="margin-bottom:12px;">
             <div style="font-family:var(--font); font-size:11px; font-weight:600; color:var(--text-4); letter-spacing:0.07em; text-transform:uppercase;">
                 Avaliações (@(_item.Avaliacoes.Length))
             </div>

@@ -724,8 +724,35 @@ input:focus, textarea:focus {
     .mc-detail-cta-mob { display: none; }
 }
 
+/* ── Mobile-only cover + carousel (hidden on PC) ────────────── */
+.mc-mob-cover   { display: block; }
+.mc-mob-carousel { display: block; }
+@media (min-width: 900px) {
+    .mc-mob-cover, .mc-mob-carousel { display: none; }
+}
+
+/* ── Stars+address: plain on mobile, card on PC ─────────────── */
+.mc-detail-stars { margin-bottom: 20px; }
+@media (min-width: 900px) {
+    .mc-detail-stars {
+        background: var(--bg);
+        border-radius: var(--r-lg);
+        border: 1px solid var(--border);
+        padding: 16px;
+        box-shadow: var(--shadow-xs);
+        margin-bottom: 0;
+    }
+}
+
+/* ── Card ordering on PC (services after acesso+veiculos) ───── */
+@media (min-width: 900px) {
+    .mc-acesso-veic   { order: 0; }
+    .mc-servicos-card { order: 1; }
+}
+
 /* ── Photo gallery (imagem principal + grid paginado) ────────── */
 .mc-photo-main {
+    display: none; /* shown only on PC */
     position: relative;
     overflow: hidden;
     background: #111;
@@ -737,7 +764,7 @@ input:focus, textarea:focus {
     position: relative;
 }
 .mc-photo-grid-col {
-    display: flex;
+    display: none; /* shown only on PC */
     flex-direction: column;
     overflow: hidden;
     background: #111;
@@ -779,7 +806,7 @@ input:focus, textarea:focus {
         border-radius: var(--r-lg);
     }
     .mc-photo-main-inner  { height: 100%; width: auto; aspect-ratio: 3 / 4; }
-    .mc-photo-grid-col    { border-radius: var(--r-lg); overflow: hidden; }
+    .mc-photo-grid-col    { display: flex; border-radius: var(--r-lg); overflow: hidden; }
 }
 
 /* ── Avaliar page ────────────────────────────────────────────── */
