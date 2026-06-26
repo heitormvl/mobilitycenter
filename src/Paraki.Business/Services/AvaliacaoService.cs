@@ -41,6 +41,35 @@ public class AvaliacaoService : IAvaliacaoService
             .ToListAsync();
     }
 
+    public async Task<AvaliacaoDto> AtualizarAsync(Guid avaliacaoId, AtualizarAvaliacaoDto dto, Guid usuarioId)
+    {
+        if (dto.Nota < 1 || dto.Nota > 5)
+            throw new ValidationException("Nota deve ser entre 1 e 5.");
+
+        var avaliacao = await _db.Avaliacoes
+            .Include(a => a.Usuario)
+            .FirstOrDefaultAsync(a => a.Id == avaliacaoId)
+            ?? throw new NotFoundException($"Avaliação {avaliacaoId} não encontrada.");
+
+        if (avaliacao.UsuarioId != usuarioId)
+            throw new AppException("Você não pode editar a avaliação de outro usuário.", 403);
+
+        avaliacao.Nota = dto.Nota;
+        avaliacao.Comentario = dto.Comentario;
+        await _db.SaveChangesAsync();
+
+        return new AvaliacaoDto
+        {
+            Id          = avaliacao.Id,
+            UsuarioId   = avaliacao.UsuarioId,
+            NomeUsuario = avaliacao.Usuario.DisplayName,
+            FotoPerfilUrl = avaliacao.Usuario.FotoPerfilUrl,
+            Nota        = avaliacao.Nota,
+            Comentario  = avaliacao.Comentario,
+            CriadoEm   = avaliacao.CriadoEm
+        };
+    }
+
     public async Task<AvaliacaoDto> CriarAsync(Guid bicicletarioId, CriarAvaliacaoDto dto, Guid usuarioId)
     {
         var existe = await _db.Bicicletarios.AnyAsync(b => b.Id == bicicletarioId);

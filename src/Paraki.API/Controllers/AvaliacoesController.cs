@@ -32,6 +32,15 @@ public class AvaliacoesController : ControllerBase
         return Created($"/api/bicicletarios/{bicicletarioId}/avaliacoes/{resultado.Id}", resultado);
     }
 
+    [HttpPut("{avaliacaoId:guid}")]
+    [Authorize]
+    public async Task<IActionResult> Atualizar(Guid bicicletarioId, Guid avaliacaoId, [FromBody] AtualizarAvaliacaoDto dto)
+    {
+        var usuarioId = ObterUsuarioId();
+        var resultado = await _avaliacaoService.AtualizarAsync(avaliacaoId, dto, usuarioId);
+        return Ok(resultado);
+    }
+
     private Guid ObterUsuarioId()
     {
         var valor = User.FindFirstValue(ClaimTypes.NameIdentifier)

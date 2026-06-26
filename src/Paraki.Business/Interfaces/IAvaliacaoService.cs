@@ -6,4 +6,5 @@ public interface IAvaliacaoService
 {
     Task<IEnumerable<AvaliacaoDto>> ListarPorBicicletarioAsync(Guid bicicletarioId);
     Task<AvaliacaoDto> CriarAsync(Guid bicicletarioId, CriarAvaliacaoDto dto, Guid usuarioId);
+    Task<AvaliacaoDto> AtualizarAsync(Guid avaliacaoId, AtualizarAvaliacaoDto dto, Guid usuarioId);
 }

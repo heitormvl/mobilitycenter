@@ -782,6 +782,36 @@ input:focus, textarea:focus {
     .mc-photo-grid-col    { border-radius: var(--r-lg); overflow: hidden; }
 }
 
+/* ── Avaliar page ────────────────────────────────────────────── */
+.mc-avaliar-header {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+.mc-avaliar-wrapper { padding: 20px 20px 100px; }
+.mc-avaliar-card    { /* mobile: transparent, sem borda */ }
+@media (min-width: 900px) {
+    .mc-avaliar-header  { display: none; }
+    .mc-avaliar-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 48px 32px 64px;
+        min-height: calc(100vh - 1px);
+    }
+    .mc-avaliar-card {
+        width: 100%;
+        max-width: 580px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        padding: 36px 40px;
+        box-shadow: var(--shadow-sm);
+    }
+}
+
 /* ── Map markers ─────────────────────────────────────────────── */
 .mc-pin { background: none; border: none; }
 .mc-pin-dot {
