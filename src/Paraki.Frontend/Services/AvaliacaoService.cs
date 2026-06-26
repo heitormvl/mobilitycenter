@@ -35,8 +35,12 @@ public class AvaliacaoService(HttpClient http)
             if (response.StatusCode == HttpStatusCode.Unauthorized)
                 return "Sua sessão expirou. Entre novamente.";
 
-            var err = await response.Content.ReadFromJsonAsync<ApiError>();
-            return err?.Message ?? "Não foi possível atualizar a avaliação.";
+            try
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Não foi possível atualizar a avaliação.";
+            }
+            catch { return $"Erro {(int)response.StatusCode} ao atualizar a avaliação."; }
         }
         catch { return "Erro de conexão. Verifique sua internet e tente novamente."; }
     }

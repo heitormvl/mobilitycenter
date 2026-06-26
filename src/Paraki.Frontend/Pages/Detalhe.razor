@@ -689,7 +689,8 @@ else if (_item != null)
         @* PC: CTA inline *@
         <div class="mc-detail-cta-pc">
             <BtnP OnClick="@(() => Nav.NavigateTo($"/avaliar/{Id}?name={Uri.EscapeDataString(_item!.Nome)}"))">
-                <i class="fa-regular fa-star" style="margin-right:8px;"></i>Avaliar este local
+                <i class="@(_jaAvaliou ? "fa-solid fa-pen" : "fa-regular fa-star")" style="margin-right:8px;"></i>
+                @(_jaAvaliou ? "Editar avaliação" : "Avaliar este local")
             </BtnP>
         </div>
 
@@ -699,7 +700,8 @@ else if (_item != null)
     @* Sticky CTA above BottomNav — mobile only *@
     <div class="mc-detail-cta-mob" style="position:absolute; bottom:82px; left:16px; right:16px;">
         <BtnP OnClick="@(() => Nav.NavigateTo($"/avaliar/{Id}?name={Uri.EscapeDataString(_item.Nome)}"))">
-            <i class="fa-regular fa-star" style="margin-right:8px;"></i>Avaliar este local
+            <i class="@(_jaAvaliou ? "fa-solid fa-pen" : "fa-regular fa-star")" style="margin-right:8px;"></i>
+            @(_jaAvaliou ? "Editar avaliação" : "Avaliar este local")
         </BtnP>
     </div>
 }
@@ -717,6 +719,7 @@ else if (_item != null)
 
     private UserInfo? _userInfo;
     private bool      _isAdmin;
+    private bool      _jaAvaliou;
     private List<FotoModel> _fotos = [];
     private HashSet<string> _fotosFalhou = [];
     private string?   _legacyCoverUrl;
@@ -800,6 +803,10 @@ else if (_item != null)
         }
 
         RecomputeDisplayData();
+
+        if (_userInfo != null)
+            _jaAvaliou = _item.Avaliacoes.Any(a =>
+                string.Equals(a.UsuarioId, _userInfo.Id.ToString(), StringComparison.OrdinalIgnoreCase));
 
         _ = ReverseGeocodeAsync(_item.Latitude, _item.Longitude);
         _ = CarregarFotosAsync();
