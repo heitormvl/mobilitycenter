@@ -443,9 +443,7 @@ input:focus, textarea:focus {
 }
 .side-nav__logo {
     width: 36px; height: 36px; flex-shrink: 0;
-    background: var(--brand); border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 17px;
+    border-radius: 10px; overflow: hidden;
 }
 .side-nav__brand-name {
     font-size: 18px; font-weight: 800; color: var(--text);
@@ -701,6 +699,87 @@ input:focus, textarea:focus {
     padding: 10px 16px;
     display: flex;
     gap: 10px;
+}
+
+/* ── Detalhe PC 2-column layout ──────────────────────────────── */
+.mc-detail-body { padding: 20px 20px 160px; }
+.mc-detail-cta-pc { display: none; }
+@media (min-width: 900px) {
+    .mc-detail-body {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 20px 24px 40px;
+    }
+    .mc-detail-left, .mc-detail-right {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .mc-detail-left > *, .mc-detail-right > * { margin-bottom: 0 !important; }
+    .mc-detail-cta-pc { display: block; }
+    .mc-detail-cta-mob { display: none; }
+}
+
+/* ── Photo gallery (imagem principal + grid paginado) ────────── */
+.mc-photo-main {
+    position: relative;
+    overflow: hidden;
+    background: #111;
+}
+.mc-photo-main-inner {
+    width: 100%;
+    height: 260px;
+    overflow: hidden;
+    position: relative;
+}
+.mc-photo-grid-col {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #111;
+}
+.mc-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    overflow: hidden;
+    align-content: start;
+}
+.mc-photo-grid-item {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    box-sizing: border-box;
+    transition: border-color 0.12s;
+}
+.mc-photo-grid-item--sel { border-color: var(--brand); }
+.mc-photo-grid-nav {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 5px 0;
+    background: rgba(0,0,0,0.35);
+}
+@media (min-width: 900px) {
+    /* Container 9:8 = 2× a altura dos itens do grid (3:4 em 3 colunas).
+       Imagem interna mantém 3:4 retrato, centralizada com espaços laterais. */
+    .mc-photo-main {
+        aspect-ratio: 9 / 8;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: var(--r-lg);
+    }
+    .mc-photo-main-inner  { height: 100%; width: auto; aspect-ratio: 3 / 4; }
+    .mc-photo-grid-col    { border-radius: var(--r-lg); overflow: hidden; }
 }
 
 /* ── Map markers ─────────────────────────────────────────────── */
