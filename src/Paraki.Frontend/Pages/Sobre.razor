@@ -1,0 +1,161 @@
+@page "/sobre"
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div style="min-height:100vh; background:var(--bg-page); display:flex; flex-direction:column;">
+
+    <!-- Header -->
+    <div style="background:var(--bg); border-bottom:1px solid var(--border); flex-shrink:0;">
+        <StatusBar />
+        <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
+            <button @onclick="GoBack"
+                    style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <i class="fa-solid fa-chevron-left" style="color:var(--text-3); font-size:15px;"></i>
+            </button>
+            <h1 style="font-size:20px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin:0;">Sobre o Paraki</h1>
+        </div>
+    </div>
+
+    <div style="padding:24px 20px 88px; max-width:680px; width:100%; margin:0 auto; box-sizing:border-box;">
+
+        <!-- App identity -->
+        <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:24px 20px; box-shadow:var(--shadow-sm); margin-bottom:28px; display:flex; align-items:center; gap:18px;">
+            <div style="width:64px; height:64px; border-radius:18px; background:var(--brand-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <img src="icon-192.png" alt="Paraki" style="width:46px; height:46px; object-fit:contain; border-radius:12px;" />
+            </div>
+            <div>
+                <p style="font-size:22px; font-weight:900; color:var(--text); font-family:var(--font); margin:0 0 4px; letter-spacing:-0.04em;">Paraki</p>
+                <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0;">Mapa colaborativo de micromobilidade urbana</p>
+            </div>
+        </div>
+
+        <!-- Missão -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>Nossa missão</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0; line-height:1.7;">
+                    O Paraki nasceu da necessidade real de ciclistas e usuários de micromobilidade de encontrarem
+                    rapidamente onde estacionar com segurança. Em vez de depender de informações dispersas,
+                    construímos um <strong style="color:var(--text);">mapa colaborativo</strong> onde qualquer pessoa pode
+                    descobrir, avaliar e adicionar bicicletários — tornando as cidades mais acessíveis a quem pedala.
+                </p>
+            </div>
+        </div>
+
+        <!-- O que oferecemos -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>O que oferecemos</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:4px 0; box-shadow:var(--shadow-sm);">
+
+                @foreach (var (icon, titulo, desc, last) in _recursos)
+                {
+                    <div style="display:flex; align-items:flex-start; gap:12px; padding:16px 20px;">
+                        <div style="width:34px; height:34px; border-radius:var(--r); background:var(--brand-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">
+                            <i class="fa-solid @icon" style="font-size:13px; color:var(--brand);"></i>
+                        </div>
+                        <div>
+                            <p style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font); margin:0 0 3px;">@titulo</p>
+                            <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0; line-height:1.55;">@desc</p>
+                        </div>
+                    </div>
+                    @if (!last)
+                    {
+                        <div style="height:1px; background:var(--border); margin:0 20px;"></div>
+                    }
+                }
+
+            </div>
+        </div>
+
+        <!-- Tecnologia -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>Tecnologia</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0 0 14px; line-height:1.65;">
+                    O Paraki é construído com tecnologias modernas pensadas para performance e escalabilidade:
+                </p>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    @foreach (var tag in _techs)
+                    {
+                        <span style="font-size:12px; font-weight:600; color:var(--brand); font-family:var(--font); background:var(--brand-soft); border-radius:6px; padding:4px 10px;">@tag</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Empresa -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>Desenvolvido por</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:16px; font-weight:700; color:var(--text); font-family:var(--font); margin:0 0 6px;">Maverick Software Solutions</p>
+                <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0 0 14px; line-height:1.6;">
+                    Startup de software focada em soluções urbanas e mobilidade sustentável. Acreditamos que tecnologia
+                    pode transformar a forma como as pessoas se movem pelas cidades.
+                </p>
+                <a href="mailto:contato@mavericksoftware.com.br"
+                   style="display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--brand); font-family:var(--font); text-decoration:none;">
+                    <i class="fa-solid fa-envelope" style="font-size:12px;"></i>
+                    contato@mavericksoftware.com.br
+                </a>
+            </div>
+        </div>
+
+        <!-- Legal links -->
+        <div>
+            <SecLabel>Documentos legais</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); box-shadow:var(--shadow-sm); overflow:hidden;">
+                <a href="/politica-de-privacidade"
+                   style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; text-decoration:none; color:inherit;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <i class="fa-solid fa-shield-halved" style="font-size:15px; color:var(--text-3); width:18px; text-align:center;"></i>
+                        <span style="font-size:15px; color:var(--text); font-family:var(--font); font-weight:500;">Política de Privacidade</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size:12px; color:var(--text-4);"></i>
+                </a>
+                <div style="height:1px; background:var(--border); margin:0 20px;"></div>
+                <a href="/termos-de-uso"
+                   style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; text-decoration:none; color:inherit;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <i class="fa-solid fa-file-lines" style="font-size:15px; color:var(--text-3); width:18px; text-align:center;"></i>
+                        <span style="font-size:15px; color:var(--text); font-family:var(--font); font-weight:500;">Termos de Uso</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size:12px; color:var(--text-4);"></i>
+                </a>
+                <div style="height:1px; background:var(--border); margin:0 20px;"></div>
+                <a href="/contato"
+                   style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; text-decoration:none; color:inherit;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <i class="fa-solid fa-envelope" style="font-size:15px; color:var(--text-3); width:18px; text-align:center;"></i>
+                        <span style="font-size:15px; color:var(--text); font-family:var(--font); font-weight:500;">Contato</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size:12px; color:var(--text-4);"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@code {
+    private async Task GoBack()
+    {
+        var canGoBack = await JS.InvokeAsync<bool>("eval", "history.length > 1");
+        if (canGoBack)
+            await JS.InvokeVoidAsync("eval", "history.back()");
+        else
+            Nav.NavigateTo("/perfil");
+    }
+
+    private readonly (string Icon, string Titulo, string Desc, bool Last)[] _recursos =
+    [
+        ("fa-map-location-dot", "Mapa interativo",         "Visualize bicicletários em um mapa em tempo real, com clustering e busca por proximidade.", false),
+        ("fa-star",             "Avaliações e notas",      "Sistema de notas de 1 a 5 estrelas com comentários públicos vinculados ao perfil do usuário.", false),
+        ("fa-sliders",          "Filtros avançados",       "Filtre por tipo de veículo, serviços disponíveis, tipo de acesso e nota mínima.", false),
+        ("fa-plus-circle",      "Contribuição aberta",     "Qualquer usuário pode adicionar e sugerir edições em bicicletários, com moderação da comunidade.", true),
+    ];
+
+    private readonly string[] _techs =
+    [
+        ".NET 10", "Blazor WebAssembly", "C#", "PostgreSQL", "PostGIS", "Entity Framework Core", "Azure Blob Storage", "Docker",
+    ];
+}

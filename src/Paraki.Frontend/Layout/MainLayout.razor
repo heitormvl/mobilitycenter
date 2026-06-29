@@ -4,16 +4,16 @@
 @inject NavigationManager Nav
 
 @{var activeTab = GetActiveTab();}
-@if (activeTab != "")
+@if (activeTab != null)
 {
     <SideNav Active="@activeTab" />
 }
 
-<div id="page-host">
+<div id="page-host" class="@(activeTab == null ? "no-sidebar" : "")">
     @Body
 </div>
 
-@if (activeTab != "")
+@if (activeTab != null)
 {
     <BottomNav Active="@activeTab" />
 }
@@ -35,19 +35,24 @@
         await JS.InvokeVoidAsync("navTransition.onPageRender");
     }
 
-    private string GetActiveTab()
+    // null  → esconde sidebar e bottom nav
+    // ""    → mostra nav sem aba ativa
+    // outro → mostra nav com aba ativa
+    private string? GetActiveTab()
     {
         var path = new Uri(Nav.Uri).AbsolutePath;
-        if (path == "/") return "mapa";
-        if (path.StartsWith("/lista"))          return "lista";
-        if (path.StartsWith("/bicicletario"))   return "lista";
-        if (path.StartsWith("/perfil"))         return "perfil";
-        if (path.StartsWith("/configuracoes"))          return "perfil";
+        if (path == "/")                                 return "mapa";
+        if (path.StartsWith("/lista"))                   return "lista";
+        if (path.StartsWith("/bicicletario"))            return "lista";
+        if (path.StartsWith("/perfil"))                  return "perfil";
+        if (path.StartsWith("/configuracoes"))           return "perfil";
         if (path.StartsWith("/politica-de-privacidade")) return "perfil";
         if (path.StartsWith("/termos-de-uso"))           return "perfil";
         if (path.StartsWith("/contato"))                 return "perfil";
+        if (path.StartsWith("/sobre"))                   return "perfil";
         if (path.StartsWith("/adicionar"))               return "add";
         if (path.StartsWith("/avaliar"))                 return "lista";
-        return "";
+        if (path.StartsWith("/login"))                   return "";
+        return null;
     }
 }

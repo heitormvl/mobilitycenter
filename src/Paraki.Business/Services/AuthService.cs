@@ -408,7 +408,7 @@ public class AuthService : IAuthService
                 <tr>
                   <td style="padding:16px 32px;background:#F8F8FA;border-top:1px solid #E5E7EB;">
                     <p style="margin:0;font-size:11px;color:#9CA3AF;text-align:center;line-height:1.6;">
-                      Paraki &mdash; Maverick Software &bull; mavericksoftware.com.br
+                      Paraki &mdash; Maverick Software Solutions &bull; mavericksoftware.com.br
                     </p>
                   </td>
                 </tr>
@@ -475,7 +475,7 @@ public class AuthService : IAuthService
                 <tr>
                   <td style="padding:16px 32px;background:#F8F8FA;border-top:1px solid #E5E7EB;">
                     <p style="margin:0;font-size:11px;color:#9CA3AF;text-align:center;line-height:1.6;">
-                      Paraki &mdash; Maverick Software &bull; mavericksoftware.com.br
+                      Paraki &mdash; Maverick Software Solutions &bull; mavericksoftware.com.br
                     </p>
                   </td>
                 </tr>

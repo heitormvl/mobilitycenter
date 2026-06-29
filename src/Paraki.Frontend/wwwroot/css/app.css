@@ -571,6 +571,9 @@ input:focus, textarea:focus {
         margin-left: var(--sidebar-w);
         transition: margin-left 0.28s cubic-bezier(0.32, 0.72, 0, 1);
     }
+    #page-host.no-sidebar {
+        margin-left: 0;
+    }
 
     /* Location button: no bottom sheet on PC, pin to bottom-right */
     .location-btn { bottom: 24px !important; }

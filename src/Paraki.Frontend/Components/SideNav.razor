@@ -2,12 +2,12 @@
 @inject IJSRuntime JS
 
 <aside class="side-nav @(_collapsed ? "side-nav--collapsed" : "")">
-    <div class="side-nav__header">
+    <a href="/inicio" class="side-nav__header" style="text-decoration:none; color:inherit;">
         <div class="side-nav__logo">
             <img src="icon-192.png" alt="Paraki" style="width:100%; height:100%; object-fit:cover; display:block;" />
         </div>
         <span class="side-nav__brand-name">Paraki</span>
-    </div>
+    </a>
 
     <nav class="side-nav__items">
         @foreach (var item in _items)
