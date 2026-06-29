@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Paraki.Business.Interfaces;
 using Paraki.Repositories.Context;
@@ -15,11 +16,70 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
 {
     private readonly ParakiDbContext _db;
     private readonly IBicicletarioService _bicicletarioService;
+    private readonly IFotoStorageService _fotoStorage;
 
-    public SugestaoEdicaoService(ParakiDbContext db, IBicicletarioService bicicletarioService)
+    public SugestaoEdicaoService(ParakiDbContext db, IBicicletarioService bicicletarioService, IFotoStorageService fotoStorage)
     {
         _db = db;
         _bicicletarioService = bicicletarioService;
+        _fotoStorage = fotoStorage;
+    }
+
+    public async Task<List<SugestaoEdicaoDto>> ListarPendentesAsync(Guid adminId)
+    {
+        var admin = await _db.Users.FindAsync(adminId)
+            ?? throw new NotFoundException("Usuário não encontrado.");
+
+        if (admin.Type != TipoUsuario.Admin)
+            throw new UnauthorizedException("Apenas administradores podem listar sugestões pendentes.");
+
+        return await _db.SugestoesEdicao
+            .Include(s => s.Autor)
+            .Include(s => s.Bicicletario)
+            .Include(s => s.Revisor)
+            .Where(s => s.Status == StatusSugestao.Pendente)
+            .OrderBy(s => s.CriadoEm)
+            .Select(s => MapearDto(s))
+            .ToListAsync();
+    }
+
+    public async Task<int> ContarPendentesAsync(Guid adminId)
+    {
+        var admin = await _db.Users.FindAsync(adminId)
+            ?? throw new NotFoundException("Usuário não encontrado.");
+
+        if (admin.Type != TipoUsuario.Admin)
+            throw new UnauthorizedException("Apenas administradores podem consultar contagem de sugestões.");
+
+        return await _db.SugestoesEdicao.CountAsync(s => s.Status == StatusSugestao.Pendente);
+    }
+
+    public async Task<SugestaoEdicaoDto> AdicionarFotoAsync(Guid sugestaoId, Guid autorId, IFormFile foto)
+    {
+        var sugestao = await _db.SugestoesEdicao
+            .Include(s => s.Autor)
+            .Include(s => s.Bicicletario)
+            .FirstOrDefaultAsync(s => s.Id == sugestaoId)
+            ?? throw new NotFoundException("Sugestão não encontrada.");
+
+        if (sugestao.AutorId != autorId)
+            throw new UnauthorizedException("Sem permissão para adicionar foto a esta sugestão.");
+
+        if (sugestao.Status != StatusSugestao.Pendente)
+            throw new ConflictException("Não é possível modificar uma sugestão já avaliada.");
+
+        // Deletar foto anterior se existir
+        if (sugestao.ComprovanteFotoKey != null && Guid.TryParse(sugestao.ComprovanteFotoKey, out var fotoAnteriorId))
+            await _fotoStorage.DeleteFotoComprovanteAsync(sugestaoId, fotoAnteriorId);
+
+        var novaFotoId = Guid.NewGuid();
+        using var stream = foto.OpenReadStream();
+        await _fotoStorage.UploadFotoComprovanteAsync(sugestaoId, novaFotoId, stream, foto.ContentType);
+
+        sugestao.ComprovanteFotoKey = novaFotoId.ToString();
+        await _db.SaveChangesAsync();
+
+        return MapearDto(sugestao);
     }
 
     public async Task<List<SugestaoEdicaoDto>> ListarPorBicicletarioAsync(Guid bicicletarioId, Guid revisorId)
@@ -82,6 +142,11 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
         }
 
         sugestao.Bicicletario.AtualizadoEm = DateTime.UtcNow;
+
+        // Deletar foto de comprovante ao aprovar — não é mais necessária
+        if (sugestao.ComprovanteFotoKey != null && Guid.TryParse(sugestao.ComprovanteFotoKey, out var fotoComprovanteId))
+            await _fotoStorage.DeleteFotoComprovanteAsync(sugestao.Id, fotoComprovanteId);
+        sugestao.ComprovanteFotoKey = null;
 
         sugestao.Status = StatusSugestao.Aprovada;
         sugestao.RevisorId = revisorId;
@@ -157,6 +222,8 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
         Status = s.Status,
         DadosEdicao = JsonSerializer.Deserialize<AtualizarBicicletarioDto>(s.DadosEdicao) ?? new(),
         MotivoRejeicao = s.MotivoRejeicao,
+        Comprovante = s.Comprovante,
+        ComprovanteFotoKey = s.ComprovanteFotoKey,
         CriadoEm = s.CriadoEm,
         AvaliadaEm = s.AvaliadaEm
     };

@@ -210,6 +210,24 @@ public class FotosController : ControllerBase
         return NoContent();
     }
 
+    // ── Comprovante de sugestão ──────────────────────────────────────────────
+
+    [HttpGet("comprovante/{sugestaoId:guid}/{fotoKey}")]
+    [Authorize]
+    public async Task<IActionResult> ObterFotoComprovante(Guid sugestaoId, string fotoKey)
+    {
+        if (!Guid.TryParse(fotoKey, out var fotoId))
+            return BadRequest(new { error = true, message = "Chave de foto inválida." });
+
+        var result = await _fotoStorage.DownloadFotoComprovanteAsync(sugestaoId, fotoId);
+
+        if (result is null)
+            return NotFound();
+
+        var (stream, contentType) = result.Value;
+        return File(stream, contentType);
+    }
+
     private TipoUsuario ObterTipoUsuario()
     {
         var valor = User.FindFirstValue("tipo") ?? "0";

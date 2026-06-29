@@ -1,0 +1,453 @@
+@page "/sugestoes"
+@inject NavigationManager Nav
+@inject AuthService AuthSvc
+@inject SugestaoService SugestaoSvc
+@inject BicicletarioService BicicletarioSvc
+
+<!-- Header -->
+<div style="background:var(--bg); padding:0 20px 16px; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20;">
+    <StatusBar />
+    <div style="display:flex; align-items:center; gap:14px;">
+        <button @onclick='@(() => Nav.NavigateTo("/lista"))'
+                style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <i class="fa-solid fa-chevron-left" style="color:var(--text-2); font-size:13px;"></i>
+        </button>
+        <span style="font-size:17px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; flex:1;">Sugestões de Edição</span>
+        @if (_pendentes != null && _pendentes.Length > 0)
+        {
+            <span style="background:#DC2626; color:white; font-size:11px; font-weight:700; font-family:var(--font); border-radius:var(--r-full); padding:2px 8px;">
+                @(_pendentes.Length > 99 ? "99+" : _pendentes.Length.ToString())
+            </span>
+        }
+    </div>
+</div>
+
+<!-- Body -->
+<div style="padding:16px 16px 88px; display:flex; flex-direction:column; gap:10px; overflow-y:auto;">
+
+    @if (_isLoading)
+    {
+        @for (int i = 0; i < 3; i++)
+        {
+            <div style="background:var(--bg); border-radius:var(--r-lg); padding:16px; border:1px solid var(--border);">
+                <div style="height:14px; width:55%; background:var(--border); border-radius:4px; margin-bottom:10px;"></div>
+                <div style="height:12px; width:35%; background:var(--border); border-radius:4px; margin-bottom:8px;"></div>
+                <div style="height:12px; width:45%; background:var(--border); border-radius:4px;"></div>
+            </div>
+        }
+    }
+    else if (_loadError != null)
+    {
+        <div style="text-align:center; padding:40px 20px; font-family:var(--font);">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:32px; color:var(--text-4); margin-bottom:12px; display:block;"></i>
+            <div style="font-size:15px; color:var(--text-3);">@_loadError</div>
+        </div>
+    }
+    else if (_pendentes == null || _pendentes.Length == 0)
+    {
+        <div style="text-align:center; padding:60px 20px; font-family:var(--font);">
+            <i class="fa-solid fa-inbox" style="font-size:40px; color:var(--text-4); margin-bottom:14px; display:block;"></i>
+            <div style="font-size:16px; font-weight:600; color:var(--text); margin-bottom:6px;">Nenhuma sugestão pendente</div>
+            <div style="font-size:14px; color:var(--text-3);">Tudo em dia!</div>
+        </div>
+    }
+    else
+    {
+        @foreach (var s in _pendentes)
+        {
+            var sid = s.Id;
+            var secoesAlteradas = GetSecoesAlteradas(s.DadosEdicao);
+            <div style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:14px 16px; box-shadow:var(--shadow-sm);">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:15px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.01em; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@s.NomeBicicletario</div>
+                        <div style="font-size:12px; color:var(--brand); font-family:var(--font); font-weight:600; margin-bottom:4px;">@secoesAlteradas</div>
+                        <div style="font-size:12px; color:var(--text-4); font-family:var(--font);">
+                            <i class="fa-solid fa-user" style="font-size:10px; margin-right:4px;"></i>@s.NomeAutor
+                            &nbsp;·&nbsp;@FormatDate(s.CriadoEm)
+                        </div>
+                    </div>
+                    <button @onclick="@(() => AbrirModal(s))"
+                            style="flex-shrink:0; padding:7px 14px; border-radius:var(--r-full); background:var(--brand); border:none; cursor:pointer; font-family:var(--font); font-size:12px; font-weight:700; color:white; white-space:nowrap;">
+                        Revisar →
+                    </button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- Modal de comparação -->
+@if (_modalSugestao != null)
+{
+    <div @onclick="FecharModal"
+         style="position:fixed; inset:0; z-index:900; background:rgba(0,0,0,0.55); display:flex; align-items:flex-end; justify-content:center; padding:0;">
+        <div @onclick:stopPropagation="true"
+             style="background:var(--bg); border-radius:var(--r-lg) var(--r-lg) 0 0; width:100%; max-width:560px; max-height:92dvh; overflow-y:auto; padding:20px 20px 32px; animation:slideUp .2s ease-out;">
+
+            <!-- Modal header -->
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:16px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@_modalSugestao.NomeBicicletario</div>
+                    <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:2px;">
+                        <i class="fa-solid fa-user" style="font-size:10px; margin-right:4px;"></i>@_modalSugestao.NomeAutor
+                        &nbsp;·&nbsp;@_modalSugestao.CriadoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                    </div>
+                </div>
+                <span style="font-size:10px; font-weight:700; background:#FEF3C7; color:#92400E; padding:3px 8px; border-radius:var(--r-full); font-family:var(--font); letter-spacing:.04em; flex-shrink:0;">PENDENTE</span>
+                <button @onclick="FecharModal"
+                        style="width:32px; height:32px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="fa-solid fa-xmark" style="font-size:13px; color:var(--text-3);"></i>
+                </button>
+            </div>
+
+            <!-- Comprovante (se existir) -->
+            @if (!string.IsNullOrEmpty(_modalSugestao.Comprovante) || !string.IsNullOrEmpty(_modalSugestao.ComprovanteFotoKey))
+            {
+                <div style="background:var(--bg-page); border:1px solid var(--border); border-radius:var(--r); padding:12px 14px; margin-bottom:16px;">
+                    <div style="font-size:10px; font-weight:700; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:.07em; margin-bottom:8px;">
+                        <i class="fa-solid fa-paperclip" style="margin-right:5px;"></i>Comprovante
+                    </div>
+                    @if (!string.IsNullOrEmpty(_modalSugestao.ComprovanteFotoKey))
+                    {
+                        var fotoUrl = SugestaoSvc.GetComprovanteUrl(_modalSugestao.Id, _modalSugestao.ComprovanteFotoKey);
+                        <div style="margin-bottom:@(!string.IsNullOrEmpty(_modalSugestao.Comprovante) ? "10px" : "0")">
+                            <img src="@fotoUrl"
+                                 style="max-width:100%; max-height:240px; object-fit:contain; border-radius:var(--r); cursor:zoom-in; display:block;"
+                                 alt="Foto do comprovante"
+                                 @onclick="@(() => { _lightboxUrl = fotoUrl; _lightboxOpen = true; })" />
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(_modalSugestao.Comprovante))
+                    {
+                        <p style="font-size:13px; color:var(--text-2); font-family:var(--font); line-height:1.5; margin:0; word-break:break-word;">@_modalSugestao.Comprovante</p>
+                    }
+                </div>
+            }
+
+            <!-- Grid comparação -->
+            @if (_modalAtual != null)
+            {
+                var d = _modalSugestao.DadosEdicao;
+
+                <!-- Serviços -->
+                @if (d.TemTomada.HasValue || d.TemCalibrador.HasValue || d.TemVestiario.HasValue ||
+                     d.TemArmario.HasValue || d.TemEspacoManutencao.HasValue || d.TemCadeado.HasValue || d.TemBanheiro.HasValue)
+                {
+                    <div style="margin-bottom:14px;">
+                        <div style="font-size:10px; font-weight:700; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:.07em; margin-bottom:8px;">Serviços</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 16px;">
+                            @RenderServico("fa-plug", "Tomada", _modalAtual.TemTomada, d.TemTomada)
+                            @RenderServico("fa-gauge", "Calibrador", _modalAtual.TemCalibrador, d.TemCalibrador)
+                            @RenderServico("fa-shirt", "Vestiário", _modalAtual.TemVestiario, d.TemVestiario)
+                            @RenderServico("fa-box", "Armário", _modalAtual.TemArmario, d.TemArmario)
+                            @RenderServico("fa-wrench", "Manutenção", _modalAtual.TemEspacoManutencao, d.TemEspacoManutencao)
+                            @RenderServico("fa-lock", "Cadeado", _modalAtual.TemCadeado, d.TemCadeado)
+                            @RenderServico("fa-restroom", "Banheiro", _modalAtual.TemBanheiro, d.TemBanheiro)
+                        </div>
+                    </div>
+                }
+
+                <!-- Acesso -->
+                @if (d.AcessoLivre.HasValue || d.AcessoPago.HasValue || d.AcessoCadastro.HasValue || d.AcessoMensal.HasValue)
+                {
+                    var atualAcesso = _modalAtual.AcessoLivre ? "Livre" : _modalAtual.AcessoPago ? "Pago" : _modalAtual.AcessoCadastro ? "Cadastro" : _modalAtual.AcessoMensal ? "Mensal" : "—";
+                    var novoAcesso  = (d.AcessoLivre == true) ? "Livre" : (d.AcessoPago == true) ? "Pago" : (d.AcessoCadastro == true) ? "Cadastro" : (d.AcessoMensal == true) ? "Mensal" : "—";
+                    <div style="margin-bottom:14px;">
+                        <div style="font-size:10px; font-weight:700; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:.07em; margin-bottom:8px;">Acesso</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                            <div style="background:var(--bg-page); border-radius:var(--r); padding:8px 10px;">
+                                <div style="font-size:10px; color:var(--text-4); font-family:var(--font); margin-bottom:3px;">Atual</div>
+                                <div style="font-size:13px; font-weight:600; color:var(--text-2); font-family:var(--font);">@atualAcesso</div>
+                            </div>
+                            <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:var(--r); padding:8px 10px;">
+                                <div style="font-size:10px; color:#3B82F6; font-family:var(--font); margin-bottom:3px;">Sugerido</div>
+                                <div style="font-size:13px; font-weight:600; color:#1D4ED8; font-family:var(--font);">@novoAcesso</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Veículos -->
+                @if (d.VeiculosSuportados.HasValue)
+                {
+                    var atualVeic = VeiculoLabel(_modalAtual.VeiculosSuportados);
+                    var novoVeic  = VeiculoLabel(d.VeiculosSuportados.Value);
+                    <div style="margin-bottom:14px;">
+                        <div style="font-size:10px; font-weight:700; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:.07em; margin-bottom:8px;">Veículos</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                            <div style="background:var(--bg-page); border-radius:var(--r); padding:8px 10px;">
+                                <div style="font-size:10px; color:var(--text-4); font-family:var(--font); margin-bottom:3px;">Atual</div>
+                                <div style="font-size:13px; font-weight:600; color:var(--text-2); font-family:var(--font);">@atualVeic</div>
+                            </div>
+                            <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:var(--r); padding:8px 10px;">
+                                <div style="font-size:10px; color:#3B82F6; font-family:var(--font); margin-bottom:3px;">Sugerido</div>
+                                <div style="font-size:13px; font-weight:600; color:#1D4ED8; font-family:var(--font);">@novoVeic</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Horários -->
+                @if (d.Horarios != null)
+                {
+                    <div style="margin-bottom:14px;">
+                        <div style="font-size:10px; font-weight:700; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:.07em; margin-bottom:8px;">Horários</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                            <div style="background:var(--bg-page); border-radius:var(--r); padding:8px 10px;">
+                                <div style="font-size:10px; color:var(--text-4); font-family:var(--font); margin-bottom:6px;">Atual</div>
+                                @RenderHorarios(_modalAtual.Horarios)
+                            </div>
+                            <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:var(--r); padding:8px 10px;">
+                                <div style="font-size:10px; color:#3B82F6; font-family:var(--font); margin-bottom:6px;">Sugerido</div>
+                                @RenderHorarios(d.Horarios)
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else if (_modalCarregando)
+            {
+                <div style="padding:20px; text-align:center; font-size:13px; color:var(--text-4); font-family:var(--font);">Carregando dados atuais...</div>
+            }
+
+            <!-- Rejeitar: campo de motivo -->
+            @if (_rejeitando)
+            {
+                <div style="background:#FEF3C7; border:1px solid #FDE68A; border-radius:var(--r); padding:12px 14px; margin-bottom:12px;">
+                    <div style="font-size:12px; font-weight:600; color:#92400E; font-family:var(--font); margin-bottom:8px;">Motivo da rejeição (opcional)</div>
+                    <textarea @bind="_motivoRejeicao"
+                              placeholder="Ex: informação incorreta, comprovante insuficiente..."
+                              style="width:100%; box-sizing:border-box; border:1px solid #FDE68A; border-radius:var(--r); padding:8px 10px; font-family:var(--font); font-size:13px; color:var(--text); background:var(--bg); outline:none; resize:vertical; min-height:64px;" />
+                </div>
+            }
+
+            <!-- Erro -->
+            @if (!string.IsNullOrEmpty(_modalError))
+            {
+                <div style="font-size:12px; color:#DC2626; margin-bottom:12px; font-family:var(--font);">@_modalError</div>
+            }
+
+            <!-- Footer botões -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+                <button @onclick="Aprovar" disabled="@_modalSaving"
+                        style="padding:12px; border-radius:var(--r-lg); border:none; background:@(_modalSaving ? "var(--border)" : "#16A34A"); color:white; font-family:var(--font); font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; -webkit-appearance:none;">
+                    <i class="fa-solid fa-check" style="font-size:12px;"></i>
+                    @(_modalSaving ? "..." : "Aprovar")
+                </button>
+                @if (!_rejeitando)
+                {
+                    <button @onclick="@(() => _rejeitando = true)" disabled="@_modalSaving"
+                            style="padding:12px; border-radius:var(--r-lg); border:1px solid #F59E0B; background:#FEF3C7; color:#92400E; font-family:var(--font); font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; -webkit-appearance:none;">
+                        <i class="fa-solid fa-xmark" style="font-size:12px;"></i>
+                        Rejeitar
+                    </button>
+                }
+                else
+                {
+                    <button @onclick="Rejeitar" disabled="@_modalSaving"
+                            style="padding:12px; border-radius:var(--r-lg); border:none; background:#F59E0B; color:white; font-family:var(--font); font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; -webkit-appearance:none;">
+                        <i class="fa-solid fa-xmark" style="font-size:12px;"></i>
+                        Confirmar rejeição
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Lightbox de foto do comprovante -->
+@if (_lightboxOpen && _lightboxUrl != null)
+{
+    <div @onclick="@(() => _lightboxOpen = false)"
+         style="position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.92); display:flex; align-items:center; justify-content:center; padding:24px; cursor:zoom-out;">
+        <img src="@_lightboxUrl" style="max-width:min(90vw,800px); max-height:80vh; object-fit:contain; border-radius:var(--r-lg);"
+             alt="Foto do comprovante" @onclick:stopPropagation="true" />
+        <button @onclick="@(() => _lightboxOpen = false)"
+                style="position:absolute; top:16px; right:16px; width:40px; height:40px; border-radius:var(--r-full); background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            <i class="fa-solid fa-xmark" style="color:white; font-size:15px;"></i>
+        </button>
+    </div>
+}
+
+@code {
+    private SugestaoDto[]? _pendentes;
+    private bool _isLoading = true;
+    private string? _loadError;
+
+    private SugestaoDto? _modalSugestao;
+    private BicicletarioDetalheModel? _modalAtual;
+    private bool _modalCarregando;
+    private bool _modalSaving;
+    private string? _modalError;
+    private bool _rejeitando;
+    private string _motivoRejeicao = "";
+
+    private bool _lightboxOpen;
+    private string? _lightboxUrl;
+
+    private static readonly string[] _dias = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userInfo = await AuthSvc.GetUserInfoAsync();
+        if (userInfo?.Type != 2)
+        {
+            Nav.NavigateTo("/lista");
+            return;
+        }
+
+        var resultado = await SugestaoSvc.GetPendentesAsync();
+        if (resultado == null)
+            _loadError = "Não foi possível carregar as sugestões.";
+        else
+            _pendentes = resultado;
+
+        _isLoading = false;
+    }
+
+    private async Task AbrirModal(SugestaoDto s)
+    {
+        _modalSugestao = s;
+        _modalAtual = null;
+        _modalCarregando = true;
+        _modalError = null;
+        _rejeitando = false;
+        _motivoRejeicao = "";
+        _lightboxOpen = false;
+
+        _modalAtual = await BicicletarioSvc.GetByIdAsync(s.BicicletarioId);
+        _modalCarregando = false;
+        StateHasChanged();
+    }
+
+    private void FecharModal()
+    {
+        _modalSugestao = null;
+        _modalAtual = null;
+        _rejeitando = false;
+        _lightboxOpen = false;
+    }
+
+    private async Task Aprovar()
+    {
+        if (_modalSugestao == null) return;
+        _modalSaving = true;
+        _modalError = null;
+        var err = await SugestaoSvc.AprovarAsync(_modalSugestao.Id);
+        if (err == null)
+        {
+            _pendentes = _pendentes?.Where(s => s.Id != _modalSugestao.Id).ToArray();
+            FecharModal();
+        }
+        else _modalError = err;
+        _modalSaving = false;
+    }
+
+    private async Task Rejeitar()
+    {
+        if (_modalSugestao == null) return;
+        _modalSaving = true;
+        _modalError = null;
+        var err = await SugestaoSvc.RejeitarAsync(_modalSugestao.Id, string.IsNullOrWhiteSpace(_motivoRejeicao) ? null : _motivoRejeicao);
+        if (err == null)
+        {
+            _pendentes = _pendentes?.Where(s => s.Id != _modalSugestao.Id).ToArray();
+            FecharModal();
+        }
+        else _modalError = err;
+        _modalSaving = false;
+    }
+
+    private static string GetSecoesAlteradas(SugestaoDadosDto d)
+    {
+        var secoes = new List<string>();
+        if (d.TemTomada.HasValue || d.TemCalibrador.HasValue || d.TemVestiario.HasValue ||
+            d.TemArmario.HasValue || d.TemEspacoManutencao.HasValue || d.TemCadeado.HasValue || d.TemBanheiro.HasValue)
+            secoes.Add("Serviços");
+        if (d.AcessoLivre.HasValue || d.AcessoPago.HasValue || d.AcessoCadastro.HasValue || d.AcessoMensal.HasValue)
+            secoes.Add("Acesso");
+        if (d.VeiculosSuportados.HasValue)
+            secoes.Add("Veículos");
+        if (d.Horarios != null)
+            secoes.Add("Horários");
+        return secoes.Count > 0 ? string.Join(" · ", secoes) : "Dados gerais";
+    }
+
+    private static string VeiculoLabel(int flags)
+    {
+        var parts = new List<string>();
+        if ((flags & 1) != 0) parts.Add("Bicicleta");
+        if ((flags & 2) != 0) parts.Add("Scooter");
+        if ((flags & 4) != 0) parts.Add("Monociclo");
+        if ((flags & 8) != 0) parts.Add("Patinete");
+        return parts.Count > 0 ? string.Join(", ", parts) : "Nenhum";
+    }
+
+    private RenderFragment RenderServico(string icon, string label, bool atual, bool? sugerido) => __builder =>
+    {
+        if (!sugerido.HasValue) return;
+        __builder.OpenElement(0, "div");
+        __builder.AddAttribute(1, "style", "display:flex; align-items:center; gap:6px;");
+
+        // Atual
+        __builder.OpenElement(2, "span");
+        __builder.AddAttribute(3, "style", $"font-size:12px; color:{(atual ? "#16a34a" : "var(--text-4)")}; font-family:var(--font); flex:1;");
+        __builder.AddMarkupContent(4, $"<i class=\"fa-solid {icon}\" style=\"font-size:10px; margin-right:4px;\"></i>{label}: {(atual ? "Sim" : "Não")}");
+        __builder.CloseElement();
+
+        // Seta
+        __builder.OpenElement(5, "i");
+        __builder.AddAttribute(6, "class", "fa-solid fa-arrow-right");
+        __builder.AddAttribute(7, "style", "font-size:9px; color:var(--text-4);");
+        __builder.CloseElement();
+
+        // Sugerido
+        __builder.OpenElement(8, "span");
+        __builder.AddAttribute(9, "style", $"font-size:12px; font-weight:600; color:{(sugerido.Value ? "#16a34a" : "#DC2626")}; font-family:var(--font); flex:1;");
+        __builder.AddMarkupContent(10, sugerido.Value ? "✓ Sim" : "✗ Não");
+        __builder.CloseElement();
+
+        __builder.CloseElement();
+    };
+
+    private RenderFragment RenderHorarios(HorarioModel[] horarios) => __builder =>
+    {
+        if (horarios.Length == 0)
+        {
+            __builder.OpenElement(0, "span");
+            __builder.AddAttribute(1, "style", "font-size:12px; color:var(--text-4); font-family:var(--font);");
+            __builder.AddContent(2, "Não informado");
+            __builder.CloseElement();
+            return;
+        }
+        foreach (var h in horarios.OrderBy(x => x.DiaSemana))
+        {
+            __builder.OpenElement(3, "div");
+            __builder.AddAttribute(4, "style", "display:flex; justify-content:space-between; font-size:12px; font-family:var(--font); margin-bottom:2px;");
+            __builder.OpenElement(5, "span");
+            __builder.AddAttribute(6, "style", "color:var(--text-3); min-width:28px;");
+            __builder.AddContent(7, h.DiaSemana >= 0 && h.DiaSemana < 7 ? _dias[h.DiaSemana] : h.DiaSemana.ToString());
+            __builder.CloseElement();
+            __builder.OpenElement(8, "span");
+            __builder.AddAttribute(9, "style", "color:var(--text-2);");
+            __builder.AddContent(10, $"{h.HoraAbertura[..5]}–{h.HoraFechamento[..5]}");
+            __builder.CloseElement();
+            __builder.CloseElement();
+        }
+    };
+
+    private static string FormatDate(DateTime dt)
+    {
+        var diff = DateTime.UtcNow - dt.ToUniversalTime();
+        if (diff.TotalMinutes < 2)  return "agora";
+        if (diff.TotalHours  < 1)   return $"há {(int)diff.TotalMinutes} min";
+        if (diff.TotalDays   < 1)   return $"há {(int)diff.TotalHours}h";
+        if (diff.TotalDays   < 2)   return "ontem";
+        if (diff.TotalDays   < 30)  return $"há {(int)diff.TotalDays} dias";
+        var meses = (int)(diff.TotalDays / 30);
+        if (diff.TotalDays   < 365) return $"há {meses} {(meses == 1 ? "mês" : "meses")}";
+        var anos = (int)(diff.TotalDays / 365);
+        return $"há {anos} ano{(anos > 1 ? "s" : "")}";
+    }
+}

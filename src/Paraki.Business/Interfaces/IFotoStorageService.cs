@@ -10,4 +10,8 @@ public interface IFotoStorageService
     Task<(Stream stream, string contentType)?> DownloadFotoBicicletarioLegacyAsync(Guid bicicletarioId);
     Task DeleteFotoBicicletarioAsync(Guid bicicletarioId, Guid fotoId);
     Task DeleteFotoPerfilAsync(Guid usuarioId);
+
+    Task UploadFotoComprovanteAsync(Guid sugestaoId, Guid fotoId, Stream imageStream, string contentType);
+    Task<(Stream stream, string contentType)?> DownloadFotoComprovanteAsync(Guid sugestaoId, Guid fotoId);
+    Task DeleteFotoComprovanteAsync(Guid sugestaoId, Guid fotoId);
 }

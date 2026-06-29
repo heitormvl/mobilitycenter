@@ -2,6 +2,7 @@
 @inject NavigationManager Nav
 @inject BicicletarioService BicicletarioSvc
 @inject AuthService AuthSvc
+@inject SugestaoService SugestaoSvc
 @inject IJSRuntime JS
 
 <!-- Header -->
@@ -22,6 +23,15 @@
                     <i class="fa-solid @(_showHidden ? "fa-eye" : "fa-eye-slash")" style="font-size:11px;"></i>
                     Ocultas
                 </button>
+                <div style="position:relative; cursor:pointer; display:flex; align-items:center;" @onclick='@(() => Nav.NavigateTo("/sugestoes"))'>
+                    <i class="fa-solid fa-inbox" style="color:var(--brand); font-size:19px;"></i>
+                    @if (_contagemSugestoes > 0)
+                    {
+                        <span style="position:absolute; top:-6px; right:-7px; background:#DC2626; color:white; font-size:9px; font-weight:700; font-family:var(--font); border-radius:var(--r-full); padding:1px 4px; min-width:14px; text-align:center; line-height:14px; pointer-events:none;">
+                            @(_contagemSugestoes > 99 ? "99+" : _contagemSugestoes.ToString())
+                        </span>
+                    }
+                </div>
             }
             <i class="fa-solid fa-map" style="color:var(--brand); font-size:19px; cursor:pointer;" @onclick="NavigateToMapaAsync"></i>
         </div>
@@ -266,11 +276,15 @@
     private bool _hasLocation;
     private bool _isAdmin;
     private bool _showHidden;
+    private int _contagemSugestoes;
 
     protected override async Task OnInitializedAsync()
     {
         var userInfo = await AuthSvc.GetUserInfoAsync();
         _isAdmin = userInfo?.Type == 2;
+
+        if (_isAdmin)
+            _contagemSugestoes = await SugestaoSvc.GetContagemAsync();
 
         // Apply cached location before loading so Filtered sorts by distance on first render.
         var cached = await GetCachedLocationAsync();

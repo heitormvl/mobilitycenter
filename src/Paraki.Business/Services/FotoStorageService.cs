@@ -10,6 +10,7 @@ public class FotoStorageService : IFotoStorageService
     private readonly BlobServiceClient _blobService;
     private const string PerfilContainer = "fotos-perfil";
     private const string BicicletariosContainer = "fotos-bicicletarios";
+    private const string ComprovantesContainer = "fotos-comprovantes";
     private const int MaxDimension = 500;
 
     public FotoStorageService(BlobServiceClient blobService)
@@ -145,6 +146,64 @@ public class FotoStorageService : IFotoStorageService
     {
         var container = _blobService.GetBlobContainerClient(PerfilContainer);
         var blob = container.GetBlobClient($"{usuarioId}.webp");
+        await blob.DeleteIfExistsAsync();
+    }
+
+    public async Task UploadFotoComprovanteAsync(Guid sugestaoId, Guid fotoId, Stream imageStream, string contentType)
+    {
+        using var ms = new MemoryStream();
+        await imageStream.CopyToAsync(ms);
+        var inputBytes = HeicConverter.EnsureSkiaDecodable(ms.ToArray(), contentType);
+
+        using var bitmap = SKBitmap.Decode(inputBytes)
+            ?? throw new InvalidOperationException("Não foi possível decodificar a imagem.");
+
+        SKBitmap? resized = null;
+        try
+        {
+            const int maxDim = 1200;
+            if (bitmap.Width > maxDim || bitmap.Height > maxDim)
+            {
+                var scale = Math.Min((float)maxDim / bitmap.Width, (float)maxDim / bitmap.Height);
+                resized = bitmap.Resize(new SKImageInfo((int)(bitmap.Width * scale), (int)(bitmap.Height * scale)), SKFilterQuality.High);
+            }
+
+            var source = resized ?? bitmap;
+            using var skImage = SKImage.FromBitmap(source);
+            using var encoded = skImage.Encode(SKEncodedImageFormat.Webp, 85);
+            using var output = new MemoryStream(encoded.ToArray());
+
+            var container = _blobService.GetBlobContainerClient(ComprovantesContainer);
+            await container.CreateIfNotExistsAsync(PublicAccessType.None);
+
+            var blob = container.GetBlobClient($"{sugestaoId}/{fotoId}.webp");
+            await blob.UploadAsync(output, new BlobUploadOptions
+            {
+                HttpHeaders = new BlobHttpHeaders { ContentType = "image/webp" }
+            });
+        }
+        finally
+        {
+            resized?.Dispose();
+        }
+    }
+
+    public async Task<(Stream stream, string contentType)?> DownloadFotoComprovanteAsync(Guid sugestaoId, Guid fotoId)
+    {
+        var container = _blobService.GetBlobContainerClient(ComprovantesContainer);
+        var blob = container.GetBlobClient($"{sugestaoId}/{fotoId}.webp");
+
+        if (!await blob.ExistsAsync())
+            return null;
+
+        var download = await blob.DownloadStreamingAsync();
+        return (download.Value.Content, "image/webp");
+    }
+
+    public async Task DeleteFotoComprovanteAsync(Guid sugestaoId, Guid fotoId)
+    {
+        var container = _blobService.GetBlobContainerClient(ComprovantesContainer);
+        var blob = container.GetBlobClient($"{sugestaoId}/{fotoId}.webp");
         await blob.DeleteIfExistsAsync();
     }
 }

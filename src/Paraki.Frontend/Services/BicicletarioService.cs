@@ -70,6 +70,26 @@ public class BicicletarioService(HttpClient http)
         }
     }
 
+    // Para não-admins: retorna o ID da sugestão criada (necessário para upload de foto de comprovante)
+    public async Task<(string? Error, string? SugestaoId)> SugerirEdicaoAsync(string bicicletarioId, AdminUpdateRequest req)
+    {
+        try
+        {
+            var response = await http.PutAsJsonAsync($"api/bicicletarios/{bicicletarioId}", req);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return (err?.Message ?? "Erro ao enviar sugestão.", null);
+            }
+            var body = await response.Content.ReadFromJsonAsync<ResultadoAtualizacaoDto>();
+            return (null, body?.Sugestao?.Id);
+        }
+        catch
+        {
+            return ("Erro de conexão.", null);
+        }
+    }
+
     public async Task<string?> RestaurarAsync(string id)
     {
         try
@@ -344,6 +364,7 @@ public class AdminUpdateRequest
     public bool? AcessoMensal        { get; set; }
     public int?  VeiculosSuportados  { get; set; }
     public HorarioModel[]? Horarios  { get; set; }
+    public string? Comprovante       { get; set; }
 }
 
 public class FotoModel
@@ -354,6 +375,18 @@ public class FotoModel
     public bool IsCapa { get; set; }
     public int Ordem { get; set; }
     public DateTime CriadoEm { get; set; }
+}
+
+// For SugerirEdicaoAsync: parses the 202 response body to extract sugestaoId
+public class ResultadoAtualizacaoDto
+{
+    public bool EditadoDireto { get; set; }
+    public SugestaoResumoDto? Sugestao { get; set; }
+}
+
+public class SugestaoResumoDto
+{
+    public string Id { get; set; } = "";
 }
 
 // Matches CriarBicicletarioDto (Portuguese names)

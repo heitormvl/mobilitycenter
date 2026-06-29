@@ -3,9 +3,9 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Paraki.Repositories.Context;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using Paraki.Repositories.Context;
 
 #nullable disable
 
@@ -371,6 +371,12 @@ namespace Paraki.Repositories.Migrations
 
                     b.Property<Guid>("BicicletarioId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Comprovante")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ComprovanteFotoKey")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("timestamp with time zone");

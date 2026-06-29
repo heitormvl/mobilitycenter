@@ -24,4 +24,7 @@ public class AtualizarBicicletarioDto
     public bool? AcessoMensal { get; set; }
 
     public TipoVeiculo? VeiculosSuportados { get; set; }
+
+    // Comprovante do usuário (texto livre ou link) — ignorado ao aplicar edição direta
+    public string? Comprovante { get; set; }
 }

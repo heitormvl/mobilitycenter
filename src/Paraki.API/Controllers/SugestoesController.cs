@@ -21,12 +21,42 @@ public class SugestoesController : ControllerBase
         _bicicletarioService = bicicletarioService;
     }
 
+    [HttpGet("sugestoes/pendentes")]
+    public async Task<IActionResult> ListarPendentes()
+    {
+        var adminId = ObterUsuarioId();
+        var resultado = await _sugestoesService.ListarPendentesAsync(adminId);
+        return Ok(resultado);
+    }
+
+    [HttpGet("sugestoes/pendentes/contagem")]
+    public async Task<IActionResult> ContarPendentes()
+    {
+        var adminId = ObterUsuarioId();
+        var contagem = await _sugestoesService.ContarPendentesAsync(adminId);
+        return Ok(contagem);
+    }
+
     [HttpGet("bicicletarios/{bicicletarioId:guid}/sugestoes")]
     public async Task<IActionResult> Listar(Guid bicicletarioId)
     {
         var usuarioId = ObterUsuarioId();
         var resultado = await _sugestoesService.ListarPorBicicletarioAsync(bicicletarioId, usuarioId);
         return Ok(resultado);
+    }
+
+    [HttpPost("sugestoes/{sugestaoId:guid}/foto")]
+    public async Task<IActionResult> AdicionarFoto(Guid sugestaoId, IFormFile foto)
+    {
+        if (foto is null || foto.Length == 0)
+            return BadRequest(new { error = true, message = "Arquivo inválido." });
+
+        if (foto.Length > 10 * 1024 * 1024)
+            return BadRequest(new { error = true, message = "Arquivo muito grande. Máximo 10MB." });
+
+        var autorId = ObterUsuarioId();
+        var sugestao = await _sugestoesService.AdicionarFotoAsync(sugestaoId, autorId, foto);
+        return Ok(sugestao);
     }
 
     [HttpPost("sugestoes/{sugestaoId:guid}/aprovar")]

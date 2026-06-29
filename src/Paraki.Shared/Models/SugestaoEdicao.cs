@@ -21,6 +21,10 @@ public class SugestaoEdicao
     public string DadosEdicao { get; set; } = string.Empty;
 
     public string? MotivoRejeicao { get; set; }
+
+    public string? Comprovante { get; set; }
+    public string? ComprovanteFotoKey { get; set; }
+
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
     public DateTime? AvaliadaEm { get; set; }
 }

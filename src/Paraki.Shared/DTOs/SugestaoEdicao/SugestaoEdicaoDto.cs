@@ -15,6 +15,10 @@ public class SugestaoEdicaoDto
     public StatusSugestao Status { get; set; }
     public AtualizarBicicletarioDto DadosEdicao { get; set; } = new();
     public string? MotivoRejeicao { get; set; }
+
+    public string? Comprovante { get; set; }
+    public string? ComprovanteFotoKey { get; set; }
+
     public DateTime CriadoEm { get; set; }
     public DateTime? AvaliadaEm { get; set; }
 }

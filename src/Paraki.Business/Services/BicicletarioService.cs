@@ -256,6 +256,7 @@ public class BicicletarioService : IBicicletarioService
             BicicletarioId = id,
             AutorId = usuarioId,
             DadosEdicao = JsonSerializer.Serialize(dto),
+            Comprovante = dto.Comprovante,
             CriadoEm = DateTime.UtcNow
         };
 
