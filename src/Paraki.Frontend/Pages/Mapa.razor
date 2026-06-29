@@ -292,6 +292,10 @@
     <!-- Floating search bar over map (mobile only) -->
     <div class="mobile-only" style="position:absolute; top:calc(env(safe-area-inset-top, 0px) + 10px); left:16px; right:16px; z-index:10;">
         <div style="background:var(--bg); border-radius:var(--r-xl); box-shadow:var(--shadow-lg); display:flex; align-items:center; gap:10px; padding:0 16px; height:50px;">
+            <a href="/inicio" style="display:flex; align-items:center; flex-shrink:0; text-decoration:none;">
+                <img src="icon-192.png" alt="Paraki" style="width:26px; height:26px; border-radius:6px; object-fit:cover; display:block;" />
+            </a>
+            <div style="width:1px; height:18px; background:var(--border);"></div>
             <i class="fa-solid fa-magnifying-glass" style="color:var(--text-4); font-size:14px;"></i>
             <input value="@_search" @oninput="OnSearchInput" placeholder="Buscar bicicletários..."
                    style="flex:1; border:none; outline:none; background:transparent; font-size:15px; color:var(--text); font-family:var(--font); min-width:0;" />
