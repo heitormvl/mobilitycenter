@@ -50,7 +50,8 @@
 
     private async Task NavigateTo(string targetId, string route)
     {
-        if (targetId == Active) return;
+        var currentPath = new Uri(Nav.Uri).AbsolutePath;
+        if (targetId == Active && currentPath == route) return;
         await JS.InvokeVoidAsync("navTransition.prepare", Active, targetId);
         Nav.NavigateTo(route);
     }
