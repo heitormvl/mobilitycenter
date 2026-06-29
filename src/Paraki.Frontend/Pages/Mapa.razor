@@ -986,8 +986,11 @@
           <div style=""height:1px;background:var(--border);""></div>
           {vehicleGridHtml}
           {featuresGridHtml}
-          <div style=""padding:0 12px 14px;background:var(--bg);"">
-            <a href=""/bicicletario/{b.Id}?from=mapa"" onclick=""mapInterop.navigateTo(event,'/bicicletario/{b.Id}?from=mapa',{b.Latitude.ToString(CultureInfo.InvariantCulture)},{b.Longitude.ToString(CultureInfo.InvariantCulture)})"" style=""display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 16px;background:var(--brand);color:#fff;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:0.05em;text-decoration:none;"">
+          <div style=""padding:0 12px 14px;background:var(--bg);display:flex;gap:8px;"">
+            <button onclick=""event.stopPropagation();mapInterop.irPara({b.Latitude.ToString(CultureInfo.InvariantCulture)},{b.Longitude.ToString(CultureInfo.InvariantCulture)})"" style=""display:flex;align-items:center;justify-content:center;gap:6px;flex:1;padding:11px 12px;background:var(--bg-page);color:var(--brand);border-radius:8px;font-size:13px;font-weight:700;letter-spacing:0.04em;border:1px solid var(--border);cursor:pointer;"">
+              <i class=""fa-solid fa-route""></i> Ir para
+            </button>
+            <a href=""/bicicletario/{b.Id}?from=mapa"" onclick=""mapInterop.navigateTo(event,'/bicicletario/{b.Id}?from=mapa',{b.Latitude.ToString(CultureInfo.InvariantCulture)},{b.Longitude.ToString(CultureInfo.InvariantCulture)})"" style=""display:flex;align-items:center;justify-content:center;gap:8px;flex:1;padding:11px 12px;background:var(--brand);color:#fff;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:0.04em;text-decoration:none;"">
               Ver detalhes <i class=""fa-solid fa-arrow-right""></i>
             </a>
           </div>

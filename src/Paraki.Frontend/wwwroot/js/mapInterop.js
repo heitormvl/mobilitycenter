@@ -288,6 +288,17 @@ window.mapInterop = {
         try { localStorage.setItem('paraki-location', JSON.stringify([lat, lng])); } catch (_) {}
     },
 
+    irPara: function (lat, lng) {
+        const ua = navigator.userAgent;
+        if (/Android/i.test(ua)) {
+            window.location.href = `geo:${lat},${lng}?q=${lat},${lng}`;
+        } else if (/iPhone|iPad|iPod/i.test(ua)) {
+            window.location.href = `maps://maps.apple.com/?daddr=${lat},${lng}`;
+        } else {
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+        }
+    },
+
     destroy: function (mapId) {
         const inst = this._instances[mapId];
         if (inst) {

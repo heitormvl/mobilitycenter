@@ -300,11 +300,22 @@ else if (_item != null)
             </div>
             @if (!string.IsNullOrEmpty(_address))
             {
-                <div style="display:flex; align-items:flex-start; gap:6px; color:var(--text-3); font-size:13px; font-family:var(--font); line-height:1.4;">
+                <div style="display:flex; align-items:flex-start; gap:6px; color:var(--text-3); font-size:13px; font-family:var(--font); line-height:1.4; margin-bottom:10px;">
                     <i class="fa-solid fa-location-dot" style="color:var(--brand); font-size:12px; margin-top:2px; flex-shrink:0;"></i>
                     <span>@_address</span>
                 </div>
             }
+            <button @onclick="@(async () => await JS.InvokeVoidAsync("mapInterop.irPara", _item!.Latitude, _item!.Longitude))"
+                    style="display:flex; align-items:center; gap:12px; width:100%; padding:11px 14px; border-radius:var(--r-lg); background:var(--brand-soft); border:1px solid var(--border); cursor:pointer; -webkit-appearance:none; margin-bottom:2px;">
+                <div style="width:36px; height:36px; border-radius:var(--r-full); background:var(--brand); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="fa-solid fa-route" style="font-size:14px; color:white;"></i>
+                </div>
+                <div style="flex:1; text-align:left;">
+                    <div style="font-size:14px; font-weight:700; color:var(--brand); font-family:var(--font); line-height:1.2;">Ir para</div>
+                    <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:1px;">Abrir no aplicativo de GPS</div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="font-size:12px; color:var(--text-4);"></i>
+            </button>
         </div>
 
         @* Services card *@
