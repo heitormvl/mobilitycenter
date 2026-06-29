@@ -42,9 +42,12 @@
         if (path.StartsWith("/lista"))          return "lista";
         if (path.StartsWith("/bicicletario"))   return "lista";
         if (path.StartsWith("/perfil"))         return "perfil";
-        if (path.StartsWith("/configuracoes"))  return "perfil";
-        if (path.StartsWith("/adicionar"))      return "add";
-        if (path.StartsWith("/avaliar"))        return "lista";
+        if (path.StartsWith("/configuracoes"))          return "perfil";
+        if (path.StartsWith("/politica-de-privacidade")) return "perfil";
+        if (path.StartsWith("/termos-de-uso"))           return "perfil";
+        if (path.StartsWith("/contato"))                 return "perfil";
+        if (path.StartsWith("/adicionar"))               return "add";
+        if (path.StartsWith("/avaliar"))                 return "lista";
         return "";
     }
 }

@@ -1,0 +1,166 @@
+@page "/termos-de-uso"
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div style="min-height:100vh; background:var(--bg-page); display:flex; flex-direction:column;">
+
+    <!-- Header -->
+    <div style="background:var(--bg); border-bottom:1px solid var(--border); flex-shrink:0;">
+        <StatusBar />
+        <div style="display:flex; align-items:center; gap:14px; padding:4px 20px 14px;">
+            <button @onclick="GoBack"
+                    style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <i class="fa-solid fa-chevron-left" style="color:var(--text-3); font-size:15px;"></i>
+            </button>
+            <h1 style="font-size:20px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin:0;">Termos de Uso</h1>
+        </div>
+    </div>
+
+    <div style="padding:24px 20px 88px; max-width:680px; width:100%; margin:0 auto; box-sizing:border-box;">
+
+        <!-- Intro -->
+        <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm); margin-bottom:28px;">
+            <p style="font-size:12px; color:var(--text-4); font-family:var(--font); margin:0 0 10px; font-weight:500; text-transform:uppercase; letter-spacing:0.04em;">Última atualização: 29 de junho de 2026</p>
+            <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0; line-height:1.65;">
+                Ao usar o <strong style="color:var(--text);">Paraki</strong>, você concorda com estes Termos de Uso.
+                Leia com atenção antes de criar uma conta ou contribuir com a plataforma.
+            </p>
+        </div>
+
+        <!-- 1. Aceitação -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>1. Aceitação dos termos</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0; line-height:1.65;">
+                    O uso do Paraki — incluindo cadastro, navegação, adição de locais e avaliações — implica a aceitação integral destes termos.
+                    Se você não concorda com alguma cláusula, não utilize a plataforma.
+                </p>
+            </div>
+        </div>
+
+        <!-- 2. Elegibilidade -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>2. Uso da plataforma</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:4px 0; box-shadow:var(--shadow-sm);">
+
+                @foreach (var (icon, titulo, desc, last) in _usos)
+                {
+                    <div style="display:flex; align-items:flex-start; gap:12px; padding:16px 20px;">
+                        <div style="width:34px; height:34px; border-radius:var(--r); background:var(--brand-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">
+                            <i class="fa-solid @icon" style="font-size:13px; color:var(--brand);"></i>
+                        </div>
+                        <div>
+                            <p style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font); margin:0 0 3px;">@titulo</p>
+                            <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:0; line-height:1.55;">@desc</p>
+                        </div>
+                    </div>
+                    @if (!last)
+                    {
+                        <div style="height:1px; background:var(--border); margin:0 20px;"></div>
+                    }
+                }
+
+            </div>
+        </div>
+
+        <!-- 3. Conteúdo gerado pelo usuário -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>3. Conteúdo gerado por usuários</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0 0 14px; line-height:1.65;">
+                    Ao adicionar bicicletários, avaliações, fotos ou sugestões, você declara que:
+                </p>
+                <ul style="margin:0; padding:0 0 0 18px; display:flex; flex-direction:column; gap:10px; color:var(--text-2); font-family:var(--font); font-size:14px; line-height:1.6;">
+                    <li>As informações são verdadeiras e correspondem à realidade do local.</li>
+                    <li>As fotos são de sua autoria ou você tem direito de publicá-las.</li>
+                    <li>O conteúdo não viola direitos de terceiros nem contém material ofensivo, discriminatório ou ilegal.</li>
+                </ul>
+                <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin:14px 0 0; line-height:1.55;">
+                    O Paraki pode remover qualquer conteúdo que viole estas regras sem aviso prévio.
+                </p>
+            </div>
+        </div>
+
+        <!-- 4. Conta -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>4. Sua conta</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <ul style="margin:0; padding:0 0 0 18px; display:flex; flex-direction:column; gap:10px; color:var(--text-2); font-family:var(--font); font-size:14px; line-height:1.6;">
+                    <li>Você é responsável por manter a confidencialidade da sua senha.</li>
+                    <li>Cada pessoa pode ter apenas uma conta ativa.</li>
+                    <li>Contas usadas para spam, manipulação de avaliações ou abuso da plataforma serão suspensas.</li>
+                    <li>Você pode encerrar sua conta a qualquer momento nas configurações ou via e-mail de contato.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 5. Propriedade intelectual -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>5. Propriedade intelectual</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0; line-height:1.65;">
+                    O código, design, marca e conteúdo editorial do Paraki são de propriedade da <strong style="color:var(--text);">Maverick Software</strong>.
+                    Conteúdo colaborativo (locais, avaliações) permanece sob responsabilidade dos autores,
+                    mas é licenciado ao Paraki para exibição e manutenção do mapa colaborativo.
+                </p>
+            </div>
+        </div>
+
+        <!-- 6. Limitação de responsabilidade -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>6. Limitação de responsabilidade</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0; line-height:1.65;">
+                    O Paraki é uma plataforma colaborativa. As informações sobre bicicletários são fornecidas por usuários e podem estar
+                    desatualizadas. Não garantimos a disponibilidade, precisão ou estado de conservação dos locais listados.
+                    Use o mapa como guia e sempre verifique as condições no local.
+                </p>
+            </div>
+        </div>
+
+        <!-- 7. Modificações -->
+        <div style="margin-bottom:28px;">
+            <SecLabel>7. Alterações nestes termos</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0; line-height:1.65;">
+                    Podemos atualizar estes termos periodicamente. Em caso de mudanças relevantes, notificaremos os usuários
+                    pelo app ou por e-mail. O uso continuado da plataforma após a notificação constitui aceitação dos novos termos.
+                </p>
+            </div>
+        </div>
+
+        <!-- 8. Contato -->
+        <div>
+            <SecLabel>8. Contato</SecLabel>
+            <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; box-shadow:var(--shadow-sm);">
+                <p style="font-size:14px; color:var(--text-2); font-family:var(--font); margin:0 0 14px; line-height:1.65;">
+                    Dúvidas sobre estes termos ou sobre a plataforma:
+                </p>
+                <a href="mailto:contato@mavericksoftware.com.br"
+                   style="display:inline-flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:var(--brand); font-family:var(--font); text-decoration:none;">
+                    <i class="fa-solid fa-envelope" style="font-size:13px;"></i>
+                    contato@mavericksoftware.com.br
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@code {
+    private async Task GoBack()
+    {
+        var canGoBack = await JS.InvokeAsync<bool>("eval", "history.length > 1");
+        if (canGoBack)
+            await JS.InvokeVoidAsync("eval", "history.back()");
+        else
+            Nav.NavigateTo("/");
+    }
+
+    private readonly (string Icon, string Titulo, string Desc, bool Last)[] _usos =
+    [
+        ("fa-check-circle",  "Uso pessoal e colaborativo", "O Paraki é gratuito para uso pessoal. Você pode consultar o mapa, avaliar locais e contribuir com informações sobre infraestrutura de micromobilidade.", false),
+        ("fa-ban",           "Usos proibidos",             "É vedado usar bots, scripts ou qualquer meio automatizado para adicionar ou modificar dados. Também é proibido usar a plataforma para fins comerciais sem autorização.", false),
+        ("fa-user-check",    "Elegibilidade",              "A plataforma pode ser usada por qualquer pessoa. Menores de 13 anos devem ter autorização de um responsável legal.", true),
+    ];
+}
