@@ -147,8 +147,8 @@ else
 
         var toastMsg = statusAprovacao switch
         {
-            0 => "Enviado para aprovação! Analisaremos em breve.",
-            2 => "Publicado! Nossa equipe vai confirmar em breve.",
+            0 => "Enviado para moderação. Publicaremos assim que for aprovado.",
+            2 => "Publicado e enviado para moderação!",
             _ => "Bicicletário publicado com sucesso!",
         };
         ToastSvc.Show(toastMsg);
