@@ -32,7 +32,7 @@ public class BicicletariosController : ControllerBase
     public async Task<IActionResult> ListarAdmin([FromQuery] BicicletarioFiltros filtros)
     {
         var tipo = ObterTipoUsuario();
-        if (tipo != TipoUsuario.Admin)
+        if (tipo != TipoUsuario.Admin && tipo != TipoUsuario.Moderador)
             return Forbid();
 
         filtros.IncluirOcultas = true;

@@ -4,5 +4,6 @@ public enum TipoUsuario
 {
     Usuario,
     Operador,
-    Admin
+    Admin,
+    Moderador,
 }

@@ -15,7 +15,7 @@
 
     <!-- Tabs mobile (scroll horizontal) -->
     <div style="display:flex; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; margin-top:12px;">
-        <button @onclick='@(() => _tab = 0)'
+        <button @onclick='@(() => MudarTab(0))'
                 style="flex-shrink:0; padding:10px 16px; border:none; border-bottom:2px solid @(_tab == 0 ? "var(--brand)" : "transparent"); background:transparent; font-family:var(--font); font-size:14px; font-weight:@(_tab == 0 ? "700" : "500"); color:@(_tab == 0 ? "var(--brand)" : "var(--text-3)"); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:6px;">
             <i class="fa-solid fa-pen-to-square" style="font-size:12px;"></i>
             Sugestões
@@ -24,7 +24,7 @@
                 <span style="background:#DC2626; color:white; font-size:10px; font-weight:700; border-radius:var(--r-full); padding:1px 6px;">@(_contagemSugestoes > 99 ? "99+" : _contagemSugestoes.ToString())</span>
             }
         </button>
-        <button @onclick='@(() => _tab = 1)'
+        <button @onclick='@(() => MudarTab(1))'
                 style="flex-shrink:0; padding:10px 16px; border:none; border-bottom:2px solid @(_tab == 1 ? "var(--brand)" : "transparent"); background:transparent; font-family:var(--font); font-size:14px; font-weight:@(_tab == 1 ? "700" : "500"); color:@(_tab == 1 ? "var(--brand)" : "var(--text-3)"); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:6px;">
             <i class="fa-solid fa-location-dot" style="font-size:12px;"></i>
             Novos bicicletários
@@ -33,6 +33,14 @@
                 <span style="background:#DC2626; color:white; font-size:10px; font-weight:700; border-radius:var(--r-full); padding:1px 6px;">@(_contagemBicis > 99 ? "99+" : _contagemBicis.ToString())</span>
             }
         </button>
+        @if (_isAdmin)
+        {
+            <button @onclick='@(() => MudarTab(2))'
+                    style="flex-shrink:0; padding:10px 16px; border:none; border-bottom:2px solid @(_tab == 2 ? "var(--brand)" : "transparent"); background:transparent; font-family:var(--font); font-size:14px; font-weight:@(_tab == 2 ? "700" : "500"); color:@(_tab == 2 ? "var(--brand)" : "var(--text-3)"); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-users" style="font-size:12px;"></i>
+                Usuários
+            </button>
+        }
     </div>
 </div>
 
@@ -101,7 +109,7 @@
             }
         }
     }
-    else
+    else if (_tab == 1)
     {
         <!-- Novos bicicletários tab -->
         @if (_pendentesB == null || _pendentesB.Length == 0)
@@ -145,6 +153,67 @@
                     </div>
                 </div>
             }
+        }
+    }
+    else if (_tab == 2 && _isAdmin)
+    {
+        <!-- Usuários tab -->
+        @if (_usuariosLoading)
+        {
+            @for (int i = 0; i < 5; i++)
+            {
+                <div style="background:var(--bg); border-radius:var(--r-lg); padding:14px 16px; border:1px solid var(--border);">
+                    <div style="height:14px; width:40%; background:var(--border); border-radius:4px; margin-bottom:8px;"></div>
+                    <div style="height:11px; width:60%; background:var(--border); border-radius:4px;"></div>
+                </div>
+            }
+        }
+        else if (_usuarios == null)
+        {
+            <div style="text-align:center; padding:40px 20px; font-family:var(--font);">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size:32px; color:var(--text-4); margin-bottom:12px; display:block;"></i>
+                <div style="font-size:15px; color:var(--text-3);">Não foi possível carregar os usuários.</div>
+            </div>
+        }
+        else
+        {
+            @foreach (var u in _usuarios.Usuarios)
+            {
+                <div @onclick="@(() => AbrirModalUsuario(u))"
+                     style="background:var(--bg); border-radius:var(--r-lg); border:1px solid var(--border); padding:13px 16px; box-shadow:var(--shadow-sm); cursor:pointer; display:flex; align-items:center; gap:12px;">
+                    <div style="width:36px; height:36px; border-radius:var(--r-full); background:var(--bg-page); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i class="fa-solid fa-user" style="font-size:14px; color:var(--text-3);"></i>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@u.Nome</div>
+                        <div style="font-size:11px; color:var(--text-4); font-family:var(--font); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@u.Email</div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0;">
+                        @RenderRoleBadge(u.Tipo)
+                        @RenderTierBadge(u.TierEfetivo, u.TierOverride.HasValue)
+                    </div>
+                </div>
+            }
+
+            @if (_usuarios.Total > _usuariosPageSize)
+            {
+                var totalPages = (int)Math.Ceiling(_usuarios.Total / (double)_usuariosPageSize);
+                <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px; font-family:var(--font);">
+                    <button @onclick="PaginaAnterior" disabled="@(_usuariosPage <= 1)"
+                            style="padding:6px 14px; border-radius:var(--r-full); border:1px solid var(--border); background:var(--bg); font-size:13px; font-weight:600; color:@(_usuariosPage <= 1 ? "var(--text-4)" : "var(--text)"); cursor:@(_usuariosPage <= 1 ? "default" : "pointer");">
+                        ← Anterior
+                    </button>
+                    <span style="font-size:13px; color:var(--text-3);">@_usuariosPage / @totalPages</span>
+                    <button @onclick="ProximaPagina" disabled="@(_usuariosPage >= totalPages)"
+                            style="padding:6px 14px; border-radius:var(--r-full); border:1px solid var(--border); background:var(--bg); font-size:13px; font-weight:600; color:@(_usuariosPage >= totalPages ? "var(--text-4)" : "var(--text)"); cursor:@(_usuariosPage >= totalPages ? "default" : "pointer");">
+                        Próxima →
+                    </button>
+                </div>
+            }
+
+            <div style="text-align:center; font-size:12px; color:var(--text-4); font-family:var(--font); margin-top:4px;">
+                @_usuarios.Total usuário@(_usuarios.Total != 1 ? "s" : "") no total
+            </div>
         }
     }
 </div>
@@ -406,9 +475,91 @@
     </div>
 }
 
+<!-- Modal: editar usuário -->
+@if (_modalUsuario != null)
+{
+    <div @onclick="FecharModalUsuario"
+         style="position:fixed; inset:0; z-index:900; background:rgba(0,0,0,0.55); display:flex; align-items:flex-end; justify-content:center; padding:0;">
+        <div @onclick:stopPropagation="true"
+             style="background:var(--bg); border-radius:var(--r-lg) var(--r-lg) 0 0; width:100%; max-width:480px; padding:20px 20px 36px; animation:slideUp .2s ease-out;">
+
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                <div style="width:42px; height:42px; border-radius:var(--r-full); background:var(--bg-page); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="fa-solid fa-user" style="font-size:16px; color:var(--text-3);"></i>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:15px; font-weight:700; color:var(--text); font-family:var(--font); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@_modalUsuario.Nome</div>
+                    <div style="font-size:11px; color:var(--text-4); font-family:var(--font); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@_modalUsuario.Email</div>
+                </div>
+                <button @onclick="FecharModalUsuario"
+                        style="width:32px; height:32px; border-radius:var(--r-full); background:var(--bg-page); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="fa-solid fa-xmark" style="font-size:13px; color:var(--text-3);"></i>
+                </button>
+            </div>
+
+            <!-- Info linha -->
+            <div style="display:flex; gap:8px; margin-bottom:20px;">
+                <div style="background:var(--bg-page); border-radius:var(--r); padding:8px 12px; flex:1; text-align:center;">
+                    <div style="font-size:10px; color:var(--text-4); font-family:var(--font); margin-bottom:3px;">Pontos</div>
+                    <div style="font-size:14px; font-weight:700; color:var(--text); font-family:var(--font);">@_modalUsuario.PontosAprovados</div>
+                </div>
+                <div style="background:var(--bg-page); border-radius:var(--r); padding:8px 12px; flex:1; text-align:center;">
+                    <div style="font-size:10px; color:var(--text-4); font-family:var(--font); margin-bottom:3px;">Membro desde</div>
+                    <div style="font-size:12px; font-weight:600; color:var(--text-2); font-family:var(--font);">@_modalUsuario.CriadoEm.ToLocalTime().ToString("MM/yyyy")</div>
+                </div>
+            </div>
+
+            <!-- Role -->
+            <div style="margin-bottom:16px;">
+                <div style="font-size:11px; font-weight:700; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:.07em; margin-bottom:8px;">Role</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                    @foreach (var (label, value) in new[] { ("Padrão", 0), ("Mod", 3), ("Admin", 2) })
+                    {
+                        var v = value;
+                        var selected = _novoRole == v;
+                        <button @onclick="@(() => _novoRole = v)"
+                                style="padding:10px 4px; border-radius:var(--r-lg); border:2px solid @(selected ? "var(--brand)" : "var(--border)"); background:@(selected ? "var(--brand)" : "var(--bg)"); font-family:var(--font); font-size:13px; font-weight:@(selected ? "700" : "500"); color:@(selected ? "white" : "var(--text-2)"); cursor:pointer; text-align:center;">
+                            @label
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Tier override -->
+            <div style="margin-bottom:20px;">
+                <div style="font-size:11px; font-weight:700; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:.07em; margin-bottom:8px;">Tier (override)</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px;">
+                    @foreach (var (label, value) in new[] { ("Auto", (int?)-1), ("Padrão", (int?)0), ("Prata", (int?)1), ("Ouro", (int?)2) })
+                    {
+                        var v = value;
+                        var isAuto = v == -1;
+                        var selected = isAuto ? _novoTier == null : _novoTier == v;
+                        <button @onclick="@(() => _novoTier = isAuto ? null : v)"
+                                style="padding:9px 2px; border-radius:var(--r-lg); border:2px solid @(selected ? "var(--brand)" : "var(--border)"); background:@(selected ? "var(--brand)" : "var(--bg)"); font-family:var(--font); font-size:12px; font-weight:@(selected ? "700" : "500"); color:@(selected ? "white" : "var(--text-2)"); cursor:pointer; text-align:center;">
+                            @label
+                        </button>
+                    }
+                </div>
+                <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:6px;">Auto = calculado pelos pontos (@_modalUsuario.PontosAprovados pts)</div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_erroU))
+            {
+                <div style="font-size:12px; color:#DC2626; margin-bottom:12px; font-family:var(--font);">@_erroU</div>
+            }
+
+            <button @onclick="SalvarUsuario" disabled="@_savingU"
+                    style="width:100%; padding:13px; border-radius:var(--r-lg); border:none; background:@(_savingU ? "var(--border)" : "var(--brand)"); color:white; font-family:var(--font); font-size:15px; font-weight:700; cursor:pointer;">
+                @(_savingU ? "Salvando..." : "Salvar alterações")
+            </button>
+        </div>
+    </div>
+}
+
 @code {
     private int _tab;
     private bool _isLoading = true;
+    private bool _isAdmin;
     private string? _loadError;
     private int _contagemSugestoes;
     private int _contagemBicis;
@@ -431,24 +582,38 @@
     private string _motivoB = "";
     private string? _erroB;
 
+    // Usuários state
+    private UsuariosPageModel? _usuarios;
+    private bool _usuariosLoading;
+    private int _usuariosPage = 1;
+    private const int _usuariosPageSize = 20;
+    private UsuarioAdminModel? _modalUsuario;
+    private int _novoRole;
+    private int? _novoTier;
+    private bool _savingU;
+    private string? _erroU;
+
     private static readonly string[] _dias = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
     protected override async Task OnInitializedAsync()
     {
         var userInfo = await AuthSvc.GetUserInfoAsync();
-        if (userInfo?.Type != 2)
+        // Allow both Admin (2) and Moderador (3)
+        if (userInfo?.Type != 2 && userInfo?.Type != 3)
         {
             Nav.NavigateTo("/lista");
             return;
         }
 
-        var sugestoesTask  = SugestaoSvc.GetPendentesAsync();
+        _isAdmin = userInfo.Type == 2;
+
+        var sugestoesTask     = SugestaoSvc.GetPendentesAsync();
         var bicicletariosTask = BicicletarioSvc.GetPendentesAsync();
 
         await Task.WhenAll(sugestoesTask, bicicletariosTask);
 
         var sugestoes = await sugestoesTask;
-        var bicis = await bicicletariosTask;
+        var bicis     = await bicicletariosTask;
 
         if (sugestoes == null && bicis == null)
             _loadError = "Não foi possível carregar os dados.";
@@ -457,10 +622,79 @@
             _pendentes  = sugestoes ?? [];
             _pendentesB = bicis ?? [];
             _contagemSugestoes = _pendentes.Length;
-            _contagemBicis = _pendentesB.Length;
+            _contagemBicis     = _pendentesB.Length;
         }
 
         _isLoading = false;
+    }
+
+    private async Task MudarTab(int tab)
+    {
+        _tab = tab;
+        if (tab == 2 && _isAdmin && _usuarios == null)
+            await CarregarUsuarios();
+    }
+
+    // ── Usuários ─────────────────────────────────────────────────
+    private async Task CarregarUsuarios()
+    {
+        _usuariosLoading = true;
+        StateHasChanged();
+        _usuarios = await AdminSvc.GetUsuariosAsync(_usuariosPage, _usuariosPageSize);
+        _usuariosLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task PaginaAnterior()
+    {
+        if (_usuariosPage <= 1) return;
+        _usuariosPage--;
+        await CarregarUsuarios();
+    }
+
+    private async Task ProximaPagina()
+    {
+        if (_usuarios == null) return;
+        var totalPages = (int)Math.Ceiling(_usuarios.Total / (double)_usuariosPageSize);
+        if (_usuariosPage >= totalPages) return;
+        _usuariosPage++;
+        await CarregarUsuarios();
+    }
+
+    private void AbrirModalUsuario(UsuarioAdminModel u)
+    {
+        _modalUsuario = u;
+        _novoRole = u.Tipo;
+        _novoTier = u.TierOverride;
+        _erroU = null;
+        _savingU = false;
+    }
+
+    private void FecharModalUsuario() => _modalUsuario = null;
+
+    private async Task SalvarUsuario()
+    {
+        if (_modalUsuario == null) return;
+        _savingU = true;
+        _erroU = null;
+
+        var errRole = await AdminSvc.SetRoleAsync(_modalUsuario.Id, _novoRole);
+        if (errRole != null) { _erroU = errRole; _savingU = false; return; }
+
+        var errTier = await AdminSvc.SetTierAsync(_modalUsuario.Id, _novoTier);
+        if (errTier != null) { _erroU = errTier; _savingU = false; return; }
+
+        // Refresh the local list entry
+        var u = _usuarios?.Usuarios.FirstOrDefault(x => x.Id == _modalUsuario.Id);
+        if (u != null)
+        {
+            u.Tipo = _novoRole;
+            u.TierOverride = _novoTier;
+            u.TierEfetivo = _novoTier ?? (_modalUsuario.PontosAprovados >= 50 ? 2 : _modalUsuario.PontosAprovados >= 10 ? 1 : 0);
+        }
+
+        _savingU = false;
+        FecharModalUsuario();
     }
 
     // ── Sugestões modal ──────────────────────────────────────────
@@ -598,6 +832,37 @@
         var anos = (int)(diff.TotalDays / 365);
         return $"há {anos} ano{(anos > 1 ? "s" : "")}";
     }
+
+    private RenderFragment RenderRoleBadge(int tipo) => __builder =>
+    {
+        var (label, bg, color) = tipo switch
+        {
+            2 => ("ADMIN", "#DBEAFE", "#1D4ED8"),
+            3 => ("MOD",   "#F3E8FF", "#7C3AED"),
+            1 => ("OP",    "#D1FAE5", "#065F46"),
+            _ => ("",      "",        "")
+        };
+        if (string.IsNullOrEmpty(label)) return;
+        __builder.OpenElement(0, "span");
+        __builder.AddAttribute(1, "style", $"font-size:9px; font-weight:700; background:{bg}; color:{color}; padding:2px 6px; border-radius:var(--r-full); font-family:var(--font); letter-spacing:.04em;");
+        __builder.AddContent(2, label);
+        __builder.CloseElement();
+    };
+
+    private RenderFragment RenderTierBadge(int tier, bool isOverride) => __builder =>
+    {
+        var (label, bg, color) = tier switch
+        {
+            2 => ("OURO",  "#FEF3C7", "#92400E"),
+            1 => ("PRATA", "#F3F4F6", "#374151"),
+            _ => ("",      "",        "")
+        };
+        if (string.IsNullOrEmpty(label)) return;
+        __builder.OpenElement(0, "span");
+        __builder.AddAttribute(1, "style", $"font-size:9px; font-weight:700; background:{bg}; color:{color}; padding:2px 6px; border-radius:var(--r-full); font-family:var(--font); letter-spacing:.04em;{(isOverride ? " outline:1px solid currentColor; outline-offset:1px;" : "")}");
+        __builder.AddContent(2, label);
+        __builder.CloseElement();
+    };
 
     private RenderFragment RenderServico(string icon, string label, bool atual, bool? sugerido) => __builder =>
     {

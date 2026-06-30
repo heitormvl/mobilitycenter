@@ -397,7 +397,7 @@ public class BicicletarioService : IBicicletarioService
             .FirstOrDefaultAsync(b => b.Id == id)
             ?? throw new NotFoundException($"Bicicletário {id} não encontrado.");
 
-        if (tipoUsuario != TipoUsuario.Admin && bicicletario.OperadorId != usuarioId)
+        if (tipoUsuario != TipoUsuario.Admin && tipoUsuario != TipoUsuario.Moderador && bicicletario.OperadorId != usuarioId)
             throw new UnauthorizedException("Sem permissão para deletar este bicicletário.");
 
         var usuario = await _db.Users.FindAsync(usuarioId) ?? throw new NotFoundException("Usuário não encontrado.");
@@ -460,8 +460,8 @@ public class BicicletarioService : IBicicletarioService
         var admin = await _db.Users.FindAsync(adminId)
             ?? throw new NotFoundException("Usuário não encontrado.");
 
-        if (admin.Type != TipoUsuario.Admin)
-            throw new UnauthorizedException("Apenas administradores podem listar bicicletários pendentes.");
+        if (admin.Type != TipoUsuario.Admin && admin.Type != TipoUsuario.Moderador)
+            throw new UnauthorizedException("Sem permissão para listar bicicletários pendentes.");
 
         return await _db.Bicicletarios
             .IgnoreQueryFilters()
@@ -506,8 +506,8 @@ public class BicicletarioService : IBicicletarioService
         var admin = await _db.Users.FindAsync(adminId)
             ?? throw new NotFoundException("Usuário não encontrado.");
 
-        if (admin.Type != TipoUsuario.Admin)
-            throw new UnauthorizedException("Apenas administradores podem aprovar bicicletários.");
+        if (admin.Type != TipoUsuario.Admin && admin.Type != TipoUsuario.Moderador)
+            throw new UnauthorizedException("Sem permissão para aprovar bicicletários.");
 
         var bicicletario = await _db.Bicicletarios
             .IgnoreQueryFilters()
@@ -552,8 +552,8 @@ public class BicicletarioService : IBicicletarioService
         var admin = await _db.Users.FindAsync(adminId)
             ?? throw new NotFoundException("Usuário não encontrado.");
 
-        if (admin.Type != TipoUsuario.Admin)
-            throw new UnauthorizedException("Apenas administradores podem rejeitar bicicletários.");
+        if (admin.Type != TipoUsuario.Admin && admin.Type != TipoUsuario.Moderador)
+            throw new UnauthorizedException("Sem permissão para rejeitar bicicletários.");
 
         var bicicletario = await _db.Bicicletarios
             .IgnoreQueryFilters()

@@ -32,8 +32,8 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
         var admin = await _db.Users.FindAsync(adminId)
             ?? throw new NotFoundException("Usuário não encontrado.");
 
-        if (admin.Type != TipoUsuario.Admin)
-            throw new UnauthorizedException("Apenas administradores podem listar sugestões pendentes.");
+        if (admin.Type != TipoUsuario.Admin && admin.Type != TipoUsuario.Moderador)
+            throw new UnauthorizedException("Sem permissão para listar sugestões pendentes.");
 
         return await _db.SugestoesEdicao
             .Include(s => s.Autor)
@@ -50,8 +50,8 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
         var admin = await _db.Users.FindAsync(adminId)
             ?? throw new NotFoundException("Usuário não encontrado.");
 
-        if (admin.Type != TipoUsuario.Admin)
-            throw new UnauthorizedException("Apenas administradores podem consultar contagem de sugestões.");
+        if (admin.Type != TipoUsuario.Admin && admin.Type != TipoUsuario.Moderador)
+            throw new UnauthorizedException("Sem permissão para consultar contagem de sugestões.");
 
         return await _db.SugestoesEdicao.CountAsync(s => s.Status == StatusSugestao.Pendente);
     }
@@ -119,7 +119,7 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
         var revisor = await _db.Users.FindAsync(revisorId)
             ?? throw new NotFoundException("Usuário não encontrado.");
 
-        if (revisor.Type != TipoUsuario.Admin && sugestao.Bicicletario.OperadorId != revisorId)
+        if (revisor.Type != TipoUsuario.Admin && revisor.Type != TipoUsuario.Moderador && sugestao.Bicicletario.OperadorId != revisorId)
             throw new UnauthorizedException("Sem permissão para aprovar esta sugestão.");
 
         var dto = JsonSerializer.Deserialize<AtualizarBicicletarioDto>(sugestao.DadosEdicao)
@@ -196,7 +196,7 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
         var revisor = await _db.Users.FindAsync(revisorId)
             ?? throw new NotFoundException("Usuário não encontrado.");
 
-        if (revisor.Type != TipoUsuario.Admin && sugestao.Bicicletario.OperadorId != revisorId)
+        if (revisor.Type != TipoUsuario.Admin && revisor.Type != TipoUsuario.Moderador && sugestao.Bicicletario.OperadorId != revisorId)
             throw new UnauthorizedException("Sem permissão para rejeitar esta sugestão.");
 
         if (sugestao.AplicadaAutomaticamente && sugestao.DadosAnteriores != null)
