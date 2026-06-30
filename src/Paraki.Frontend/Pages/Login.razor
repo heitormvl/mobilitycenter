@@ -296,8 +296,9 @@
         // Launch merge phantoms (they fly from input positions back to the button)
         await JS.InvokeVoidAsync("loginAnim.runMerge", emailRect, passRect, _cachedBtnRect);
 
-        // Wait for longest exit animation (email: 0.26s delay + 0.25s duration ≈ 510ms)
-        await Task.Delay(510);
+        // Wait for longest exit animation (email: 0.26s delay + 0.25s duration = 510ms)
+        // +120ms buffer to cover Blazor render latency before animations start
+        await Task.Delay(630);
         _showPasswordLogin = false;
         _formReady = false;
         _formExiting = false;
