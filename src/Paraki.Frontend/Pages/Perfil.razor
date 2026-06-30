@@ -95,6 +95,10 @@
                         {
                             <span style="display:inline-flex; align-items:center; padding:2px 8px; border-radius:var(--r-full); background:linear-gradient(135deg, #94A3B8 0%, #64748B 50%, #475569 100%); font-size:10px; font-weight:700; color:white; font-family:var(--font); letter-spacing:.1em; line-height:1; box-shadow:0 1px 3px rgba(71,85,105,.35);">ADMIN</span>
                         }
+                        else if (_user.Type == 3)
+                        {
+                            <span class="badge-mod" style="font-family:var(--font);">MOD</span>
+                        }
                     </div>
                     <div style="font-size:13px; color:var(--text-4); font-family:var(--font);">Membro desde @_user.CreatedAt.ToString("MMMM \\de yyyy")</div>
                 </div>
@@ -116,7 +120,7 @@
                 </div>
 
                 <!-- Tier / Colaboração -->
-                @if (_user.Type != 2)
+                @if (_user.Type != 2 && _user.Type != 3)
                 {
                 <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; margin-bottom:14px; box-shadow:var(--shadow-sm);">
                     <div style="font-size:12px; font-weight:700; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:.07em; margin-bottom:14px;">Sua colaboração</div>

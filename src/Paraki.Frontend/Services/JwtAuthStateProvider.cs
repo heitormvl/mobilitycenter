@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
+using Paraki.Frontend.Models;
 
 namespace Paraki.Frontend.Services;
 
@@ -53,12 +54,14 @@ public class JwtAuthStateProvider(
             var response = await http.PostAsJsonAsync("api/auth/refresh", new { token = refreshToken });
             if (!response.IsSuccessStatusCode) return null;
 
-            var result = await response.Content.ReadFromJsonAsync<AuthTokenPair>();
+            var result = await response.Content.ReadFromJsonAsync<AuthRefreshResult>();
             if (result is null) return null;
 
             await localStorage.SetItemAsync("authToken", result.Token);
             if (!string.IsNullOrEmpty(result.RefreshToken))
                 await localStorage.SetItemAsync("refreshToken", result.RefreshToken);
+            if (result.Usuario is not null)
+                await localStorage.SetItemAsync("userInfo", result.Usuario);
 
             return result.Token;
         }
@@ -68,7 +71,7 @@ public class JwtAuthStateProvider(
         }
     }
 
-    private record AuthTokenPair(string Token, string? RefreshToken);
+    private record AuthRefreshResult(string Token, string? RefreshToken, UserInfo? Usuario);
 
     public void NotifyStateChanged(string? token)
     {
