@@ -99,7 +99,7 @@ public class AuthService : IAuthService
         var resultado = await _userManager.CreateAsync(usuario, dto.Password);
         if (!resultado.Succeeded)
         {
-            var erros = string.Join(", ", resultado.Errors.Select(e => e.Description));
+            var erros = TraduzirErrosIdentity(resultado.Errors);
             throw new ValidationException(erros);
         }
 
@@ -222,7 +222,7 @@ public class AuthService : IAuthService
             var resultado = await _userManager.CreateAsync(usuario);
             if (!resultado.Succeeded)
             {
-                var erros = string.Join(", ", resultado.Errors.Select(e => e.Description));
+                var erros = TraduzirErrosIdentity(resultado.Errors);
                 throw new ValidationException(erros);
             }
         }
@@ -351,6 +351,22 @@ public class AuthService : IAuthService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    private static string TraduzirErrosIdentity(IEnumerable<IdentityError> errors) =>
+        string.Join(". ", errors.Select(e => e.Code switch
+        {
+            "PasswordTooShort"             => "A senha deve ter pelo menos 6 caracteres.",
+            "PasswordRequiresNonAlphanumeric" => "A senha deve conter pelo menos um caractere especial (ex: !@#$).",
+            "PasswordRequiresDigit"        => "A senha deve conter pelo menos um número.",
+            "PasswordRequiresLower"        => "A senha deve conter pelo menos uma letra minúscula.",
+            "PasswordRequiresUpper"        => "A senha deve conter pelo menos uma letra maiúscula.",
+            "PasswordRequiresUniqueChars"  => "A senha deve conter mais caracteres distintos.",
+            "DuplicateEmail"               => "Este e-mail já está cadastrado.",
+            "DuplicateUserName"            => "Este e-mail já está em uso.",
+            "InvalidEmail"                 => "Endereço de e-mail inválido.",
+            "InvalidUserName"              => "Nome de usuário inválido.",
+            _                              => e.Description
+        }));
 
     private static UsuarioDto MapearUsuario(Usuario u) => new()
     {
