@@ -44,8 +44,12 @@
                         <div class="@(_formReady ? (_formExiting ? "lform-bottom-exit" : "lform-bottom") : "lform-hidden")"
                              style="animation-delay:@(_formExiting ? "0.20s" : "0.05s")">
                             <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Senha</label>
-                            <div @ref="_passRef">
-                                <WfInput @bind-Value="_password" Placeholder="••••••••" IconClass="fa-lock" Type="password" />
+                            <div @ref="_passRef" style="position:relative;">
+                                <WfInput @bind-Value="_password" Placeholder="••••••••" IconClass="fa-lock" Type="@(_showLoginPassword ? "text" : "password")" />
+                                <button type="button" @onclick="@(() => _showLoginPassword = !_showLoginPassword)"
+                                        style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; padding:0; cursor:pointer; color:var(--text-4); font-size:14px; line-height:1;">
+                                    <i class="fa-solid @(_showLoginPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="@(_formReady ? (_formExiting ? "lcurtain-exit" : "lcurtain") : "lform-hidden")"
@@ -148,7 +152,13 @@
                     </div>
                     <div>
                         <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Senha</label>
-                        <WfInput @bind-Value="_password" Placeholder="Mínimo 6 caracteres" IconClass="fa-lock" Type="password" />
+                        <div style="position:relative;">
+                            <WfInput @bind-Value="_password" Placeholder="Mínimo 6 caracteres" IconClass="fa-lock" Type="@(_showRegisterPassword ? "text" : "password")" />
+                            <button type="button" @onclick="@(() => _showRegisterPassword = !_showRegisterPassword)"
+                                    style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; padding:0; cursor:pointer; color:var(--text-4); font-size:14px; line-height:1;">
+                                <i class="fa-solid @(_showRegisterPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -233,6 +243,8 @@
     private bool _selectorExiting;
     private bool _animating;
     private bool _showEmailEnviado;
+    private bool _showLoginPassword;
+    private bool _showRegisterPassword;
 
     private ElementReference _btnRef;
     private ElementReference _emailRef;
