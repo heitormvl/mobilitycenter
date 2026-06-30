@@ -125,7 +125,8 @@
                 </div>
                 }
 
-                <div style="text-align:center; margin-top:32px; font-size:15px; font-family:var(--font);">
+                <div class="@(_animating ? "llink-out" : "llink-in")"
+                     style="text-align:center; margin-top:32px; font-size:15px; font-family:var(--font);">
                     <span style="color:var(--text-3);">Não tem conta? </span>
                     <span @onclick="@(() => { _showRegister = true; _error = null; _showPasswordLogin = false; _formReady = false; })" style="color:var(--brand); font-weight:600; cursor:pointer;">Criar conta</span>
                 </div>
