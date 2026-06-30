@@ -36,7 +36,7 @@ public class ParakiDbContext : IdentityDbContext<Usuario, IdentityRole<Guid>, Gu
             e.Property(b => b.Nome).IsRequired().HasMaxLength(200);
             e.Property(b => b.Location).HasColumnType("geometry(Point, 4326)");
             e.Property(b => b.VeiculosSuportados).HasConversion<int>();
-            e.Property(b => b.StatusAprovacao).HasConversion<int>().HasDefaultValueSql("1");
+            e.Property(b => b.StatusAprovacao).HasConversion<int>().HasDefaultValueSql("1").HasSentinel((StatusBicicletario)(-1));
             e.HasQueryFilter(b => !b.Deletado);
             e.HasIndex(b => b.Location).HasMethod("gist");
 

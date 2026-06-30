@@ -35,7 +35,7 @@ public class Bicicletario
     public Guid? CriadorId { get; set; }
     public Usuario? Criador { get; set; }
 
-    public StatusBicicletario StatusAprovacao { get; set; } = StatusBicicletario.Aprovado;
+    public StatusBicicletario StatusAprovacao { get; set; } = StatusBicicletario.Pendente;
 
     public ICollection<Avaliacao> Avaliacoes { get; set; } = [];
     public ICollection<SugestaoEdicao> Sugestoes { get; set; } = [];
