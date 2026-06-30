@@ -85,7 +85,8 @@
                         </div>
                     }
 
-                    <div @ref="_btnRef" style="margin-bottom:16px;">
+                    <div @ref="_btnRef" class="@(_selectorExiting ? "lselector-out" : "lselector-in")"
+                         style="margin-bottom:16px;">
                         <BtnO OnClick="StartPasswordLoginAnimation">
                             <i class="fa-solid fa-envelope" style="font-size:14px;"></i>
                             <span>Entrar com usuário e senha</span>
@@ -93,7 +94,7 @@
                     </div>
 
                     <div class="@(_selectorExiting ? "lselector-out" : "lselector-in")"
-                         style="display:flex; align-items:center; gap:14px; margin-bottom:16px; animation-delay:@(_selectorExiting ? "0s" : "0.06s");">
+                         style="display:flex; align-items:center; gap:14px; margin-bottom:16px; animation-delay:@(_selectorExiting ? "0s" : "0.08s");">
                         <div style="flex:1; height:1px; background:var(--border);"></div>
                         <span style="font-size:12px; color:var(--text-4); font-family:var(--font); font-weight:500;">OU</span>
                         <div style="flex:1; height:1px; background:var(--border);"></div>
@@ -103,7 +104,7 @@
                 @if (!_showPasswordLogin)
                 {
                 <div class="@(_selectorExiting ? "lselector-out" : "lselector-in")"
-                     style="animation-delay:@(_selectorExiting ? "0.03s" : "0.14s")">
+                     style="animation-delay:@(_selectorExiting ? "0.03s" : "0.16s")">
                     <BtnO OnClick="HandleGoogleLogin">
                         @if (_googleLoading)
                         {
