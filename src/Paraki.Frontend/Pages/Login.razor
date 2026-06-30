@@ -34,15 +34,15 @@
                 @if (_showPasswordLogin)
                 {
                     <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
-                        <div>
+                        <div class="lform-top">
                             <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">E-mail</label>
                             <WfInput @bind-Value="_email" Placeholder="seu@email.com" IconClass="fa-envelope" />
                         </div>
-                        <div>
+                        <div class="lform-bottom">
                             <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Senha</label>
                             <WfInput @bind-Value="_password" Placeholder="••••••••" IconClass="fa-lock" Type="password" />
                         </div>
-                        <div style="text-align:right;">
+                        <div class="lcurtain" style="animation-delay:0.16s; text-align:right;">
                             <a href="/esqueci-senha" style="font-size:13px; color:var(--brand); font-weight:600; font-family:var(--font); text-decoration:none;">Esqueci minha senha</a>
                         </div>
                     </div>
@@ -54,14 +54,26 @@
                         </div>
                     }
 
-                    <BtnP Style="margin-bottom:16px;" OnClick="HandleLogin">
-                        @if (_loading) { <span>Entrando...</span> } else { <span>Entrar</span> }
-                    </BtnP>
+                    <div class="lcurtain" style="animation-delay:0.26s; margin-bottom:16px;">
+                        <BtnP OnClick="HandleLogin">
+                            @if (_loading) { <span>Entrando...</span> } else { <span>Entrar</span> }
+                        </BtnP>
+                    </div>
 
-                    <button @onclick="@(() => { _showPasswordLogin = false; _error = null; })"
-                            style="background:none; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 24px; font-size:14px; font-weight:600; color:var(--text-3); font-family:var(--font); cursor:pointer; width:100%; margin-bottom:20px;">
-                        Entrar com outro meio
-                    </button>
+                    <div class="lcurtain" style="animation-delay:0.36s; margin-bottom:20px;">
+                        <button @onclick="@(() => { _showPasswordLogin = false; _error = null; })"
+                                style="background:none; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 24px; font-size:14px; font-weight:600; color:var(--text-3); font-family:var(--font); cursor:pointer; width:100%;">
+                            Entrar com outro meio
+                        </button>
+                    </div>
+                }
+                else if (_animating)
+                {
+                    <!-- Phantom: two rects that split apart to "become" the inputs -->
+                    <div style="position:relative; height:52px; margin-bottom:16px;">
+                        <div class="lsplit-rect lsplit-top"></div>
+                        <div class="lsplit-rect lsplit-bottom"></div>
+                    </div>
                 }
                 else
                 {
@@ -73,7 +85,7 @@
                     }
 
                     <div style="margin-bottom:16px;">
-                        <BtnO OnClick="@(() => { _showPasswordLogin = true; _error = null; })">
+                        <BtnO OnClick="StartPasswordLoginAnimation">
                             <i class="fa-solid fa-envelope" style="font-size:14px;"></i>
                             <span>Entrar com usuário e senha</span>
                         </BtnO>
@@ -86,7 +98,7 @@
                     </div>
                 }
 
-                @if (!_showPasswordLogin)
+                @if (!_showPasswordLogin && !_animating)
                 {
                 <BtnO OnClick="HandleGoogleLogin">
                     @if (_googleLoading)
@@ -209,6 +221,7 @@
     private string? _error;
     private bool _showRegister;
     private bool _showPasswordLogin;
+    private bool _animating;
     private bool _showEmailEnviado;
     private string _emailCadastrado = "";
     private bool _reenviarLoading;
@@ -220,6 +233,17 @@
 
     protected override void OnInitialized() =>
         _dotNetRef = DotNetObjectReference.Create(this);
+
+    private async Task StartPasswordLoginAnimation()
+    {
+        if (_animating || _showPasswordLogin) return;
+        _error = null;
+        _animating = true;
+        StateHasChanged();
+        await Task.Delay(360);
+        _showPasswordLogin = true;
+        _animating = false;
+    }
 
     private async Task HandleGoogleLogin()
     {
