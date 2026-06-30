@@ -64,7 +64,7 @@
     protected override async Task OnInitializedAsync()
     {
         var userInfo = await AuthService.GetUserInfoAsync();
-        _isAdmin = userInfo?.Type == 2;
+        _isAdmin = userInfo?.Type == 2 || userInfo?.Type == 3;
 
         if (_isAdmin)
         {
