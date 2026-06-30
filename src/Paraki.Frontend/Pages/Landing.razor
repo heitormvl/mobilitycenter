@@ -1,5 +1,6 @@
 @page "/inicio"
 @inject NavigationManager Nav
+@inject AuthService AuthService
 
 <div style="min-height:100vh; display:flex; flex-direction:column; background:var(--bg-page);">
 
@@ -10,10 +11,28 @@
         <!-- Top bar -->
         <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 24px 0;">
             <span style="font-size:20px; font-weight:900; color:white; font-family:var(--font); letter-spacing:-0.05em;">Paraki</span>
-            <a href="/login"
-               style="font-size:14px; font-weight:600; color:rgba(255,255,255,0.85); font-family:var(--font); text-decoration:none; padding:6px 14px; border-radius:var(--r-full); background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.22);">
-                Entrar
-            </a>
+            @if (_user is null)
+            {
+                <a href="/login"
+                   style="font-size:14px; font-weight:600; color:rgba(255,255,255,0.85); font-family:var(--font); text-decoration:none; padding:6px 14px; border-radius:var(--r-full); background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.22);">
+                    Entrar
+                </a>
+            }
+            else
+            {
+                <a href="/perfil" style="display:block; width:36px; height:36px; border-radius:var(--r-full); background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.4); overflow:hidden; flex-shrink:0;">
+                    @if (!string.IsNullOrEmpty(_user.FotoPerfilUrl))
+                    {
+                        <img src="@_user.FotoPerfilUrl" alt="Perfil" style="width:100%; height:100%; object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+                            <i class="fa-solid fa-user" style="font-size:15px; color:white;"></i>
+                        </div>
+                    }
+                </a>
+            }
         </div>
 
         <!-- Hero content -->
@@ -34,17 +53,20 @@
 
             <!-- CTAs -->
             <div style="display:flex; flex-direction:column; gap:12px; max-width:300px; margin:0 auto;">
-                <a href="/login"
-                   style="display:block; padding:15px; background:white; color:var(--brand); border-radius:var(--r-xl); font-size:16px; font-weight:700; font-family:var(--font); text-decoration:none; text-align:center; letter-spacing:-0.01em;">
-                    Criar conta grátis
-                </a>
-                <a href="/login"
-                   style="display:block; padding:14px; background:rgba(255,255,255,0.13); border:1.5px solid rgba(255,255,255,0.28); color:rgba(255,255,255,0.9); border-radius:var(--r-xl); font-size:15px; font-weight:500; font-family:var(--font); text-decoration:none; text-align:center; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);">
-                    Já tenho conta — entrar
-                </a>
+                @if (_user is null)
+                {
+                    <a href="/login"
+                       style="display:block; padding:15px; background:white; color:var(--brand); border-radius:var(--r-xl); font-size:16px; font-weight:700; font-family:var(--font); text-decoration:none; text-align:center; letter-spacing:-0.01em;">
+                        Criar conta grátis
+                    </a>
+                    <a href="/login"
+                       style="display:block; padding:14px; background:rgba(255,255,255,0.13); border:1.5px solid rgba(255,255,255,0.28); color:rgba(255,255,255,0.9); border-radius:var(--r-xl); font-size:15px; font-weight:500; font-family:var(--font); text-decoration:none; text-align:center; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);">
+                        Já tenho conta — entrar
+                    </a>
+                }
                 <a href="/"
                    style="display:block; padding:10px; color:rgba(255,255,255,0.6); font-size:13px; font-family:var(--font); text-decoration:none; text-align:center;">
-                    Explorar o mapa sem conta →
+                    @(_user is null ? "Explorar o mapa sem conta →" : "Explorar mapa →")
                 </a>
             </div>
         </div>
@@ -84,7 +106,7 @@
             <p style="font-size:14px; color:var(--text-3); font-family:var(--font); margin:0 0 20px; line-height:1.6;">
                 Junte-se à comunidade e ajude a mapear a infraestrutura de micromobilidade da sua cidade.
             </p>
-            <a href="/login"
+            <a href="@(_user is null ? "/login" : "/")"
                style="display:inline-block; padding:13px 28px; background:var(--brand); color:white; border-radius:var(--r-full); font-size:15px; font-weight:700; font-family:var(--font); text-decoration:none;">
                 Começar agora
             </a>
@@ -106,6 +128,15 @@
 </div>
 
 @code {
+    private UserInfo? _user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await AuthService.GetUserInfoAsync();
+        if (_user?.FotoPerfilUrl is not null)
+            _user.FotoPerfilUrl = AuthService.ResolveUrl(_user.FotoPerfilUrl);
+    }
+
     private readonly (string Icon, string Titulo, string Desc, bool Last)[] _features =
     [
         ("fa-map-location-dot", "Mapa colaborativo em tempo real",  "Veja bicicletários próximos no mapa, com filtros por tipo de acesso, serviços disponíveis e nota mínima.", false),
