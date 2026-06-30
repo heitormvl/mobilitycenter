@@ -139,11 +139,12 @@ public class BicicletarioService : IBicicletarioService
             ?? throw new NotFoundException("Usuário não encontrado.");
 
         var tier = usuario.Tier;
-        var status = tier switch
+        var status = (usuario.Type, tier) switch
         {
-            TipoTier.Ouro  => StatusBicicletario.Aprovado,
-            TipoTier.Prata => StatusBicicletario.AutoAprovado,
-            _              => StatusBicicletario.Pendente,
+            (TipoUsuario.Admin or TipoUsuario.Moderador, _) => StatusBicicletario.Aprovado,
+            (_, TipoTier.Ouro)                              => StatusBicicletario.Aprovado,
+            (_, TipoTier.Prata)                             => StatusBicicletario.AutoAprovado,
+            _                                                => StatusBicicletario.Pendente,
         };
 
         var bicicletario = new Bicicletario
