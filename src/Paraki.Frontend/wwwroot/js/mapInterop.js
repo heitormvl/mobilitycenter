@@ -224,21 +224,34 @@ window.mapInterop = {
         }).addTo(instance.map);
     },
 
+    _distanceMeters: function (lat1, lng1, lat2, lng2) {
+        const dlat = (lat2 - lat1) * 111000;
+        const dlng = (lng2 - lng1) * 111000 * Math.cos(lat1 * Math.PI / 180);
+        return Math.sqrt(dlat * dlat + dlng * dlng);
+    },
+
     panToUser: function (mapId) {
         const inst = this._instances[mapId];
         if (!inst) return;
 
-        if (inst.userMarker) {
-            inst.map.panTo(inst.userMarker.getLatLng());
-            return;
-        }
+        // Centraliza imediatamente na posição já conhecida, se houver.
+        const oldLatLng = inst.userMarker ? inst.userMarker.getLatLng() : null;
+        if (oldLatLng) inst.map.setView(oldLatLng, 15);
 
+        // Em paralelo, busca o GPS fresco.
         if (!navigator.geolocation) return;
 
         navigator.geolocation.getCurrentPosition(pos => {
             const { latitude: lat, longitude: lng } = pos.coords;
-            inst.map.setView([lat, lng], 15);
-            this._setUserMarker(inst, lat, lng);
+            if (!oldLatLng) {
+                inst.map.setView([lat, lng], 15);
+                this._setUserMarker(inst, lat, lng);
+                return;
+            }
+            if (this._distanceMeters(oldLatLng.lat, oldLatLng.lng, lat, lng) > 50) {
+                inst.map.setView([lat, lng], 15);
+                this._setUserMarker(inst, lat, lng);
+            }
         });
     },
 
