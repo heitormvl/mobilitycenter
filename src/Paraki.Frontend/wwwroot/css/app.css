@@ -906,51 +906,23 @@ input:focus, textarea:focus {
    LOGIN TRANSITION ANIMATIONS
    ================================================================ */
 
-/* Phantom rects that split apart when button is clicked */
-.lsplit-rect {
-    position: absolute; left: 0; right: 0; top: 0; height: 52px;
-    background: var(--bg);
-    border: 1.5px solid var(--border);
-    border-radius: var(--r-lg);
-    pointer-events: none;
-}
-.lsplit-top {
-    animation: lsplitTop 0.42s cubic-bezier(0.32,0,0.67,0) forwards;
-}
-.lsplit-bottom {
-    animation: lsplitBottom 0.42s cubic-bezier(0.32,0,0.67,0) 0.04s forwards;
-}
-@keyframes lsplitTop {
-    0%   { transform: translateY(0);     opacity: 1; }
-    55%  { transform: translateY(-78px); opacity: 1; }
-    100% { transform: translateY(-78px); opacity: 0; }
-}
-@keyframes lsplitBottom {
-    0%   { transform: translateY(0);    opacity: 1; }
-    55%  { transform: translateY(78px); opacity: 1; }
-    100% { transform: translateY(78px); opacity: 0; }
-}
+/* Hidden until phantom finishes — then animations below take over */
+.lform-hidden { opacity: 0; pointer-events: none; }
 
-/* Form inputs slide in from opposite edges (from where the rects went) */
-.lform-top {
-    animation: lformTop 0.3s cubic-bezier(0.4,0,0.2,1) both;
-}
-.lform-bottom {
-    animation: lformBottom 0.3s cubic-bezier(0.4,0,0.2,1) 0.05s both;
-}
+/* Form inputs: email slides in from above, password from below */
+.lform-top    { animation: lformTop    0.3s cubic-bezier(0.4,0,0.2,1) both; }
+.lform-bottom { animation: lformBottom 0.3s cubic-bezier(0.4,0,0.2,1) 0.05s both; }
 @keyframes lformTop {
-    from { opacity: 0; transform: translateY(-22px); }
+    from { opacity: 0; transform: translateY(-20px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes lformBottom {
-    from { opacity: 0; transform: translateY(22px); }
+    from { opacity: 0; transform: translateY(20px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Curtain reveal: wipes left → right */
-.lcurtain {
-    animation: lcurtain 0.32s cubic-bezier(0.4,0,0.2,1) both;
-}
+.lcurtain { animation: lcurtain 0.32s cubic-bezier(0.4,0,0.2,1) both; }
 @keyframes lcurtain {
     from { clip-path: inset(0 100% 0 0 round 2px); }
     to   { clip-path: inset(0 0%   0 0 round 2px); }

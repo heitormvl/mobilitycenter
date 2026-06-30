@@ -34,15 +34,19 @@
                 @if (_showPasswordLogin)
                 {
                     <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
-                        <div class="lform-top">
+                        <div class="@(_formReady ? "lform-top" : "lform-hidden")">
                             <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">E-mail</label>
-                            <WfInput @bind-Value="_email" Placeholder="seu@email.com" IconClass="fa-envelope" />
+                            <div @ref="_emailRef">
+                                <WfInput @bind-Value="_email" Placeholder="seu@email.com" IconClass="fa-envelope" />
+                            </div>
                         </div>
-                        <div class="lform-bottom">
+                        <div class="@(_formReady ? "lform-bottom" : "lform-hidden")">
                             <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Senha</label>
-                            <WfInput @bind-Value="_password" Placeholder="••••••••" IconClass="fa-lock" Type="password" />
+                            <div @ref="_passRef">
+                                <WfInput @bind-Value="_password" Placeholder="••••••••" IconClass="fa-lock" Type="password" />
+                            </div>
                         </div>
-                        <div class="lcurtain" style="animation-delay:0.16s; text-align:right;">
+                        <div class="@(_formReady ? "lcurtain" : "lform-hidden")" style="animation-delay:0.14s; text-align:right;">
                             <a href="/esqueci-senha" style="font-size:13px; color:var(--brand); font-weight:600; font-family:var(--font); text-decoration:none;">Esqueci minha senha</a>
                         </div>
                     </div>
@@ -54,25 +58,17 @@
                         </div>
                     }
 
-                    <div class="lcurtain" style="animation-delay:0.26s; margin-bottom:16px;">
+                    <div class="@(_formReady ? "lcurtain" : "lform-hidden")" style="animation-delay:0.24s; margin-bottom:16px;">
                         <BtnP OnClick="HandleLogin">
                             @if (_loading) { <span>Entrando...</span> } else { <span>Entrar</span> }
                         </BtnP>
                     </div>
 
-                    <div class="lcurtain" style="animation-delay:0.36s; margin-bottom:20px;">
-                        <button @onclick="@(() => { _showPasswordLogin = false; _error = null; })"
+                    <div class="@(_formReady ? "lcurtain" : "lform-hidden")" style="animation-delay:0.34s; margin-bottom:20px;">
+                        <button @onclick="@(() => { _showPasswordLogin = false; _formReady = false; _error = null; })"
                                 style="background:none; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 24px; font-size:14px; font-weight:600; color:var(--text-3); font-family:var(--font); cursor:pointer; width:100%;">
                             Entrar com outro meio
                         </button>
-                    </div>
-                }
-                else if (_animating)
-                {
-                    <!-- Phantom: two rects that split apart to "become" the inputs -->
-                    <div style="position:relative; height:52px; margin-bottom:16px;">
-                        <div class="lsplit-rect lsplit-top"></div>
-                        <div class="lsplit-rect lsplit-bottom"></div>
                     </div>
                 }
                 else
@@ -84,7 +80,7 @@
                         </div>
                     }
 
-                    <div style="margin-bottom:16px;">
+                    <div @ref="_btnRef" style="margin-bottom:16px;">
                         <BtnO OnClick="StartPasswordLoginAnimation">
                             <i class="fa-solid fa-envelope" style="font-size:14px;"></i>
                             <span>Entrar com usuário e senha</span>
@@ -98,7 +94,7 @@
                     </div>
                 }
 
-                @if (!_showPasswordLogin && !_animating)
+                @if (!_showPasswordLogin)
                 {
                 <BtnO OnClick="HandleGoogleLogin">
                     @if (_googleLoading)
@@ -121,7 +117,7 @@
 
                 <div style="text-align:center; margin-top:32px; font-size:15px; font-family:var(--font);">
                     <span style="color:var(--text-3);">Não tem conta? </span>
-                    <span @onclick="@(() => { _showRegister = true; _error = null; _showPasswordLogin = false; })" style="color:var(--brand); font-weight:600; cursor:pointer;">Criar conta</span>
+                    <span @onclick="@(() => { _showRegister = true; _error = null; _showPasswordLogin = false; _formReady = false; })" style="color:var(--brand); font-weight:600; cursor:pointer;">Criar conta</span>
                 </div>
             </div>
 
@@ -221,8 +217,15 @@
     private string? _error;
     private bool _showRegister;
     private bool _showPasswordLogin;
+    private bool _formReady;
     private bool _animating;
     private bool _showEmailEnviado;
+
+    private ElementReference _btnRef;
+    private ElementReference _emailRef;
+    private ElementReference _passRef;
+
+    private record DomRect(double Top, double Left, double Width, double Height);
     private string _emailCadastrado = "";
     private bool _reenviarLoading;
     private string? _reenviarErro;
@@ -237,12 +240,32 @@
     private async Task StartPasswordLoginAnimation()
     {
         if (_animating || _showPasswordLogin) return;
-        _error = null;
         _animating = true;
-        StateHasChanged();
-        await Task.Delay(360);
+        _error = null;
+
+        // Capture button position while it's still in the DOM
+        var btnRect = await JS.InvokeAsync<DomRect>("loginAnim.getRect", _btnRef);
+
+        // Switch to form (invisible until phantom finishes)
         _showPasswordLogin = true;
+        _formReady = false;
+        StateHasChanged();
+
+        // Allow Blazor to push the DOM update so inputs are measurable
+        await Task.Delay(32);
+
+        // Measure where each input landed
+        var emailRect = await JS.InvokeAsync<DomRect>("loginAnim.getRect", _emailRef);
+        var passRect  = await JS.InvokeAsync<DomRect>("loginAnim.getRect", _passRef);
+
+        // Run the JS-driven phantom split animation
+        await JS.InvokeVoidAsync("loginAnim.runSplit", btnRect, emailRect, passRect);
+
+        // Wait for phantom to finish, then reveal form with CSS animations
+        await Task.Delay(340);
+        _formReady = true;
         _animating = false;
+        StateHasChanged();
     }
 
     private async Task HandleGoogleLogin()
