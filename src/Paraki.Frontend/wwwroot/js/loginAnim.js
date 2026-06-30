@@ -51,5 +51,35 @@ window.loginAnim = {
         ], { duration: dur + 40, easing: ease, fill: 'forwards' });
 
         setTimeout(function () { wrap.remove(); }, dur + 200);
+    },
+
+    // Reverse: each input rect flies back to the button position
+    runMerge: function (email, pass, btn) {
+        const ease = 'cubic-bezier(0.4,0,0.2,1)';
+        const dur  = 360;
+
+        function makeAndAnimate(fromRect, delay) {
+            const el = document.createElement('div');
+            el.style.cssText =
+                'position:fixed;top:' + fromRect.top + 'px;left:' + fromRect.left + 'px;' +
+                'width:' + fromRect.width + 'px;height:' + fromRect.height + 'px;' +
+                'background:var(--bg);border:1.5px solid var(--border);' +
+                'border-radius:var(--r-lg);pointer-events:none;z-index:9999;';
+            document.body.appendChild(el);
+
+            const dy = btn.top    - fromRect.top;
+            const dh = btn.height - fromRect.height;
+
+            el.animate([
+                { transform: 'translateY(0)',            height: fromRect.height + 'px',        opacity: 1 },
+                { transform: 'translateY(' + dy + 'px)', height: (fromRect.height + dh) + 'px', opacity: 1, offset: 0.62 },
+                { transform: 'translateY(' + dy + 'px)', height: (fromRect.height + dh) + 'px', opacity: 0 }
+            ], { duration: dur, delay: delay, easing: ease, fill: 'forwards' });
+
+            setTimeout(function () { el.remove(); }, delay + dur + 100);
+        }
+
+        makeAndAnimate(email, 0);
+        makeAndAnimate(pass, 40);
     }
 };

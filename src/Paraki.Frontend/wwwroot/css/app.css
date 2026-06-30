@@ -909,21 +909,26 @@ input:focus, textarea:focus {
 /* Hidden until phantom finishes — then animations below take over */
 .lform-hidden { opacity: 0; pointer-events: none; }
 
-/* Form inputs: email slides in from above, password from below */
-.lform-top    { animation: lformTop    0.3s cubic-bezier(0.4,0,0.2,1) both; }
-.lform-bottom { animation: lformBottom 0.3s cubic-bezier(0.4,0,0.2,1) 0.05s both; }
-@keyframes lformTop {
-    from { opacity: 0; transform: translateY(-20px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes lformBottom {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
+/* ── Entry ── */
+.lform-top    { animation: lformTop    0.3s  cubic-bezier(0.4,0,0.2,1) both; }
+.lform-bottom { animation: lformBottom 0.3s  cubic-bezier(0.4,0,0.2,1) both; }
+@keyframes lformTop    { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes lformBottom { from { opacity:0; transform:translateY( 20px); } to { opacity:1; transform:translateY(0); } }
 
-/* Curtain reveal: wipes left → right */
 .lcurtain { animation: lcurtain 0.32s cubic-bezier(0.4,0,0.2,1) both; }
 @keyframes lcurtain {
     from { clip-path: inset(0 100% 0 0 round 2px); }
     to   { clip-path: inset(0 0%   0 0 round 2px); }
+}
+
+/* ── Exit (inverse) ── */
+.lform-top-exit    { animation: lformTopExit    0.25s cubic-bezier(0.4,0,0.2,1) both; }
+.lform-bottom-exit { animation: lformBottomExit 0.25s cubic-bezier(0.4,0,0.2,1) both; }
+@keyframes lformTopExit    { from { opacity:1; transform:translateY(0); } to { opacity:0; transform:translateY(-20px); } }
+@keyframes lformBottomExit { from { opacity:1; transform:translateY(0); } to { opacity:0; transform:translateY( 20px); } }
+
+.lcurtain-exit { animation: lcurtainExit 0.25s cubic-bezier(0.4,0,0.2,1) both; }
+@keyframes lcurtainExit {
+    from { clip-path: inset(0 0%   0 0 round 2px); }
+    to   { clip-path: inset(0 100% 0 0 round 2px); }
 }

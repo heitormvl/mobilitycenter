@@ -34,19 +34,22 @@
                 @if (_showPasswordLogin)
                 {
                     <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
-                        <div class="@(_formReady ? "lform-top" : "lform-hidden")">
+                        <div class="@(_formReady ? (_formExiting ? "lform-top-exit" : "lform-top") : "lform-hidden")"
+                             style="animation-delay:@(_formExiting ? "0.26s" : "0s")">
                             <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">E-mail</label>
                             <div @ref="_emailRef">
                                 <WfInput @bind-Value="_email" Placeholder="seu@email.com" IconClass="fa-envelope" />
                             </div>
                         </div>
-                        <div class="@(_formReady ? "lform-bottom" : "lform-hidden")">
+                        <div class="@(_formReady ? (_formExiting ? "lform-bottom-exit" : "lform-bottom") : "lform-hidden")"
+                             style="animation-delay:@(_formExiting ? "0.20s" : "0.05s")">
                             <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Senha</label>
                             <div @ref="_passRef">
                                 <WfInput @bind-Value="_password" Placeholder="••••••••" IconClass="fa-lock" Type="password" />
                             </div>
                         </div>
-                        <div class="@(_formReady ? "lcurtain" : "lform-hidden")" style="animation-delay:0.14s; text-align:right;">
+                        <div class="@(_formReady ? (_formExiting ? "lcurtain-exit" : "lcurtain") : "lform-hidden")"
+                             style="animation-delay:0.14s; text-align:right;">
                             <a href="/esqueci-senha" style="font-size:13px; color:var(--brand); font-weight:600; font-family:var(--font); text-decoration:none;">Esqueci minha senha</a>
                         </div>
                     </div>
@@ -58,14 +61,16 @@
                         </div>
                     }
 
-                    <div class="@(_formReady ? "lcurtain" : "lform-hidden")" style="animation-delay:0.24s; margin-bottom:16px;">
+                    <div class="@(_formReady ? (_formExiting ? "lcurtain-exit" : "lcurtain") : "lform-hidden")"
+                         style="animation-delay:@(_formExiting ? "0.07s" : "0.24s"); margin-bottom:16px;">
                         <BtnP OnClick="HandleLogin">
                             @if (_loading) { <span>Entrando...</span> } else { <span>Entrar</span> }
                         </BtnP>
                     </div>
 
-                    <div class="@(_formReady ? "lcurtain" : "lform-hidden")" style="animation-delay:0.34s; margin-bottom:20px;">
-                        <button @onclick="@(() => { _showPasswordLogin = false; _formReady = false; _error = null; })"
+                    <div class="@(_formReady ? (_formExiting ? "lcurtain-exit" : "lcurtain") : "lform-hidden")"
+                         style="animation-delay:@(_formExiting ? "0s" : "0.34s"); margin-bottom:20px;">
+                        <button @onclick="HandleBackToSelector" disabled="@_animating"
                                 style="background:none; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 24px; font-size:14px; font-weight:600; color:var(--text-3); font-family:var(--font); cursor:pointer; width:100%;">
                             Entrar com outro meio
                         </button>
@@ -218,6 +223,7 @@
     private bool _showRegister;
     private bool _showPasswordLogin;
     private bool _formReady;
+    private bool _formExiting;
     private bool _animating;
     private bool _showEmailEnviado;
 
@@ -226,6 +232,7 @@
     private ElementReference _passRef;
 
     private record DomRect(double Top, double Left, double Width, double Height);
+    private DomRect? _cachedBtnRect;
     private string _emailCadastrado = "";
     private bool _reenviarLoading;
     private string? _reenviarErro;
@@ -243,8 +250,9 @@
         _animating = true;
         _error = null;
 
-        // Capture button position while it's still in the DOM
+        // Capture button position while it's still in the DOM (cached for reverse animation)
         var btnRect = await JS.InvokeAsync<DomRect>("loginAnim.getRect", _btnRef);
+        _cachedBtnRect = btnRect;
 
         // Switch to form (invisible until phantom finishes)
         _showPasswordLogin = true;
@@ -264,6 +272,35 @@
         // Wait for phantom to finish, then reveal form with CSS animations
         await Task.Delay(340);
         _formReady = true;
+        _animating = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleBackToSelector()
+    {
+        if (_animating || _cachedBtnRect is null) return;
+        _animating = true;
+        _error = null;
+
+        // Capture input rects while they're still visible in the DOM
+        var emailRect = await JS.InvokeAsync<DomRect>("loginAnim.getRect", _emailRef);
+        var passRect  = await JS.InvokeAsync<DomRect>("loginAnim.getRect", _passRef);
+
+        // Start exit animations on all form elements
+        _formExiting = true;
+        StateHasChanged();
+
+        // Small yield so Blazor flushes the exit class changes to DOM
+        await Task.Delay(16);
+
+        // Launch merge phantoms (they fly from input positions back to the button)
+        await JS.InvokeVoidAsync("loginAnim.runMerge", emailRect, passRect, _cachedBtnRect);
+
+        // Wait for longest exit animation (email: 0.26s delay + 0.25s duration ≈ 510ms)
+        await Task.Delay(510);
+        _showPasswordLogin = false;
+        _formReady = false;
+        _formExiting = false;
         _animating = false;
         StateHasChanged();
     }
