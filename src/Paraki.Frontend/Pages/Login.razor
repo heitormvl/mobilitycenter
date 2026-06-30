@@ -31,37 +31,63 @@
                 <p style="font-size:22px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin-bottom:4px;">Bem-vindo de volta</p>
                 <p style="font-size:14px; color:var(--text-3); font-family:var(--font); margin-bottom:28px;">Entre na sua conta para continuar</p>
 
-                <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
-                    <div>
-                        <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">E-mail</label>
-                        <WfInput @bind-Value="_email" Placeholder="seu@email.com" IconClass="fa-envelope" />
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Senha</label>
-                        <WfInput @bind-Value="_password" Placeholder="••••••••" IconClass="fa-lock" Type="password" />
-                    </div>
-                    <div style="text-align:right;">
-                        <a href="/esqueci-senha" style="font-size:13px; color:var(--brand); font-weight:600; font-family:var(--font); text-decoration:none;">Esqueci minha senha</a>
-                    </div>
-                </div>
-
-                @if (_error != null && !_showRegister)
+                @if (_showPasswordLogin)
                 {
-                    <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:var(--red); word-break:break-word; overflow-wrap:break-word;">
-                        @_error
+                    <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
+                        <div>
+                            <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">E-mail</label>
+                            <WfInput @bind-Value="_email" Placeholder="seu@email.com" IconClass="fa-envelope" />
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Senha</label>
+                            <WfInput @bind-Value="_password" Placeholder="••••••••" IconClass="fa-lock" Type="password" />
+                        </div>
+                        <div style="text-align:right;">
+                            <a href="/esqueci-senha" style="font-size:13px; color:var(--brand); font-weight:600; font-family:var(--font); text-decoration:none;">Esqueci minha senha</a>
+                        </div>
+                    </div>
+
+                    @if (_error != null && !_showRegister)
+                    {
+                        <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:var(--red); word-break:break-word; overflow-wrap:break-word;">
+                            @_error
+                        </div>
+                    }
+
+                    <BtnP Style="margin-bottom:16px;" OnClick="HandleLogin">
+                        @if (_loading) { <span>Entrando...</span> } else { <span>Entrar</span> }
+                    </BtnP>
+
+                    <button @onclick="@(() => { _showPasswordLogin = false; _error = null; })"
+                            style="background:none; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 24px; font-size:14px; font-weight:600; color:var(--text-3); font-family:var(--font); cursor:pointer; width:100%; margin-bottom:20px;">
+                        Entrar com outro meio
+                    </button>
+                }
+                else
+                {
+                    @if (_error != null && !_showRegister)
+                    {
+                        <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:var(--red); word-break:break-word; overflow-wrap:break-word;">
+                            @_error
+                        </div>
+                    }
+
+                    <div style="margin-bottom:16px;">
+                        <BtnO OnClick="@(() => { _showPasswordLogin = true; _error = null; })">
+                            <i class="fa-solid fa-envelope" style="font-size:14px;"></i>
+                            <span>Entrar com usuário e senha</span>
+                        </BtnO>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
+                        <div style="flex:1; height:1px; background:var(--border);"></div>
+                        <span style="font-size:12px; color:var(--text-4); font-family:var(--font); font-weight:500;">OU</span>
+                        <div style="flex:1; height:1px; background:var(--border);"></div>
                     </div>
                 }
 
-                <BtnP Style="margin-bottom:20px;" OnClick="HandleLogin">
-                    @if (_loading) { <span>Entrando...</span> } else { <span>Entrar</span> }
-                </BtnP>
-
-                <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px;">
-                    <div style="flex:1; height:1px; background:var(--border);"></div>
-                    <span style="font-size:12px; color:var(--text-4); font-family:var(--font); font-weight:500;">OU</span>
-                    <div style="flex:1; height:1px; background:var(--border);"></div>
-                </div>
-
+                @if (!_showPasswordLogin)
+                {
                 <BtnO OnClick="HandleGoogleLogin">
                     @if (_googleLoading)
                     {
@@ -79,10 +105,11 @@
                         <span>Continuar com Google</span>
                     }
                 </BtnO>
+                }
 
                 <div style="text-align:center; margin-top:32px; font-size:15px; font-family:var(--font);">
                     <span style="color:var(--text-3);">Não tem conta? </span>
-                    <span @onclick="@(() => { _showRegister = true; _error = null; })" style="color:var(--brand); font-weight:600; cursor:pointer;">Criar conta</span>
+                    <span @onclick="@(() => { _showRegister = true; _error = null; _showPasswordLogin = false; })" style="color:var(--brand); font-weight:600; cursor:pointer;">Criar conta</span>
                 </div>
             </div>
 
@@ -160,7 +187,7 @@
                     @(_reenviarLoading ? "Reenviando..." : "Reenviar e-mail")
                 </button>
 
-                <span @onclick="@(() => { _showEmailEnviado = false; _showRegister = false; _reenviarErro = null; _reenviarSucesso = false; })"
+                <span @onclick="@(() => { _showEmailEnviado = false; _showRegister = false; _showPasswordLogin = false; _reenviarErro = null; _reenviarSucesso = false; })"
                       style="font-size:14px; color:var(--text-3); font-family:var(--font); cursor:pointer;">
                     Voltar ao login
                 </span>
@@ -181,6 +208,7 @@
     private bool _googleLoading;
     private string? _error;
     private bool _showRegister;
+    private bool _showPasswordLogin;
     private bool _showEmailEnviado;
     private string _emailCadastrado = "";
     private bool _reenviarLoading;
