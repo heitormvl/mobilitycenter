@@ -52,6 +52,8 @@
         if (path.StartsWith("/sobre"))                   return "perfil";
         if (path.StartsWith("/adicionar"))               return "add";
         if (path.StartsWith("/avaliar"))                 return "lista";
+        if (path.StartsWith("/admin"))                   return "admin";
+        if (path.StartsWith("/sugestoes"))               return "admin";
         if (path.StartsWith("/login"))                   return "";
         return null;
     }

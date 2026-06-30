@@ -121,7 +121,7 @@ else
     private async Task PublishAsync()
     {
         _publishError = null;
-        var (error, id) = await BicicletarioSvc.CreateAsync(BuildRequest());
+        var (error, id, statusAprovacao) = await BicicletarioSvc.CreateAsync(BuildRequest());
         if (error != null)
         {
             _publishError = error;
@@ -145,7 +145,13 @@ else
         }
         AdicionarState.ClearHorarios();
 
-        ToastSvc.Show("Bicicletário publicado com sucesso!");
+        var toastMsg = statusAprovacao switch
+        {
+            0 => "Enviado para aprovação! Analisaremos em breve.",
+            2 => "Publicado! Nossa equipe vai confirmar em breve.",
+            _ => "Bicicletário publicado com sucesso!",
+        };
+        ToastSvc.Show(toastMsg);
         Nav.NavigateTo("/", forceLoad: false);
     }
 

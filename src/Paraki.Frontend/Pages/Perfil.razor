@@ -89,7 +89,13 @@
                                accept="image/webp,image/png,image/jpeg,image/heic,image/heif"
                                style="display:none;" />
 
-                    <div style="font-size:20px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; margin-bottom:4px;">@_user.DisplayName</div>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                        <span style="font-size:20px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.02em;">@_user.DisplayName</span>
+                        @if (_user.Type == 2)
+                        {
+                            <span style="display:inline-flex; align-items:center; padding:2px 8px; border-radius:var(--r-full); background:linear-gradient(135deg, #94A3B8 0%, #64748B 50%, #475569 100%); font-size:10px; font-weight:700; color:white; font-family:var(--font); letter-spacing:.1em; line-height:1; box-shadow:0 1px 3px rgba(71,85,105,.35);">ADMIN</span>
+                        }
+                    </div>
                     <div style="font-size:13px; color:var(--text-4); font-family:var(--font);">Membro desde @_user.CreatedAt.ToString("MMMM \\de yyyy")</div>
                 </div>
 
@@ -108,6 +114,40 @@
                         <div style="font-size:11px; color:var(--text-4); font-family:var(--font); margin-top:5px; font-weight:500;">Visitados</div>
                     </div>
                 </div>
+
+                <!-- Tier / Colaboração -->
+                @if (_user.Type != 2)
+                {
+                <div style="background:var(--bg); border-radius:var(--r-xl); border:1px solid var(--border); padding:20px; margin-bottom:14px; box-shadow:var(--shadow-sm);">
+                    <div style="font-size:12px; font-weight:700; color:var(--text-4); font-family:var(--font); text-transform:uppercase; letter-spacing:.07em; margin-bottom:14px;">Sua colaboração</div>
+                    <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
+                        <!-- Tier badge with circular shimmer -->
+                        <div style="position:relative; width:56px; height:56px; flex-shrink:0;">
+                            <div class="tier-shimmer-ring tier-shimmer-ring--@(_tierClass)"
+                                 style="position:absolute; inset:-3px; border-radius:var(--r-full); pointer-events:none;"></div>
+                            <div style="width:56px; height:56px; border-radius:var(--r-full); background:@(_tierBg); display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
+                                <i class="fa-solid @(_tierIcon)" style="font-size:22px; color:@(_tierColor);"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:17px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.02em; line-height:1.1;">@_tierLabel</div>
+                            <div style="font-size:13px; color:var(--text-3); font-family:var(--font); margin-top:2px;">@_pontosAprovados pontos acumulados</div>
+                        </div>
+                    </div>
+                    @if (_pontosParaProximo > 0)
+                    {
+                        <div>
+                            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-4); font-family:var(--font); margin-bottom:5px;">
+                                <span>Progresso para @_proximoTierLabel</span>
+                                <span>@_pontosAprovados / @_pontosLimite</span>
+                            </div>
+                            <div style="height:6px; border-radius:var(--r-full); background:var(--border); overflow:hidden;">
+                                <div style="height:100%; border-radius:var(--r-full); background:@(_tierColor); width:@(_progressoPct)%; transition:width .6s ease;"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                }
 
                 <!-- Sign out -->
                 <button @onclick="HandleSignOut"
@@ -283,7 +323,25 @@
     private UserInfo? _user;
     private int _totalAvaliacoes;
     private int _totalAdicionados;
+    private int _pontosAprovados;
+    private int _tier;
     private bool _loading = true;
+
+    // Computed tier display
+    private string _tierLabel     => _tier switch { 2 => "Ouro", 1 => "Prata", _ => "Padrão" };
+    private string _tierIcon      => _tier switch { 2 => "fa-medal", 1 => "fa-shield", _ => "fa-seedling" };
+    private string _tierColor     => _tier switch { 2 => "#D97706", 1 => "#6B7280", _ => "#16A34A" };
+    private string _tierBg        => _tier switch { 2 => "#FEF3C7", 1 => "#F3F4F6", _ => "#F0FDF4" };
+    private string _tierClass     => _tier switch { 2 => "ouro", 1 => "prata", _ => "padrao" };
+    private string _proximoTierLabel => _tier switch { 0 => "Prata", 1 => "Ouro", _ => "" };
+    private int    _pontosLimite   => _tier switch { 0 => 10, 1 => 50, _ => 50 };
+    private int    _pontosParaProximo => _tier switch { 0 => 10 - _pontosAprovados, 1 => 50 - _pontosAprovados, _ => 0 };
+    private double _progressoPct   => _tier switch
+    {
+        0 => Math.Min(100, _pontosAprovados * 10.0),
+        1 => Math.Min(100, (_pontosAprovados - 10) * 100.0 / 40),
+        _ => 100,
+    };
 
     private bool _fotoErro;
     private ElementReference _canvasRef;
@@ -335,6 +393,8 @@
         {
             _totalAvaliacoes = perfil.TotalAvaliacoes;
             _totalAdicionados = perfil.TotalAdicionados;
+            _pontosAprovados = perfil.PontosAprovados;
+            _tier = perfil.Tier;
             if (perfil.Usuario?.FotoPerfilUrl is not null)
                 _user.FotoPerfilUrl = AuthService.ResolveUrl(perfil.Usuario.FotoPerfilUrl);
         }

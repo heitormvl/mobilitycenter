@@ -36,6 +36,7 @@ builder.Services.AddScoped<ConfirmService>();
 builder.Services.AddScoped<AvaliacaoService>();
 builder.Services.AddScoped<AdicionarStateService>();
 builder.Services.AddScoped<SugestaoService>();
+builder.Services.AddScoped<AdminService>();
 
 builder.Services.AddHttpClient("geocoder", client =>
 {

@@ -25,6 +25,9 @@ public class SugestaoEdicao
     public string? Comprovante { get; set; }
     public string? ComprovanteFotoKey { get; set; }
 
+    public bool AplicadaAutomaticamente { get; set; }
+    public string? DadosAnteriores { get; set; }
+
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
     public DateTime? AvaliadaEm { get; set; }
 }

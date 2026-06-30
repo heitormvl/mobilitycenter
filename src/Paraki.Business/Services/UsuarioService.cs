@@ -44,7 +44,9 @@ public class UsuarioService : IUsuarioService
                 FotoPerfilUrl = usuario.FotoPerfilUrl
             },
             TotalAvaliacoes = totalAvaliacoes,
-            TotalAdicionados = totalAdicionados
+            TotalAdicionados = totalAdicionados,
+            PontosAprovados = usuario.PontosAprovados,
+            Tier = usuario.Tier,
         };
     }
 

@@ -17,12 +17,14 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
     private readonly ParakiDbContext _db;
     private readonly IBicicletarioService _bicicletarioService;
     private readonly IFotoStorageService _fotoStorage;
+    private readonly IAuditoriaService _auditoria;
 
-    public SugestaoEdicaoService(ParakiDbContext db, IBicicletarioService bicicletarioService, IFotoStorageService fotoStorage)
+    public SugestaoEdicaoService(ParakiDbContext db, IBicicletarioService bicicletarioService, IFotoStorageService fotoStorage, IAuditoriaService auditoria)
     {
         _db = db;
         _bicicletarioService = bicicletarioService;
         _fotoStorage = fotoStorage;
+        _auditoria = auditoria;
     }
 
     public async Task<List<SugestaoEdicaoDto>> ListarPendentesAsync(Guid adminId)
@@ -106,7 +108,8 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
     public async Task<BicicletarioDetalheDto> AprovarAsync(Guid sugestaoId, Guid revisorId)
     {
         var sugestao = await _db.SugestoesEdicao
-            .Include(s => s.Bicicletario)
+            .Include(s => s.Bicicletario).ThenInclude(b => b.Horarios)
+            .Include(s => s.Autor)
             .FirstOrDefaultAsync(s => s.Id == sugestaoId)
             ?? throw new NotFoundException($"Sugestão {sugestaoId} não encontrada.");
 
@@ -122,26 +125,37 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
         var dto = JsonSerializer.Deserialize<AtualizarBicicletarioDto>(sugestao.DadosEdicao)
             ?? throw new AppException("Dados da sugestão corrompidos.", 500);
 
-        AplicarEdicao(sugestao.Bicicletario, dto);
+        var snapAntes = _auditoria.CriarSnapshot(sugestao.Bicicletario);
 
-        if (dto.Horarios != null)
+        if (!sugestao.AplicadaAutomaticamente)
         {
-            var existentes = await _db.HorariosFuncionamento
-                .Where(h => h.BicicletarioId == sugestao.BicicletarioId)
-                .ToListAsync();
-            _db.HorariosFuncionamento.RemoveRange(existentes);
-            foreach (var h in dto.Horarios)
-                _db.HorariosFuncionamento.Add(new HorarioFuncionamento
-                {
-                    Id = Guid.NewGuid(),
-                    BicicletarioId = sugestao.BicicletarioId,
-                    DiaSemana = h.DiaSemana,
-                    HoraAbertura = TimeOnly.Parse(h.HoraAbertura, System.Globalization.CultureInfo.InvariantCulture),
-                    HoraFechamento = TimeOnly.Parse(h.HoraFechamento, System.Globalization.CultureInfo.InvariantCulture),
-                });
-        }
+            // Padrão: apply the edit now
+            AplicarEdicao(sugestao.Bicicletario, dto);
 
-        sugestao.Bicicletario.AtualizadoEm = DateTime.UtcNow;
+            if (dto.Horarios != null)
+            {
+                var existentes = await _db.HorariosFuncionamento
+                    .Where(h => h.BicicletarioId == sugestao.BicicletarioId)
+                    .ToListAsync();
+                _db.HorariosFuncionamento.RemoveRange(existentes);
+                foreach (var h in dto.Horarios)
+                    _db.HorariosFuncionamento.Add(new HorarioFuncionamento
+                    {
+                        Id = Guid.NewGuid(),
+                        BicicletarioId = sugestao.BicicletarioId,
+                        DiaSemana = h.DiaSemana,
+                        HoraAbertura = TimeOnly.Parse(h.HoraAbertura, System.Globalization.CultureInfo.InvariantCulture),
+                        HoraFechamento = TimeOnly.Parse(h.HoraFechamento, System.Globalization.CultureInfo.InvariantCulture),
+                    });
+            }
+
+            sugestao.Bicicletario.AtualizadoEm = DateTime.UtcNow;
+
+            // Award +1 to Padrão author
+            if (sugestao.Autor != null)
+                sugestao.Autor.PontosAprovados += 1;
+        }
+        // For AplicadaAutomaticamente (Prata): edit is already live, no re-apply needed
 
         // Deletar foto de comprovante ao aprovar — não é mais necessária
         if (sugestao.ComprovanteFotoKey != null && Guid.TryParse(sugestao.ComprovanteFotoKey, out var fotoComprovanteId))
@@ -154,13 +168,23 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
 
         await _db.SaveChangesAsync();
 
+        // Audit: after-snapshot for non-auto (auto already audited on apply)
+        if (!sugestao.AplicadaAutomaticamente)
+        {
+            var bAfter = await _db.Bicicletarios.Include(b => b.Horarios).FirstAsync(b => b.Id == sugestao.BicicletarioId);
+            var snapDepois = _auditoria.CriarSnapshot(bAfter);
+            await _auditoria.RegistrarAsync(TipoAcaoAuditoria.Aprovacao, revisorId, revisor.DisplayName,
+                sugestao.BicicletarioId, snapAntes, snapDepois, sugestaoId: sugestaoId);
+            await _db.SaveChangesAsync();
+        }
+
         return await _bicicletarioService.ObterPorIdAsync(sugestao.BicicletarioId);
     }
 
     public async Task<SugestaoEdicaoDto> RejeitarAsync(Guid sugestaoId, Guid revisorId, string? motivo)
     {
         var sugestao = await _db.SugestoesEdicao
-            .Include(s => s.Bicicletario)
+            .Include(s => s.Bicicletario).ThenInclude(b => b.Horarios)
             .Include(s => s.Autor)
             .Include(s => s.Revisor)
             .FirstOrDefaultAsync(s => s.Id == sugestaoId)
@@ -174,6 +198,46 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
 
         if (revisor.Type != TipoUsuario.Admin && sugestao.Bicicletario.OperadorId != revisorId)
             throw new UnauthorizedException("Sem permissão para rejeitar esta sugestão.");
+
+        if (sugestao.AplicadaAutomaticamente && sugestao.DadosAnteriores != null)
+        {
+            // Prata: revert the auto-applied edit
+            var dadosAnteriores = JsonSerializer.Deserialize<AtualizarBicicletarioDto>(sugestao.DadosAnteriores)
+                ?? throw new AppException("Snapshot anterior corrompido.", 500);
+
+            var snapAntes = _auditoria.CriarSnapshot(sugestao.Bicicletario);
+            AplicarEdicao(sugestao.Bicicletario, dadosAnteriores);
+
+            if (dadosAnteriores.Horarios != null)
+            {
+                var existentes = await _db.HorariosFuncionamento
+                    .Where(h => h.BicicletarioId == sugestao.BicicletarioId)
+                    .ToListAsync();
+                _db.HorariosFuncionamento.RemoveRange(existentes);
+                foreach (var h in dadosAnteriores.Horarios)
+                    _db.HorariosFuncionamento.Add(new HorarioFuncionamento
+                    {
+                        Id = Guid.NewGuid(),
+                        BicicletarioId = sugestao.BicicletarioId,
+                        DiaSemana = h.DiaSemana,
+                        HoraAbertura = TimeOnly.Parse(h.HoraAbertura, System.Globalization.CultureInfo.InvariantCulture),
+                        HoraFechamento = TimeOnly.Parse(h.HoraFechamento, System.Globalization.CultureInfo.InvariantCulture),
+                    });
+            }
+
+            sugestao.Bicicletario.AtualizadoEm = DateTime.UtcNow;
+
+            // Deduct -1 point from Prata author
+            if (sugestao.Autor != null)
+                sugestao.Autor.PontosAprovados = Math.Max(0, sugestao.Autor.PontosAprovados - 1);
+
+            await _db.SaveChangesAsync();
+
+            var bAfter = await _db.Bicicletarios.Include(b => b.Horarios).FirstAsync(b => b.Id == sugestao.BicicletarioId);
+            var snapDepois = _auditoria.CriarSnapshot(bAfter);
+            await _auditoria.RegistrarAsync(TipoAcaoAuditoria.Rejeicao, revisorId, revisor.DisplayName,
+                sugestao.BicicletarioId, snapAntes, snapDepois, observacao: motivo, sugestaoId: sugestaoId);
+        }
 
         sugestao.Status = StatusSugestao.Rejeitada;
         sugestao.RevisorId = revisorId;
@@ -224,6 +288,8 @@ public class SugestaoEdicaoService : ISugestaoEdicaoService
         MotivoRejeicao = s.MotivoRejeicao,
         Comprovante = s.Comprovante,
         ComprovanteFotoKey = s.ComprovanteFotoKey,
+        AplicadaAutomaticamente = s.AplicadaAutomaticamente,
+        TierAutor = s.Autor?.Tier ?? TipoTier.Padrao,
         CriadoEm = s.CriadoEm,
         AvaliadaEm = s.AvaliadaEm
     };

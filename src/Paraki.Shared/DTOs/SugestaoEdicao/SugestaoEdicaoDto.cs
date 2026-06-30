@@ -19,6 +19,9 @@ public class SugestaoEdicaoDto
     public string? Comprovante { get; set; }
     public string? ComprovanteFotoKey { get; set; }
 
+    public bool AplicadaAutomaticamente { get; set; }
+    public TipoTier TierAutor { get; set; }
+
     public DateTime CriadoEm { get; set; }
     public DateTime? AvaliadaEm { get; set; }
 }

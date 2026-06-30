@@ -36,4 +36,7 @@ public class BicicletarioDetalheDto
     public DateTime CriadoEm { get; set; }
     public DateTime AtualizadoEm { get; set; }
     public bool IsDeleted { get; set; }
+    public StatusBicicletario StatusAprovacao { get; set; }
+    public string? NomeCriador { get; set; }
+    public TipoTier? TierCriador { get; set; }
 }

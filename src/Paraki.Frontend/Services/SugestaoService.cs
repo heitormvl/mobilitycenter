@@ -103,6 +103,8 @@ public class SugestaoDto
     public string NomeAutor { get; set; } = "";
     public string? Comprovante { get; set; }
     public string? ComprovanteFotoKey { get; set; }
+    public bool AplicadaAutomaticamente { get; set; }
+    public int TierAutor { get; set; }
     public DateTime CriadoEm { get; set; }
     public SugestaoDadosDto DadosEdicao { get; set; } = new();
 }

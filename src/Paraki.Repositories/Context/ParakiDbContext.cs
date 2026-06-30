@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Paraki.Shared.Enums;
 using Paraki.Shared.Models;
 
 namespace Paraki.Repositories.Context;
@@ -15,6 +16,8 @@ public class ParakiDbContext : IdentityDbContext<Usuario, IdentityRole<Guid>, Gu
     public DbSet<HorarioFuncionamento> HorariosFuncionamento => Set<HorarioFuncionamento>();
     public DbSet<FotoBicicletario> FotosBicicletario => Set<FotoBicicletario>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<SnapshotBicicletario> SnapshotsBicicletario => Set<SnapshotBicicletario>();
+    public DbSet<LogAuditoria> LogsAuditoria => Set<LogAuditoria>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -23,6 +26,8 @@ public class ParakiDbContext : IdentityDbContext<Usuario, IdentityRole<Guid>, Gu
         builder.Entity<Usuario>(e =>
         {
             e.Property(u => u.DisplayName).IsRequired().HasMaxLength(100);
+            e.Property(u => u.TierOverride).HasConversion<int?>();
+            e.Ignore(u => u.Tier);
         });
 
         builder.Entity<Bicicletario>(e =>
@@ -31,12 +36,18 @@ public class ParakiDbContext : IdentityDbContext<Usuario, IdentityRole<Guid>, Gu
             e.Property(b => b.Nome).IsRequired().HasMaxLength(200);
             e.Property(b => b.Location).HasColumnType("geometry(Point, 4326)");
             e.Property(b => b.VeiculosSuportados).HasConversion<int>();
+            e.Property(b => b.StatusAprovacao).HasConversion<int>().HasDefaultValueSql("1");
             e.HasQueryFilter(b => !b.Deletado);
             e.HasIndex(b => b.Location).HasMethod("gist");
 
             e.HasOne(b => b.Operador)
              .WithMany(u => u.Bicicletarios)
              .HasForeignKey(b => b.OperadorId)
+             .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasOne(b => b.Criador)
+             .WithMany()
+             .HasForeignKey(b => b.CriadorId)
              .OnDelete(DeleteBehavior.SetNull);
 
             e.HasMany(b => b.Avaliacoes)
@@ -47,6 +58,11 @@ public class ParakiDbContext : IdentityDbContext<Usuario, IdentityRole<Guid>, Gu
             e.HasMany(b => b.Horarios)
              .WithOne(h => h.Bicicletario)
              .HasForeignKey(h => h.BicicletarioId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasMany(b => b.Logs)
+             .WithOne(l => l.Bicicletario)
+             .HasForeignKey(l => l.BicicletarioId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -112,6 +128,32 @@ public class ParakiDbContext : IdentityDbContext<Usuario, IdentityRole<Guid>, Gu
              .WithMany(u => u.Reviews)
              .HasForeignKey(a => a.UsuarioId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<SnapshotBicicletario>(e =>
+        {
+            e.HasKey(s => s.Id);
+        });
+
+        builder.Entity<LogAuditoria>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.Property(l => l.TipoAcao).HasConversion<int>();
+
+            e.HasOne(l => l.Usuario)
+             .WithMany(u => u.LogsAuditoria)
+             .HasForeignKey(l => l.UsuarioId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(l => l.SnapshotAntes)
+             .WithMany()
+             .HasForeignKey(l => l.SnapshotAntesId)
+             .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasOne(l => l.SnapshotDepois)
+             .WithMany()
+             .HasForeignKey(l => l.SnapshotDepoisId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

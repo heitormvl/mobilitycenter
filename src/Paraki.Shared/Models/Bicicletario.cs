@@ -32,10 +32,16 @@ public class Bicicletario
     public Guid? OperadorId { get; set; }
     public Usuario? Operador { get; set; }
 
+    public Guid? CriadorId { get; set; }
+    public Usuario? Criador { get; set; }
+
+    public StatusBicicletario StatusAprovacao { get; set; } = StatusBicicletario.Aprovado;
+
     public ICollection<Avaliacao> Avaliacoes { get; set; } = [];
     public ICollection<SugestaoEdicao> Sugestoes { get; set; } = [];
     public ICollection<HorarioFuncionamento> Horarios { get; set; } = [];
     public ICollection<FotoBicicletario> Fotos { get; set; } = [];
+    public ICollection<LogAuditoria> Logs { get; set; } = [];
 
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
     public DateTime AtualizadoEm { get; set; } = DateTime.UtcNow;

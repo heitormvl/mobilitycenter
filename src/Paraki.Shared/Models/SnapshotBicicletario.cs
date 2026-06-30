@@ -1,16 +1,11 @@
-﻿using Paraki.Shared.Enums;
+namespace Paraki.Shared.Models;
 
-namespace Paraki.Shared.DTOs.Bicicletario;
-
-public class BicicletarioResumoDto
+public class SnapshotBicicletario
 {
     public Guid Id { get; set; }
     public string Nome { get; set; } = string.Empty;
     public double Latitude { get; set; }
     public double Longitude { get; set; }
-    public double NotaMedia { get; set; }
-    public int TotalAvaliacoes { get; set; }
-    public TipoVeiculo VeiculosSuportados { get; set; }
 
     public bool TemTomada { get; set; }
     public bool TemCalibrador { get; set; }
@@ -24,10 +19,12 @@ public class BicicletarioResumoDto
     public bool AcessoPago { get; set; }
     public bool AcessoCadastro { get; set; }
     public bool AcessoMensal { get; set; }
-    public bool IsDeleted { get; set; }
-    public StatusBicicletario StatusAprovacao { get; set; }
-    public string? NomeCriador { get; set; }
-    public TipoTier? TierCriador { get; set; }
-    public List<HorarioFuncionamentoDto> Horarios { get; set; } = [];
-    public string? CapaUrl { get; set; }
+
+    public int VeiculosSuportados { get; set; }
+    public int StatusAprovacao { get; set; }
+    public bool Deletado { get; set; }
+
+    public string HorariosJson { get; set; } = "[]";
+
+    public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 }

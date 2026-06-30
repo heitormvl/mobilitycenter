@@ -31,6 +31,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient();
         services.AddScoped<IEmailService, ResendEmailService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAuditoriaService, AuditoriaService>();
         services.AddScoped<IBicicletarioService, BicicletarioService>();
         services.AddScoped<IAvaliacaoService, AvaliacaoService>();
         services.AddScoped<IUsuarioService, UsuarioService>();

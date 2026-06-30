@@ -944,3 +944,35 @@ input:focus, textarea:focus {
     from { clip-path: inset(0 0%   0 0 round 2px); }
     to   { clip-path: inset(0 100% 0 0 round 2px); }
 }
+
+/* ── Tier badge shimmer ring ── */
+@keyframes tier-shimmer-spin {
+    0%   { background-position: 0%   50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0%   50%; }
+}
+
+.tier-shimmer-ring {
+    border-radius: 50%;
+    padding: 3px;
+    animation: tier-shimmer-spin 2.5s linear infinite;
+    background-size: 300% 300%;
+}
+
+.tier-shimmer-ring--padrao {
+    background: linear-gradient(90deg, #16A34A, #4ADE80, #BBF7D0, #4ADE80, #16A34A);
+    background-size: 300% 300%;
+    animation: tier-shimmer-spin 3s linear infinite;
+}
+
+.tier-shimmer-ring--prata {
+    background: linear-gradient(90deg, #6B7280, #D1D5DB, #9CA3AF, #E5E7EB, #6B7280);
+    background-size: 300% 300%;
+    animation: tier-shimmer-spin 2.5s linear infinite;
+}
+
+.tier-shimmer-ring--ouro {
+    background: linear-gradient(90deg, #D97706, #FCD34D, #FBBF24, #FDE68A, #D97706);
+    background-size: 300% 300%;
+    animation: tier-shimmer-spin 2s linear infinite;
+}

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Paraki.Business.Filters;
 using Paraki.Business.Interfaces;
 using Paraki.Shared.DTOs.Bicicletario;
+using Paraki.Shared.DTOs.SugestaoEdicao;
 using Paraki.Shared.Enums;
 using Paraki.Shared.Exceptions;
 
@@ -82,8 +83,9 @@ public class BicicletariosController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Restaurar(Guid id)
     {
+        var adminId = ObterUsuarioId();
         var tipo = ObterTipoUsuario();
-        await _bicicletarioService.RestaurarAsync(id, tipo);
+        await _bicicletarioService.RestaurarAsync(id, adminId, tipo);
         return NoContent();
     }
 
@@ -95,6 +97,42 @@ public class BicicletariosController : ControllerBase
         var tipo = ObterTipoUsuario();
         await _bicicletarioService.DeletarPermanenteAsync(id, usuarioId, tipo);
         return NoContent();
+    }
+
+    [HttpGet("pendentes")]
+    [Authorize]
+    public async Task<IActionResult> ListarPendentes()
+    {
+        var adminId = ObterUsuarioId();
+        var resultado = await _bicicletarioService.ListarPendentesAsync(adminId);
+        return Ok(resultado);
+    }
+
+    [HttpPost("{id:guid}/aprovar")]
+    [Authorize]
+    public async Task<IActionResult> AprovarCriacao(Guid id)
+    {
+        var adminId = ObterUsuarioId();
+        var resultado = await _bicicletarioService.AprovarCriacaoAsync(id, adminId);
+        return Ok(resultado);
+    }
+
+    [HttpPost("{id:guid}/rejeitar")]
+    [Authorize]
+    public async Task<IActionResult> RejeitarCriacao(Guid id, [FromBody] AvaliarSugestaoDto dto)
+    {
+        var adminId = ObterUsuarioId();
+        await _bicicletarioService.RejeitarCriacaoAsync(id, adminId, dto.Motivo);
+        return NoContent();
+    }
+
+    [HttpGet("{id:guid}/auditoria")]
+    [Authorize]
+    public async Task<IActionResult> ObterAuditoria(Guid id)
+    {
+        var adminId = ObterUsuarioId();
+        var resultado = await _bicicletarioService.ObterAuditoriaAsync(id, adminId);
+        return Ok(resultado);
     }
 
     private Guid ObterUsuarioId()

@@ -33,7 +33,7 @@ public class BicicletarioService(HttpClient http)
         }
     }
 
-    public async Task<(string? Error, string? Id)> CreateAsync(CreateBicicletarioRequest req)
+    public async Task<(string? Error, string? Id, int StatusAprovacao)> CreateAsync(CreateBicicletarioRequest req)
     {
         try
         {
@@ -41,14 +41,62 @@ public class BicicletarioService(HttpClient http)
             if (!response.IsSuccessStatusCode)
             {
                 var err = await response.Content.ReadFromJsonAsync<ApiError>();
-                return (err?.Message ?? "Erro ao publicar o bicicletário.", null);
+                return (err?.Message ?? "Erro ao publicar o bicicletário.", null, 0);
             }
             var result = await response.Content.ReadFromJsonAsync<CreatedResponse>();
-            return (null, result?.Id);
+            return (null, result?.Id, result?.StatusAprovacao ?? 1);
         }
         catch
         {
-            return ("Erro de conexão. Verifique sua internet e tente novamente.", null);
+            return ("Erro de conexão. Verifique sua internet e tente novamente.", null, 0);
+        }
+    }
+
+    public async Task<BicicletarioPendenteModel[]?> GetPendentesAsync()
+    {
+        try
+        {
+            return await http.GetFromJsonAsync<BicicletarioPendenteModel[]>("api/bicicletarios/pendentes");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<string?> AprovarCriacaoAsync(string id)
+    {
+        try
+        {
+            var response = await http.PostAsync($"api/bicicletarios/{id}/aprovar", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao aprovar.";
+            }
+            return null;
+        }
+        catch
+        {
+            return "Erro de conexão.";
+        }
+    }
+
+    public async Task<string?> RejeitarCriacaoAsync(string id, string? motivo)
+    {
+        try
+        {
+            var response = await http.PostAsJsonAsync($"api/bicicletarios/{id}/rejeitar", new { Motivo = motivo });
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<ApiError>();
+                return err?.Message ?? "Erro ao rejeitar.";
+            }
+            return null;
+        }
+        catch
+        {
+            return "Erro de conexão.";
         }
     }
 
@@ -222,7 +270,7 @@ public class BicicletarioService(HttpClient http)
             : fotoUrl;
 
     private record ApiError(string Message);
-    private record CreatedResponse(string Id);
+    private record CreatedResponse(string Id, int StatusAprovacao);
 }
 
 // Matches BicicletarioResumoDto (Portuguese names, camelCase from API)
@@ -374,6 +422,32 @@ public class FotoModel
     public string FotoUrl { get; set; } = "";
     public bool IsCapa { get; set; }
     public int Ordem { get; set; }
+    public DateTime CriadoEm { get; set; }
+}
+
+public class BicicletarioPendenteModel
+{
+    public string Id { get; set; } = "";
+    public string Nome { get; set; } = "";
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public int StatusAprovacao { get; set; }
+    public string? NomeCriador { get; set; }
+    public int TierCriador { get; set; }
+    public bool TemTomada { get; set; }
+    public bool TemCalibrador { get; set; }
+    public bool TemVestiario { get; set; }
+    public bool TemArmario { get; set; }
+    public bool TemEspacoManutencao { get; set; }
+    public bool TemCadeado { get; set; }
+    public bool TemBanheiro { get; set; }
+    public bool AcessoLivre { get; set; }
+    public bool AcessoPago { get; set; }
+    public bool AcessoCadastro { get; set; }
+    public bool AcessoMensal { get; set; }
+    public int VeiculosSuportados { get; set; }
+    public HorarioModel[] Horarios { get; set; } = [];
+    public string? CapaUrl { get; set; }
     public DateTime CriadoEm { get; set; }
 }
 

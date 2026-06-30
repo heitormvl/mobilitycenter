@@ -1,5 +1,6 @@
-﻿using Paraki.Business.Filters;
+using Paraki.Business.Filters;
 using Paraki.Shared.DTOs.Bicicletario;
+using Paraki.Shared.DTOs.LogAuditoria;
 using Paraki.Shared.Enums;
 
 namespace Paraki.Business.Interfaces;
@@ -11,6 +12,12 @@ public interface IBicicletarioService
     Task<BicicletarioDetalheDto> CriarAsync(CriarBicicletarioDto dto, Guid usuarioId);
     Task<ResultadoAtualizacaoDto> AtualizarAsync(Guid id, AtualizarBicicletarioDto dto, Guid usuarioId);
     Task DeletarAsync(Guid id, Guid usuarioId, TipoUsuario tipoUsuario);
-    Task RestaurarAsync(Guid id, TipoUsuario tipoUsuario);
+    Task RestaurarAsync(Guid id, Guid adminId, TipoUsuario tipoUsuario);
     Task DeletarPermanenteAsync(Guid id, Guid usuarioId, TipoUsuario tipoUsuario);
+
+    Task<List<BicicletarioPendenteDto>> ListarPendentesAsync(Guid adminId);
+    Task<BicicletarioPendenteDto> AprovarCriacaoAsync(Guid bicicletarioId, Guid adminId);
+    Task RejeitarCriacaoAsync(Guid bicicletarioId, Guid adminId, string? motivo);
+
+    Task<List<LogAuditoriaDto>> ObterAuditoriaAsync(Guid bicicletarioId, Guid adminId);
 }
