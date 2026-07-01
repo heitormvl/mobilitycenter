@@ -322,6 +322,15 @@ html, body {
     color: var(--text);
     letter-spacing: -0.03em;
 }
+.splash-logo-img {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+}
+[data-theme="dark"] .splash-logo-img { filter: invert(1); }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .splash-logo-img { filter: invert(1); }
+}
 
 /* Inputs */
 input, textarea {
