@@ -2,11 +2,13 @@
 @inject IJSRuntime JS
 @inject AuthService AuthService
 @inject AdminService AdminSvc
+@inject AuthenticationStateProvider AuthStateProvider
+@implements IDisposable
 
 <aside class="side-nav @(_collapsed ? "side-nav--collapsed" : "")">
     <a href="/inicio" class="side-nav__header" style="text-decoration:none; color:inherit;">
         <div class="side-nav__logo">
-            <img src="icon-192.png" alt="Paraki" style="width:100%; height:100%; object-fit:cover; display:block;" />
+            <img src="_content/Paraki.RazorLib/icon-192.png" alt="Paraki" style="width:100%; height:100%; object-fit:cover; display:block;" />
         </div>
         <span class="side-nav__brand-name">Paraki</span>
     </a>
@@ -60,14 +62,29 @@
 
     protected override async Task OnInitializedAsync()
     {
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        await RefreshAdminStateAsync();
+    }
+
+    public void Dispose() =>
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> _) =>
+        await RefreshAdminStateAsync();
+
+    private async Task RefreshAdminStateAsync()
+    {
         var userInfo = await AuthService.GetUserInfoAsync();
-        _isAdmin = userInfo?.Type == 2;
+        _isAdmin = userInfo?.Type == 2 || userInfo?.Type == 3;
+        _pendencias = 0;
 
         if (_isAdmin)
         {
             var contagem = await AdminSvc.GetContagemAsync();
             _pendencias = contagem?.Total ?? 0;
         }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task ToggleCollapseAsync()

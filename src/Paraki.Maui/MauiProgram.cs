@@ -33,6 +33,7 @@ public static class MauiProgram
         // Implementações específicas do MAUI das abstrações compartilhadas (RazorLib)
         builder.Services.AddSingleton<ILocalStorageService, MauiLocalStorageService>();
         builder.Services.AddSingleton<IGoogleAuthService, MauiGoogleAuthService>();
+        builder.Services.AddSingleton<IGeolocationService, MauiGeolocationService>();
 
         builder.Services.AddScoped<JwtAuthStateProvider>();
         builder.Services.AddScoped<AuthenticationStateProvider>(sp =>

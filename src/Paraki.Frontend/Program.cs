@@ -16,6 +16,7 @@ var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? builder.HostEnvironment.
 // Implementações específicas do WASM das abstrações compartilhadas (RazorLib)
 builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
 builder.Services.AddScoped<IGoogleAuthService, JsGoogleAuthService>();
+builder.Services.AddScoped<IGeolocationService, JsGeolocationService>();
 
 builder.Services.AddScoped<JwtAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>

@@ -195,6 +195,8 @@ window.mapInterop = {
         if (inst) inst.map.fitBounds([[south, west], [north, east]], { padding: [50, 50], maxZoom: 16 });
     },
 
+    _geoOpts: { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+
     _locateUser: function (instance) {
         if (!navigator.geolocation) return;
 
@@ -207,8 +209,14 @@ window.mapInterop = {
                 }
                 this._setUserMarker(instance, lat, lng);
             },
-            err => console.warn('Geolocalização indisponível:', err.message)
+            err => console.warn('Geolocalização indisponível:', err.code, err.message),
+            this._geoOpts
         );
+    },
+
+    setUserMarker: function (mapId, lat, lng) {
+        const inst = this._instances[mapId];
+        if (inst) this._setUserMarker(inst, lat, lng);
     },
 
     _setUserMarker: function (instance, lat, lng) {
@@ -252,7 +260,7 @@ window.mapInterop = {
                 inst.map.setView([lat, lng], 15);
                 this._setUserMarker(inst, lat, lng);
             }
-        });
+        }, err => console.warn('panToUser geo error:', err.code, err.message), this._geoOpts);
     },
 
     zoomIn: function (mapId) {
@@ -285,7 +293,8 @@ window.mapInterop = {
             }
             navigator.geolocation.getCurrentPosition(
                 pos => resolve([pos.coords.latitude, pos.coords.longitude]),
-                err => reject(err.message)
+                err => reject(err.message),
+                this._geoOpts
             );
         });
     },

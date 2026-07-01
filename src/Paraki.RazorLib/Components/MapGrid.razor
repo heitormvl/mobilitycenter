@@ -60,6 +60,9 @@
     public async Task PanToUserAsync() =>
         await JS.InvokeVoidAsync("mapInterop.panToUser", _id);
 
+    public async Task SetUserMarkerAsync(double lat, double lng) =>
+        await JS.InvokeVoidAsync("mapInterop.setUserMarker", _id, lat, lng);
+
     public async Task PanToAsync(double lat, double lng) =>
         await JS.InvokeVoidAsync("mapInterop.panTo", _id, lat, lng);
 

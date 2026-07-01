@@ -5,6 +5,7 @@
 @inject NavigationManager Nav
 @inject BicicletarioService BicicletarioSvc
 @inject IJSRuntime JS
+@inject IGeolocationService GeoService
 @implements IDisposable
 
 @code {
@@ -293,7 +294,7 @@
     <div class="mobile-only" style="position:absolute; top:calc(env(safe-area-inset-top, 0px) + 10px); left:16px; right:16px; z-index:10;">
         <div style="background:var(--bg); border-radius:var(--r-xl); box-shadow:var(--shadow-lg); display:flex; align-items:center; gap:10px; padding:0 16px; height:50px;">
             <a href="/inicio" style="display:flex; align-items:center; flex-shrink:0; text-decoration:none;">
-                <img src="icon-192.png" alt="Paraki" style="width:26px; height:26px; border-radius:6px; object-fit:cover; display:block;" />
+                <img src="_content/Paraki.RazorLib/icon-192.png" alt="Paraki" style="width:26px; height:26px; border-radius:6px; object-fit:cover; display:block;" />
             </a>
             <div style="width:1px; height:18px; background:var(--border);"></div>
             <i class="fa-solid fa-magnifying-glass" style="color:var(--text-4); font-size:14px;"></i>
@@ -321,7 +322,7 @@
     </div>
 
     <!-- My location button -->
-    <div class="location-btn" @onclick="() => _map!.PanToUserAsync()" style="position:fixed; right:16px; bottom:@(_sheetExpanded ? "444px" : "156px"); width:42px; height:42px; border-radius:var(--r-full); background:var(--bg); display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow); cursor:pointer; z-index:40; transition:bottom 0.38s cubic-bezier(0.32,0.72,0,1);">
+    <div class="location-btn" @onclick="NativeLocateAsync" style="position:fixed; right:16px; bottom:@(_sheetExpanded ? "444px" : "156px"); width:42px; height:42px; border-radius:var(--r-full); background:var(--bg); display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow); cursor:pointer; z-index:40; transition:bottom 0.38s cubic-bezier(0.32,0.72,0,1);">
         <i class="fa-solid fa-location-crosshairs" style="color:var(--brand); font-size:16px;"></i>
     </div>
 </div>
@@ -676,6 +677,14 @@
         {
             await JS.InvokeVoidAsync("mapInterop.setCachedLocation", lat.Value, lng.Value);
 
+            // Centraliza e marca posição do usuário via C# (necessário no MAUI onde
+            // navigator.geolocation não funciona no WebView; inócuo no WASM).
+            if (_map is not null)
+            {
+                await _map.PanToAsync(lat.Value, lng.Value);
+                await _map.SetUserMarkerAsync(lat.Value, lng.Value);
+            }
+
             var movedFar = cached == null
                 || DistanceKm(cached.Value.lat, cached.Value.lng, lat.Value, lng.Value) > 0.5;
 
@@ -703,13 +712,16 @@
 
     private async Task<(double? lat, double? lng)> GetUserLocationAsync()
     {
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            var arr = await JS.InvokeAsync<double[]>("mapInterop.getUserLocation", cts.Token);
-            return (arr[0], arr[1]);
-        }
-        catch { return (null, null); }
+        var loc = await GeoService.GetLocationAsync();
+        return loc.HasValue ? (loc.Value.Lat, loc.Value.Lng) : (null, null);
+    }
+
+    private async Task NativeLocateAsync()
+    {
+        var loc = await GeoService.GetLocationAsync();
+        if (loc is null || _map is null) return;
+        await _map.PanToAsync(loc.Value.Lat, loc.Value.Lng);
+        await _map.SetUserMarkerAsync(loc.Value.Lat, loc.Value.Lng);
     }
 
     private static double DistanceKm(double lat1, double lng1, double lat2, double lng2)

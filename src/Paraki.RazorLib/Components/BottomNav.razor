@@ -2,6 +2,8 @@
 @inject IJSRuntime JS
 @inject AuthService AuthService
 @inject AdminService AdminSvc
+@inject AuthenticationStateProvider AuthStateProvider
+@implements IDisposable
 
 <div class="bottom-nav" style="position:fixed; bottom:0; left:0; right:0; z-index:100; background:var(--nav-bg); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-around; padding:8px 8px 20px; font-family:var(--font);">
     @foreach (var item in GetItems())
@@ -63,14 +65,29 @@
 
     protected override async Task OnInitializedAsync()
     {
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        await RefreshAdminStateAsync();
+    }
+
+    public void Dispose() =>
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> _) =>
+        await RefreshAdminStateAsync();
+
+    private async Task RefreshAdminStateAsync()
+    {
         var userInfo = await AuthService.GetUserInfoAsync();
         _isAdmin = userInfo?.Type == 2 || userInfo?.Type == 3;
+        _pendencias = 0;
 
         if (_isAdmin)
         {
             var contagem = await AdminSvc.GetContagemAsync();
             _pendencias = contagem?.Total ?? 0;
         }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task NavigateTo(string targetId, string route)
