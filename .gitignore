@@ -1,3 +1,6 @@
+# Android signing
+*.keystore
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
