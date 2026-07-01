@@ -31,7 +31,7 @@
         <ApplicationTitle>Paraki</ApplicationTitle>
 
         <!-- App Identifier -->
-        <ApplicationId>br.com.paraki</ApplicationId>
+        <ApplicationId>com.paraki</ApplicationId>
 
         <!-- Versions -->
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
@@ -39,7 +39,18 @@
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
+    </PropertyGroup>
 
+    <!-- Android release signing via environment variables -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Release' And $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+        <AndroidKeyStore>true</AndroidKeyStore>
+        <AndroidSigningKeyStore>$(ANDROID_KEYSTORE_PATH)</AndroidSigningKeyStore>
+        <AndroidSigningKeyAlias>paraki</AndroidSigningKeyAlias>
+        <AndroidSigningKeyPass>$(ANDROID_KEY_PASS)</AndroidSigningKeyPass>
+        <AndroidSigningStorePass>$(ANDROID_STORE_PASS)</AndroidSigningStorePass>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
