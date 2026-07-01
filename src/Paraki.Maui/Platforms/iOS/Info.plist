@@ -34,14 +34,16 @@
     <string>O Paraki usa a câmera para você fotografar bicicletários.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>O Paraki usa suas fotos para ilustrar bicicletários.</string>
+    <!-- GoogleSignIn: substitua pelo URL scheme reverso do seu iOS client id,
+         ex.: com.googleusercontent.apps.861417602283-XXXXXXXX -->
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
             <key>CFBundleURLName</key>
-            <string>br.com.paraki</string>
+            <string>GoogleSignIn</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>br.com.paraki</string>
+                <string>com.googleusercontent.apps.SEU-IOS-CLIENT-ID</string>
             </array>
         </dict>
     </array>
