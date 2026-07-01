@@ -1,18 +1,23 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.JSInterop;
+using Paraki.RazorLib.Interfaces;
 
 namespace Paraki.Frontend.Services;
 
-public class LocalStorageService(IJSRuntime js)
+/// <summary>
+/// Implementação WASM de <see cref="ILocalStorageService"/> usando
+/// <c>window.localStorage</c> via JS interop.
+/// </summary>
+public class LocalStorageService(IJSRuntime js) : ILocalStorageService
 {
-    public ValueTask SetItemAsync(string key, string value) =>
-        js.InvokeVoidAsync("localStorage.setItem", key, value);
+    public Task SetItemAsync(string key, string value) =>
+        js.InvokeVoidAsync("localStorage.setItem", key, value).AsTask();
 
-    public async Task SetItemAsync<T>(string key, T value) =>
-        await js.InvokeVoidAsync("localStorage.setItem", key, JsonSerializer.Serialize(value));
+    public Task SetItemAsync<T>(string key, T value) =>
+        js.InvokeVoidAsync("localStorage.setItem", key, JsonSerializer.Serialize(value)).AsTask();
 
-    public ValueTask<string?> GetItemAsync(string key) =>
-        js.InvokeAsync<string?>("localStorage.getItem", key);
+    public async Task<string?> GetItemAsync(string key) =>
+        await js.InvokeAsync<string?>("localStorage.getItem", key);
 
     public async Task<T?> GetItemAsync<T>(string key)
     {
@@ -20,6 +25,6 @@ public class LocalStorageService(IJSRuntime js)
         return json is null ? default : JsonSerializer.Deserialize<T>(json);
     }
 
-    public ValueTask RemoveItemAsync(string key) =>
-        js.InvokeVoidAsync("localStorage.removeItem", key);
+    public Task RemoveItemAsync(string key) =>
+        js.InvokeVoidAsync("localStorage.removeItem", key).AsTask();
 }

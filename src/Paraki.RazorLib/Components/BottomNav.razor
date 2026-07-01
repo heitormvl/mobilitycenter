@@ -1,0 +1,100 @@
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject AuthService AuthService
+@inject AdminService AdminSvc
+@inject AuthenticationStateProvider AuthStateProvider
+@implements IDisposable
+
+<div class="bottom-nav" style="position:fixed; bottom:0; left:0; right:0; z-index:100; background:var(--nav-bg); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-around; padding:8px 8px 20px; font-family:var(--font);">
+    @foreach (var item in GetItems())
+    {
+        var on = item.Id == Active;
+        if (item.Fab)
+        {
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;" @onclick="@(() => NavigateTo(item.Id, item.Route))">
+                <div style="width:50px; height:50px; border-radius:var(--r-full); background:var(--brand); display:flex; align-items:center; justify-content:center; color:white; margin-top:-26px; box-shadow:var(--shadow-lg), 0 0 0 4px var(--bg-page);">
+                    <i class="fa-solid @item.Icon" style="font-size:19px;"></i>
+                </div>
+                <span style="font-size:10px; color:var(--text-4); font-weight:500; letter-spacing:0.01em;">@item.Label</span>
+            </div>
+        }
+        else if (item.Id == "admin")
+        {
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:0 14px; position:relative;" @onclick="@(() => NavigateTo(item.Id, item.Route))">
+                <div style="position:relative;">
+                    <i class="fa-solid @item.Icon" style="font-size:21px; color:@(on ? "var(--brand)" : "var(--text-4)");"></i>
+                    @if (_pendencias > 0)
+                    {
+                        <span style="position:absolute; top:-6px; right:-8px; background:#DC2626; color:white; font-size:9px; font-weight:700; font-family:var(--font); border-radius:var(--r-full); padding:1px 4px; min-width:14px; text-align:center; line-height:14px; pointer-events:none;">
+                            @(_pendencias > 99 ? "99+" : _pendencias.ToString())
+                        </span>
+                    }
+                </div>
+                <span style="font-size:10px; color:@(on ? "var(--brand)" : "var(--text-4)"); font-weight:@(on ? "600" : "400"); letter-spacing:0.01em;">@item.Label</span>
+            </div>
+        }
+        else
+        {
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:0 14px;" @onclick="@(() => NavigateTo(item.Id, item.Route))">
+                <i class="fa-solid @item.Icon" style="font-size:21px; color:@(on ? "var(--brand)" : "var(--text-4)");"></i>
+                <span style="font-size:10px; color:@(on ? "var(--brand)" : "var(--text-4)"); font-weight:@(on ? "600" : "400"); letter-spacing:0.01em;">@item.Label</span>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string Active { get; set; } = "";
+
+    private bool _isAdmin;
+    private int _pendencias;
+
+    private readonly (string Id, string Icon, string Label, bool Fab, string Route)[] _baseItems =
+    [
+        ("mapa",   "fa-map-location-dot", "Mapa",      false, "/"),
+        ("lista",  "fa-list",             "Lista",     false, "/lista"),
+        ("add",    "fa-plus",             "Adicionar", true,  "/adicionar"),
+        ("perfil", "fa-user",             "Perfil",    false, "/perfil"),
+    ];
+
+    private (string Id, string Icon, string Label, bool Fab, string Route)[] GetItems()
+    {
+        if (!_isAdmin) return _baseItems;
+        return [.. _baseItems, ("admin", "fa-shield-halved", "Admin", false, "/admin")];
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        await RefreshAdminStateAsync();
+    }
+
+    public void Dispose() =>
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> _) =>
+        await RefreshAdminStateAsync();
+
+    private async Task RefreshAdminStateAsync()
+    {
+        var userInfo = await AuthService.GetUserInfoAsync();
+        _isAdmin = userInfo?.Type == 2 || userInfo?.Type == 3;
+        _pendencias = 0;
+
+        if (_isAdmin)
+        {
+            var contagem = await AdminSvc.GetContagemAsync();
+            _pendencias = contagem?.Total ?? 0;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task NavigateTo(string targetId, string route)
+    {
+        var currentPath = new Uri(Nav.Uri).AbsolutePath;
+        if (targetId == Active && currentPath == route) return;
+        await JS.InvokeVoidAsync("navTransition.prepare", Active, targetId);
+        Nav.NavigateTo(route);
+    }
+}

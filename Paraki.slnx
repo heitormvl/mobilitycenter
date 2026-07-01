@@ -4,6 +4,8 @@
     <Project Path="src/Paraki.Business/Paraki.Business.csproj" />
     <Project Path="src/Paraki.Repositories/Paraki.Repositories.csproj" />
     <Project Path="src/Paraki.Shared/Paraki.Shared.csproj" />
+    <Project Path="src/Paraki.RazorLib/Paraki.RazorLib.csproj" />
     <Project Path="src/Paraki.Frontend/Paraki.Frontend.csproj" />
+    <Project Path="src/Paraki.Maui/Paraki.Maui.csproj" />
   </Folder>
 </Solution>

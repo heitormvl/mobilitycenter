@@ -1,0 +1,93 @@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div @ref="_container" style="width:100%; height:@(H)px; position:relative; z-index:0;"></div>
+
+@code {
+    [Parameter] public int H { get; set; } = 300;
+
+    // Raised (debounced) when the visible map area changes (pan/zoom).
+    [Parameter] public EventCallback OnViewChanged { get; set; }
+
+    // Raised once the underlying Leaflet map has been initialized.
+    [Parameter] public EventCallback OnReady { get; set; }
+
+    private ElementReference _container;
+    private readonly string _id = Guid.NewGuid().ToString("N");
+    private DotNetObjectReference<MapGrid>? _selfRef;
+    private int _renderedH;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _renderedH = H;
+            await JS.InvokeVoidAsync("mapInterop.initMap", _container, _id);
+
+            if (OnViewChanged.HasDelegate)
+            {
+                _selfRef = DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("mapInterop.onViewChange", _id, _selfRef);
+            }
+
+            if (OnReady.HasDelegate)
+                await OnReady.InvokeAsync();
+        }
+        else if (H != _renderedH)
+        {
+            _renderedH = H;
+            await JS.InvokeVoidAsync("mapInterop.invalidateSize", _id);
+            if (OnViewChanged.HasDelegate)
+                await OnViewChanged.InvokeAsync();
+        }
+    }
+
+    [JSInvokable]
+    public Task OnViewChangedJs() => OnViewChanged.InvokeAsync();
+
+    public async Task SetMarkersAsync(IEnumerable<MapMarker> markers) =>
+        await JS.InvokeVoidAsync("mapInterop.setMarkers", _id, markers);
+
+    public async Task<MapBounds?> GetBoundsAsync()
+    {
+        var arr = await JS.InvokeAsync<double[]?>("mapInterop.getBounds", _id);
+        return arr is { Length: 4 } ? new MapBounds(arr[0], arr[1], arr[2], arr[3]) : null;
+    }
+
+    public async Task FitBoundsAsync(MapBounds b) =>
+        await JS.InvokeVoidAsync("mapInterop.fitBounds", _id, b.South, b.West, b.North, b.East);
+
+    public async Task PanToUserAsync() =>
+        await JS.InvokeVoidAsync("mapInterop.panToUser", _id);
+
+    public async Task SetUserMarkerAsync(double lat, double lng) =>
+        await JS.InvokeVoidAsync("mapInterop.setUserMarker", _id, lat, lng);
+
+    public async Task PanToAsync(double lat, double lng) =>
+        await JS.InvokeVoidAsync("mapInterop.panTo", _id, lat, lng);
+
+    public async Task FocusMarkerAsync(string id) =>
+        await JS.InvokeVoidAsync("mapInterop.focusMarker", _id, id);
+
+    public async Task<(double Lat, double Lng)?> GetCenterAsync()
+    {
+        var arr = await JS.InvokeAsync<double[]?>("mapInterop.getCenter", _id);
+        return arr is { Length: 2 } ? (arr[0], arr[1]) : null;
+    }
+
+    public async Task ZoomInAsync() =>
+        await JS.InvokeVoidAsync("mapInterop.zoomIn", _id);
+
+    public async Task ZoomOutAsync() =>
+        await JS.InvokeVoidAsync("mapInterop.zoomOut", _id);
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("mapInterop.destroy", _id); }
+        catch { /* circuit/JS already gone */ }
+        _selfRef?.Dispose();
+    }
+
+    public record MapMarker(string Id, double Lat, double Lng, bool Accent, string PopupHtml);
+    public record MapBounds(double South, double West, double North, double East);
+}

@@ -15,6 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Paraki.RazorLib\Paraki.RazorLib.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
 
@@ -76,7 +80,7 @@
       <_WwwRoot>$(PublishDir)wwwroot\</_WwwRoot>
     </PropertyGroup>
     <ItemGroup>
-      <_AssetsToFingerprint Include="$(_WwwRoot)js\*.js;$(_WwwRoot)css\app.css"
+      <_AssetsToFingerprint Include="$(_WwwRoot)_content\Paraki.RazorLib\js\*.js;$(_WwwRoot)_content\Paraki.RazorLib\css\app.css"
                             Condition="Exists('$(_WwwRoot)')" />
     </ItemGroup>
     <FingerprintPublishedAssets

@@ -1,0 +1,391 @@
+@page "/lista"
+@inject NavigationManager Nav
+@inject BicicletarioService BicicletarioSvc
+@inject AuthService AuthSvc
+@inject SugestaoService SugestaoSvc
+@inject IJSRuntime JS
+
+<!-- Header -->
+<div style="background:var(--bg); padding:0 20px 16px; border-bottom:1px solid var(--border);">
+    <StatusBar />
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <a href="/inicio" class="mobile-only" style="display:flex; align-items:center; flex-shrink:0; text-decoration:none;">
+                <img src="_content/Paraki.RazorLib/icon-192.png" alt="Paraki" style="width:28px; height:28px; border-radius:7px; object-fit:cover; display:block;" />
+            </a>
+            <h1 style="font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.03em; font-family:var(--font);">Bicicletários</h1>
+        </div>
+        <div style="display:flex; gap:14px; align-items:center;">
+            @if (_isAdmin)
+            {
+                <button @onclick="ToggleOcultas"
+                        style="display:flex; align-items:center; gap:5px; padding:5px 10px; border-radius:var(--r-full); border:1px solid @(_showHidden ? "var(--brand)" : "var(--border)"); background:@(_showHidden ? "var(--brand-soft)" : "var(--bg)"); cursor:pointer; font-size:12px; font-family:var(--font); font-weight:600; color:@(_showHidden ? "var(--brand)" : "var(--text-3)"); transition:all .15s;">
+                    <i class="fa-solid @(_showHidden ? "fa-eye" : "fa-eye-slash")" style="font-size:11px;"></i>
+                    Ocultas
+                </button>
+            }
+            <i class="fa-solid fa-map" style="color:var(--brand); font-size:19px; cursor:pointer;" @onclick="NavigateToMapaAsync"></i>
+        </div>
+    </div>
+    <WfInput Placeholder="Buscar por nome..." IconClass="fa-magnifying-glass"
+             Value="@_search" ValueChanged="@((v) => _search = v)" />
+</div>
+
+<!-- Filter chips -->
+<div style="background:var(--bg); padding:12px 20px 12px; border-bottom:1px solid var(--border); display:flex; gap:8px; overflow-x:auto;">
+    <div @onclick="@(() => _filter = 0)"><Chip Accent="@(_filter == 0)" Sm="true">Todos</Chip></div>
+    <div @onclick="@(() => _filter = 1)"><Chip Accent="@(_filter == 1)" Sm="true">Bicicleta</Chip></div>
+    <div @onclick="@(() => _filter = 2)"><Chip Accent="@(_filter == 2)" Sm="true">Scooter</Chip></div>
+    <div @onclick="@(() => _filter = 3)"><Chip Accent="@(_filter == 3)" Sm="true">Monociclo</Chip></div>
+    <div @onclick="@(() => _filter = 4)"><Chip Accent="@(_filter == 4)" Sm="true">Patinete</Chip></div>
+</div>
+
+<!-- Count -->
+<div style="padding:12px 20px 8px; display:flex; justify-content:space-between; align-items:center;">
+    @if (_isLoading)
+    {
+        <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">Carregando...</span>
+    }
+    else if (_loadError == null)
+    {
+        <span style="font-size:13px; color:var(--text-4); font-family:var(--font);">@Filtered.Count() locais encontrados</span>
+        <span style="font-size:13px; color:var(--text-3); font-family:var(--font);">
+            @(_hasLocation ? "Ordenado por distância" : "Ordenado por nome")
+        </span>
+    }
+</div>
+
+<!-- Cards -->
+<div class="lista-cards-container" style="padding:0 16px 88px; display:flex; flex-direction:column; gap:10px; overflow-y:auto;">
+
+    @if (_isLoading)
+    {
+        @for (int i = 0; i < 4; i++)
+        {
+            <div style="background:var(--bg); border-radius:var(--r-lg); padding:16px; border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+                <div style="height:16px; width:60%; background:var(--border); border-radius:4px; margin-bottom:10px;"></div>
+                <div style="height:12px; width:30%; background:var(--border); border-radius:4px; margin-bottom:14px;"></div>
+                <div style="display:flex; gap:6px;">
+                    <div style="height:22px; width:50px; background:var(--border); border-radius:999px;"></div>
+                    <div style="height:22px; width:60px; background:var(--border); border-radius:999px;"></div>
+                </div>
+            </div>
+        }
+    }
+    else if (_loadError != null)
+    {
+        <div style="text-align:center; padding:40px 20px; font-family:var(--font);">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:32px; color:var(--text-4); margin-bottom:12px; display:block;"></i>
+            <div style="font-size:15px; color:var(--text-3);">@_loadError</div>
+        </div>
+    }
+    else
+    {
+        var items = Filtered.ToList();
+        @if (items.Count == 0)
+        {
+            <div style="text-align:center; padding:40px 20px; font-family:var(--font);">
+                <i class="fa-solid fa-circle-xmark" style="font-size:32px; color:var(--text-4); margin-bottom:12px; display:block;"></i>
+                <div style="font-size:15px; color:var(--text-3);">Nenhum bicicletário encontrado</div>
+            </div>
+        }
+        @foreach (var item in items)
+        {
+            var id = item.Id;
+            var stars = (int)Math.Round(item.NotaMedia);
+            var reviews = item.TotalAvaliacoes;
+            var dist = _hasLocation ? FormatDist(HaversineDist(_userLat, _userLng, item.Latitude, item.Longitude)) : "";
+            var listaStatus = HorarioHelper.GetStatus(item.Horarios);
+            var (listaStatusTxt, listaStatusBg, listaStatusColor) = HorarioHelper.GetBadgeStyle(listaStatus);
+            var listaAccessIcon  = item.AcessoLivre ? "fa-unlock" : item.AcessoPago ? "fa-coins" : item.AcessoCadastro ? "fa-id-card" : item.AcessoMensal ? "fa-calendar" : null;
+            var listaAccessLabel = item.AcessoLivre ? "Livre"    : item.AcessoPago ? "Pago"    : item.AcessoCadastro ? "Cadastro"   : item.AcessoMensal ? "Mensal"    : null;
+            bool listaHasVehicles = (item.VeiculosSuportados & 15) != 0;
+            bool listaHasFeatures = item.TemTomada || item.TemCalibrador || item.TemVestiario
+                                 || item.TemArmario || item.TemEspacoManutencao || item.TemCadeado || item.TemBanheiro;
+
+            <div class="lista-card" style="background:var(--bg); border-radius:var(--r-lg); overflow:hidden; border:1px solid @(item.IsDeleted ? "var(--border-2)" : "var(--border)"); box-shadow:var(--shadow-sm); cursor:pointer; opacity:@(item.IsDeleted ? "0.65" : "1");"
+                 @onclick="@(() => Nav.NavigateTo($"/bicicletario/{id}"))">
+
+                <div style="padding:12px 14px; display:flex; flex-direction:column; gap:5px;">
+
+                    @if (item.IsDeleted || listaStatus != StatusHorario.NaoInformado || !string.IsNullOrEmpty(dist))
+                    {
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                                @if (item.IsDeleted)
+                                {
+                                    <span style="font-size:10px; font-weight:700; font-family:var(--font); background:#f3e8e8; color:#b91c1c; padding:2px 7px; border-radius:var(--r-full); letter-spacing:.02em;">OCULTO</span>
+                                }
+                                @if (listaStatus != StatusHorario.NaoInformado)
+                                {
+                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:@listaStatusBg;color:@listaStatusColor;letter-spacing:0.04em;font-family:var(--font);">
+                                        <i class="fa-solid fa-circle" style="font-size:5px;"></i>@listaStatusTxt
+                                    </span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrEmpty(dist))
+                            {
+                                <div style="display:flex; align-items:center; gap:4px; background:var(--bg-page); padding:3px 8px; border-radius:var(--r-full); flex-shrink:0;">
+                                    <i class="fa-solid fa-location-dot" style="font-size:10px; color:var(--text-4);"></i>
+                                    <span style="font-size:12px; color:var(--text-4); font-family:var(--font); font-weight:500;">@dist</span>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <span style="font-size:15px; font-weight:700; color:var(--text); font-family:var(--font); letter-spacing:-0.01em; line-height:1.25;">@item.Nome</span>
+
+                    @if (listaAccessLabel != null || reviews > 0)
+                    {
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                            @if (listaAccessLabel != null)
+                            {
+                                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;background:var(--bg-page);border:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text-2);font-family:var(--font);">
+                                    <i class="fa-solid @listaAccessIcon" style="color:var(--brand);font-size:10px;"></i>Acesso: @listaAccessLabel
+                                </span>
+                            }
+                            else { <span></span> }
+                            @if (reviews > 0)
+                            {
+                                <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                                    <Stars N="@stars" />
+                                    <span style="font-size:11px; color:var(--text-3); font-family:var(--font);">@item.NotaMedia.ToString("F1", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',')</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @if (listaHasVehicles || listaHasFeatures)
+                {
+                    <div style="height:1px; background:var(--border);"></div>
+                    @if (listaHasVehicles)
+                    {
+                        <div style="padding:10px 14px; display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                            @if ((item.VeiculosSuportados & 1) != 0)
+                            {
+                                <div style="display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--bg-page);">
+                                    <i class="fa-solid fa-bicycle" style="color:var(--brand);font-size:12px;width:14px;"></i>
+                                    <span style="font-size:12px;color:var(--text);font-weight:500;font-family:var(--font);">Bicicleta</span>
+                                </div>
+                            }
+                            @if ((item.VeiculosSuportados & 2) != 0)
+                            {
+                                <div style="display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--bg-page);">
+                                    <i class="fa-solid fa-person-biking" style="color:var(--brand);font-size:12px;width:14px;"></i>
+                                    <span style="font-size:12px;color:var(--text);font-weight:500;font-family:var(--font);">Scooter</span>
+                                </div>
+                            }
+                            @if ((item.VeiculosSuportados & 4) != 0)
+                            {
+                                <div style="display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--bg-page);">
+                                    <i class="fa-solid fa-circle-dot" style="color:var(--brand);font-size:12px;width:14px;"></i>
+                                    <span style="font-size:12px;color:var(--text);font-weight:500;font-family:var(--font);">Monociclo</span>
+                                </div>
+                            }
+                            @if ((item.VeiculosSuportados & 8) != 0)
+                            {
+                                <div style="display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--bg-page);">
+                                    <i class="fa-solid fa-bolt" style="color:var(--brand);font-size:12px;width:14px;"></i>
+                                    <span style="font-size:12px;color:var(--text);font-weight:500;font-family:var(--font);">Patinete</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    @if (listaHasVehicles && listaHasFeatures)
+                    {
+                        <div style="height:1px; background:var(--border);"></div>
+                    }
+                    @if (listaHasFeatures)
+                    {
+                        <div style="padding:10px 14px; display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                            @if (item.TemTomada)
+                            {
+                                <div style="display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--bg-page);">
+                                    <i class="fa-solid fa-plug" style="color:var(--brand);font-size:12px;width:14px;"></i>
+                                    <span style="font-size:12px;color:var(--text);font-weight:500;font-family:var(--font);">Tomada</span>
+                                </div>
+                            }
+                            @if (item.TemCalibrador)
+                            {
+                                <div style="display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--bg-page);">
+                                    <i class="fa-solid fa-gauge" style="color:var(--brand);font-size:12px;width:14px;"></i>
+                                    <span style="font-size:12px;color:var(--text);font-weight:500;font-family:var(--font);">Calibrador</span>
+                                </div>
+                            }
+                            @if (item.TemVestiario)
+                            {
+                                <div style="display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--bg-page);">
+                                    <i class="fa-solid fa-shirt" style="color:var(--brand);font-size:12px;width:14px;"></i>
+                                    <span style="font-size:12px;color:var(--text);font-weight:500;font-family:var(--font);">Vestiário</span>
+                                </div>
+                            }
+                            @if (item.TemArmario)
+                            {
+                                <div style="display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--bg-page);">
+                                    <i class="fa-solid fa-box" style="color:var(--brand);font-size:12px;width:14px;"></i>
+                                    <span style="font-size:12px;color:var(--text);font-weight:500;font-family:var(--font);">Armário</span>
+                                </div>
+                            }
+                            @if (item.TemEspacoManutencao)
+                            {
+                                <div style="display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--bg-page);">
+                                    <i class="fa-solid fa-wrench" style="color:var(--brand);font-size:12px;width:14px;"></i>
+                                    <span style="font-size:12px;color:var(--text);font-weight:500;font-family:var(--font);">Manutenção</span>
+                                </div>
+                            }
+                            @if (item.TemCadeado)
+                            {
+                                <div style="display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--bg-page);">
+                                    <i class="fa-solid fa-lock" style="color:var(--brand);font-size:12px;width:14px;"></i>
+                                    <span style="font-size:12px;color:var(--text);font-weight:500;font-family:var(--font);">Cadeado</span>
+                                </div>
+                            }
+                            @if (item.TemBanheiro)
+                            {
+                                <div style="display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--bg-page);">
+                                    <i class="fa-solid fa-restroom" style="color:var(--brand);font-size:12px;width:14px;"></i>
+                                    <span style="font-size:12px;color:var(--text);font-weight:500;font-family:var(--font);">Banheiro</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private BicicletarioDto[]? _allItems;
+    private string _search = "";
+    private int _filter = 0;
+    private bool _isLoading = true;
+    private string? _loadError;
+    private double _userLat;
+    private double _userLng;
+    private bool _hasLocation;
+    private bool _isAdmin;
+    private bool _showHidden;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userInfo = await AuthSvc.GetUserInfoAsync();
+        _isAdmin = userInfo?.Type == 2;
+
+        // Apply cached location before loading so Filtered sorts by distance on first render.
+        var cached = await GetCachedLocationAsync();
+        if (cached.HasValue)
+        {
+            _userLat = cached.Value.lat;
+            _userLng = cached.Value.lng;
+            _hasLocation = true;
+        }
+
+        // GPS runs in background while the list loads immediately.
+        var geoTask = GetUserLocationAsync();
+        await CarregarAsync();
+
+        // GPS resolve: persist to cache and re-sort if location changed.
+        var (lat, lng) = await geoTask;
+        if (lat.HasValue && lng.HasValue)
+        {
+            await JS.InvokeVoidAsync("mapInterop.setCachedLocation", lat.Value, lng.Value);
+            _userLat = lat.Value;
+            _userLng = lng.Value;
+            _hasLocation = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<(double lat, double lng)?> GetCachedLocationAsync()
+    {
+        try
+        {
+            var arr = await JS.InvokeAsync<double[]?>("mapInterop.getCachedLocation");
+            return arr is { Length: 2 } ? (arr[0], arr[1]) : null;
+        }
+        catch { return null; }
+    }
+
+    private async Task<(double? lat, double? lng)> GetUserLocationAsync()
+    {
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var arr = await JS.InvokeAsync<double[]>("mapInterop.getUserLocation", cts.Token);
+            return (arr[0], arr[1]);
+        }
+        catch { return (null, null); }
+    }
+
+    private async Task NavigateToMapaAsync()
+    {
+        await JS.InvokeVoidAsync("navTransition.prepare", "lista", "mapa");
+        Nav.NavigateTo("/");
+    }
+
+    private async Task CarregarAsync()
+    {
+        _isLoading = true;
+        _loadError = null;
+
+        var result = await BicicletarioSvc.GetAllAsync(
+            _hasLocation ? _userLat : null,
+            _hasLocation ? _userLng : null,
+            incluirOcultas: _showHidden);
+
+        if (result == null)
+            _loadError = "Não foi possível carregar os bicicletários.";
+        else
+            _allItems = result;
+
+        _isLoading = false;
+    }
+
+    private async Task ToggleOcultas()
+    {
+        _showHidden = !_showHidden;
+        await CarregarAsync();
+    }
+
+    private IEnumerable<BicicletarioDto> Filtered
+    {
+        get
+        {
+            var q = (_allItems ?? []).AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_search))
+                q = q.Where(i => i.Nome.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+            q = _filter switch
+            {
+                1 => q.Where(i => (i.VeiculosSuportados & 1) != 0),  // Bicicleta
+                2 => q.Where(i => (i.VeiculosSuportados & 2) != 0),  // Scooter
+                3 => q.Where(i => (i.VeiculosSuportados & 4) != 0),  // Monociclo
+                4 => q.Where(i => (i.VeiculosSuportados & 8) != 0),  // Patinete
+                _ => q
+            };
+
+            return _hasLocation
+                ? q.OrderBy(i => HaversineDist(_userLat, _userLng, i.Latitude, i.Longitude))
+                : q.OrderBy(i => i.Nome);
+        }
+    }
+
+    private static string FormatDist(double km) =>
+        km < 1
+            ? $"{(int)(km * 1000)} m"
+            : km.ToString("F1", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',') + " km";
+
+    private static double HaversineDist(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double R = 6371;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLon = (lon2 - lon1) * Math.PI / 180;
+        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
+              + Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180)
+              * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+    }
+}

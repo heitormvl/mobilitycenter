@@ -1,0 +1,430 @@
+﻿@page "/login"
+@inject NavigationManager Nav
+@inject AuthService AuthService
+@inject IJSRuntime JS
+@inject IGoogleAuthService GoogleAuth
+
+<div style="min-height:100vh; display:flex; flex-direction:column; background:linear-gradient(160deg, var(--brand) 0%, var(--brand-dark) 100%);">
+
+    <StatusBar Dark="true" />
+
+    <!-- Hero -->
+    <div style="padding:36px 28px 60px; text-align:center; flex-shrink:0; position:relative;">
+        <a href="/"
+           style="position:absolute; top:0; left:28px; background:rgba(255,255,255,0.18); border:1.5px solid rgba(255,255,255,0.28); border-radius:50%; width:38px; height:38px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); text-decoration:none;">
+            <i class="fa-solid fa-chevron-left" style="color:white; font-size:15px;"></i>
+        </a>
+        <div style="width:76px; height:76px; border-radius:24px; background:rgba(255,255,255,0.18); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1.5px solid rgba(255,255,255,0.28); margin:0 auto 20px; display:flex; align-items:center; justify-content:center;">
+            <img src="_content/Paraki.RazorLib/icon-192.png" alt="Paraki" style="width:52px; height:52px; object-fit:contain; border-radius:12px;" />
+        </div>
+        <h1 style="font-size:28px; font-weight:800; color:white; font-family:var(--font); letter-spacing:-0.03em; margin-bottom:6px; text-shadow:0 2px 8px rgba(0,0,0,0.18);">Paraki</h1>
+        <p style="font-size:14px; color:rgba(255,255,255,0.72); font-family:var(--font); margin:0;">Busca. Acha. <strong style="color:white;">Paraki.</strong></p>
+    </div>
+
+    <!-- Card -->
+    <div style="flex:1; background:var(--bg); border-radius:28px 28px 0 0;  margin-top:-32px; overflow:hidden;">
+        <div style="display:flex; transition:transform 0.34s cubic-bezier(0.4,0,0.2,1); transform:@SlideTransform; will-change:transform; width:300%">
+
+            <!-- Login panel -->
+            <div style="min-width:33.333%; flex-shrink:0; padding:32px 24px 52px;">
+                <p style="font-size:22px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin-bottom:4px;">Bem-vindo de volta</p>
+                <p style="font-size:14px; color:var(--text-3); font-family:var(--font); margin-bottom:28px;">Entre na sua conta para continuar</p>
+
+                @if (_showPasswordLogin)
+                {
+                    <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
+                        <div class="@(_formReady ? (_formExiting ? "lform-top-exit" : "lform-top") : "lform-hidden")"
+                             style="animation-delay:@(_formExiting ? "0.26s" : "0s")">
+                            <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">E-mail</label>
+                            <div @ref="_emailRef">
+                                <WfInput @bind-Value="_email" Placeholder="seu@email.com" IconClass="fa-envelope" />
+                            </div>
+                        </div>
+                        <div class="@(_formReady ? (_formExiting ? "lform-bottom-exit" : "lform-bottom") : "lform-hidden")"
+                             style="animation-delay:@(_formExiting ? "0.20s" : "0.05s")">
+                            <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Senha</label>
+                            <div @ref="_passRef" style="position:relative;">
+                                <WfInput @bind-Value="_password" Placeholder="••••••••" IconClass="fa-lock" Type="@(_showLoginPassword ? "text" : "password")" />
+                                <button type="button" @onclick="@(() => _showLoginPassword = !_showLoginPassword)"
+                                        style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; padding:0; cursor:pointer; color:var(--text-4); font-size:14px; line-height:1;">
+                                    <i class="fa-solid @(_showLoginPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="@(_formReady ? (_formExiting ? "lcurtain-exit" : "lcurtain") : "lform-hidden")"
+                             style="animation-delay:0.14s; text-align:right;">
+                            <a href="/esqueci-senha" style="font-size:13px; color:var(--brand); font-weight:600; font-family:var(--font); text-decoration:none;">Esqueci minha senha</a>
+                        </div>
+                    </div>
+
+                    @if (_error != null && !_showRegister)
+                    {
+                        <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:var(--red); word-break:break-word; overflow-wrap:break-word;">
+                            @_error
+                        </div>
+                    }
+
+                    <div class="@(_formReady ? (_formExiting ? "lcurtain-exit" : "lcurtain") : "lform-hidden")"
+                         style="animation-delay:@(_formExiting ? "0.07s" : "0.24s"); margin-bottom:16px;">
+                        <BtnP OnClick="HandleLogin">
+                            @if (_loading) { <span>Entrando...</span> } else { <span>Entrar</span> }
+                        </BtnP>
+                    </div>
+
+                    <div class="@(_formReady ? (_formExiting ? "lcurtain-exit" : "lcurtain") : "lform-hidden")"
+                         style="animation-delay:@(_formExiting ? "0s" : "0.34s"); margin-bottom:20px;">
+                        <button @onclick="HandleBackToSelector" disabled="@_animating"
+                                style="background:none; border:1.5px solid var(--border); border-radius:var(--r); padding:12px 24px; font-size:14px; font-weight:600; color:var(--text-3); font-family:var(--font); cursor:pointer; width:100%;">
+                            Entrar com outro meio
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    @if (_error != null && !_showRegister)
+                    {
+                        <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:var(--red); word-break:break-word; overflow-wrap:break-word;">
+                            @_error
+                        </div>
+                    }
+
+                    <div @ref="_btnRef" class="@(_selectorExiting ? "lselector-out" : "lselector-in")"
+                         style="margin-bottom:16px;">
+                        <BtnO OnClick="StartPasswordLoginAnimation">
+                            <i class="fa-solid fa-envelope" style="font-size:14px;"></i>
+                            <span>Entrar com usuário e senha</span>
+                        </BtnO>
+                    </div>
+
+                    <div class="@(_selectorExiting ? "lselector-out" : "lselector-in")"
+                         style="display:flex; align-items:center; gap:14px; margin-bottom:16px; animation-delay:@(_selectorExiting ? "0s" : "0.08s");">
+                        <div style="flex:1; height:1px; background:var(--border);"></div>
+                        <span style="font-size:12px; color:var(--text-4); font-family:var(--font); font-weight:500;">OU</span>
+                        <div style="flex:1; height:1px; background:var(--border);"></div>
+                    </div>
+                }
+
+                @if (!_showPasswordLogin)
+                {
+                <div class="@(_selectorExiting ? "lselector-out" : "lselector-in")"
+                     style="animation-delay:@(_selectorExiting ? "0.03s" : "0.16s")">
+                    <BtnO OnClick="HandleGoogleLogin">
+                        @if (_googleLoading)
+                        {
+                            <i class="fa-solid fa-spinner fa-spin" style="font-size:14px;"></i>
+                            <span>Entrando com Google...</span>
+                        }
+                        else
+                        {
+                            <svg width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0;">
+                                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                                <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+                                <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                            </svg>
+                            <span>Continuar com Google</span>
+                        }
+                    </BtnO>
+                </div>
+                }
+
+                <div class="@(_animating ? "llink-out" : "llink-in")"
+                     style="text-align:center; margin-top:32px; font-size:15px; font-family:var(--font);">
+                    <span style="color:var(--text-3);">Não tem conta? </span>
+                    <span @onclick="@(() => { _showRegister = true; _error = null; _showPasswordLogin = false; _formReady = false; })" style="color:var(--brand); font-weight:600; cursor:pointer;">Criar conta</span>
+                </div>
+            </div>
+
+            <!-- Register panel -->
+            <div style="min-width:33.333%; flex-shrink:0; padding:32px 24px 52px;">
+                <p style="font-size:22px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin-bottom:4px;">Criar conta</p>
+                <p style="font-size:14px; color:var(--text-3); font-family:var(--font); margin-bottom:28px;">Preencha seus dados para começar</p>
+
+                <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Nome</label>
+                        <WfInput @bind-Value="_displayName" Placeholder="Seu nome completo" IconClass="fa-user" />
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">E-mail</label>
+                        <WfInput @bind-Value="_email" Placeholder="seu@email.com" IconClass="fa-envelope" />
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:500; color:var(--text-2); margin-bottom:8px; font-family:var(--font);">Senha</label>
+                        <div style="position:relative;">
+                            <WfInput @bind-Value="_password" Placeholder="Mínimo 6 caracteres" IconClass="fa-lock" Type="@(_showRegisterPassword ? "text" : "password")" />
+                            <button type="button" @onclick="@(() => _showRegisterPassword = !_showRegisterPassword)"
+                                    style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; padding:0; cursor:pointer; color:var(--text-4); font-size:14px; line-height:1;">
+                                <i class="fa-solid @(_showRegisterPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                @if (_error != null && _showRegister)
+                {
+                    <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:var(--red); word-break:break-word; overflow-wrap:break-word;">
+                        @_error
+                    </div>
+                }
+
+                <BtnP Style="margin-bottom:20px;" OnClick="HandleRegister">
+                    @if (_loading) { <span>Criando conta...</span> } else { <span>Criar conta</span> }
+                </BtnP>
+
+                <div style="text-align:center; margin-top:8px; font-size:15px; font-family:var(--font);">
+                    <span style="color:var(--text-3);">Já tem conta? </span>
+                    <span @onclick="@(() => { _showRegister = false; _error = null; })" style="color:var(--brand); font-weight:600; cursor:pointer;">Entrar</span>
+                </div>
+
+                <p style="text-align:center; font-size:12px; color:var(--text-4); font-family:var(--font); margin:16px 0 0; line-height:1.55;">
+                    Ao criar sua conta, você concorda com nossa<br />
+                    <a href="/politica-de-privacidade" style="color:var(--brand); text-decoration:none; font-weight:500;">Política de Privacidade</a> e <a href="/termos-de-uso" style="color:var(--brand); text-decoration:none; font-weight:500;">Termos de Uso</a>.
+                </p>
+            </div>
+
+            <!-- Email enviado panel -->
+            <div style="min-width:33.333%; flex-shrink:0; padding:32px 24px 52px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+                <div style="width:72px; height:72px; background:var(--brand-bg, #e8f8f0); border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:24px;">
+                    <i class="fa-solid fa-envelope-circle-check" style="font-size:32px; color:var(--brand);"></i>
+                </div>
+                <p style="font-size:22px; font-weight:800; color:var(--text); font-family:var(--font); letter-spacing:-0.03em; margin-bottom:8px;">Verifique seu e-mail</p>
+                <p style="font-size:14px; color:var(--text-3); font-family:var(--font); margin-bottom:8px; line-height:1.6;">
+                    Enviamos um link de confirmação para
+                </p>
+                <p style="font-size:14px; font-weight:600; color:var(--text); font-family:var(--font); margin-bottom:28px;">@_emailCadastrado</p>
+                <p style="font-size:13px; color:var(--text-3); font-family:var(--font); margin-bottom:24px; line-height:1.6;">
+                    Clique no link para ativar sua conta.<br />Pode demorar alguns minutos.
+                </p>
+
+                @if (_reenviarErro != null)
+                {
+                    <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:var(--red); width:100%; word-break:break-word;">
+                        @_reenviarErro
+                    </div>
+                }
+                @if (_reenviarSucesso)
+                {
+                    <div style="background:#e8f8f0; border:1px solid #a7f3d0; border-radius:var(--r); padding:12px 14px; margin-bottom:16px; font-family:var(--font); font-size:13px; color:#065f46; width:100%;">
+                        E-mail reenviado com sucesso!
+                    </div>
+                }
+
+                <button @onclick="HandleReenviar" disabled="@_reenviarLoading"
+                        style="background:none; border:1.5px solid var(--brand); border-radius:var(--r); padding:12px 24px; font-size:14px; font-weight:600; color:var(--brand); font-family:var(--font); cursor:pointer; width:100%; margin-bottom:16px;">
+                    @(_reenviarLoading ? "Reenviando..." : "Reenviar e-mail")
+                </button>
+
+                <span @onclick="@(() => { _showEmailEnviado = false; _showRegister = false; _showPasswordLogin = false; _reenviarErro = null; _reenviarSucesso = false; })"
+                      style="font-size:14px; color:var(--text-3); font-family:var(--font); cursor:pointer;">
+                    Voltar ao login
+                </span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string Destination { get; set; } = "/";
+
+    private string _email = "";
+    private string _password = "";
+    private string _displayName = "";
+    private bool _loading;
+    private bool _googleLoading;
+    private string? _error;
+    private bool _showRegister;
+    private bool _showPasswordLogin;
+    private bool _formReady;
+    private bool _formExiting;
+    private bool _selectorExiting;
+    private bool _animating;
+    private bool _showEmailEnviado;
+    private bool _showLoginPassword;
+    private bool _showRegisterPassword;
+
+    private ElementReference _btnRef;
+    private ElementReference _emailRef;
+    private ElementReference _passRef;
+
+    private record DomRect(double Top, double Left, double Width, double Height);
+    private DomRect? _cachedBtnRect;
+    private string _emailCadastrado = "";
+    private bool _reenviarLoading;
+    private string? _reenviarErro;
+    private bool _reenviarSucesso;
+
+    private string SlideTransform => _showEmailEnviado ? "translateX(-66.666%)" : _showRegister ? "translateX(-33.333%)" : "translateX(0)";
+
+    private async Task StartPasswordLoginAnimation()
+    {
+        if (_animating || _showPasswordLogin) return;
+        _animating = true;
+        _error = null;
+
+        // Capture button position while it's still in the DOM (cached for reverse animation)
+        var btnRect = await JS.InvokeAsync<DomRect>("loginAnim.getRect", _btnRef);
+        _cachedBtnRect = btnRect;
+
+        // Fade out the divider + Google button before the phantom starts
+        _selectorExiting = true;
+        StateHasChanged();
+        await Task.Delay(200); // lselector-out: 0ms delay + 150ms duration + ~50ms render overhead
+
+        // Switch to form (invisible until phantom finishes)
+        _selectorExiting = false;
+        _showPasswordLogin = true;
+        _formReady = false;
+        StateHasChanged();
+
+        // Allow Blazor to push the DOM update so inputs are measurable
+        await Task.Delay(32);
+
+        // Measure where each input landed
+        var emailRect = await JS.InvokeAsync<DomRect>("loginAnim.getRect", _emailRef);
+        var passRect  = await JS.InvokeAsync<DomRect>("loginAnim.getRect", _passRef);
+
+        // Run the JS-driven phantom split animation
+        await JS.InvokeVoidAsync("loginAnim.runSplit", btnRect, emailRect, passRect);
+
+        // Wait for phantom to finish, then reveal form with CSS animations
+        await Task.Delay(340);
+        _formReady = true;
+        _animating = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleBackToSelector()
+    {
+        if (_animating || _cachedBtnRect is null) return;
+        _animating = true;
+        _error = null;
+
+        // Capture input rects while they're still visible in the DOM
+        var emailRect = await JS.InvokeAsync<DomRect>("loginAnim.getRect", _emailRef);
+        var passRect  = await JS.InvokeAsync<DomRect>("loginAnim.getRect", _passRef);
+
+        // Start exit animations on all form elements
+        _formExiting = true;
+        StateHasChanged();
+
+        // Small yield so Blazor flushes the exit class changes to DOM
+        await Task.Delay(16);
+
+        // Launch merge phantoms (they fly from input positions back to the button)
+        await JS.InvokeVoidAsync("loginAnim.runMerge", emailRect, passRect, _cachedBtnRect);
+
+        // Wait for longest exit animation (email: 0.26s delay + 0.25s duration = 510ms)
+        // +120ms buffer to cover Blazor render latency before animations start
+        await Task.Delay(630);
+        _showPasswordLogin = false;
+        _formReady = false;
+        _formExiting = false;
+        _animating = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleGoogleLogin()
+    {
+        if (_googleLoading) return;
+        _googleLoading = true;
+        _error = null;
+        StateHasChanged();
+
+        // O fluxo específico de cada plataforma (GSI no WASM, OAuth nativo no MAUI)
+        // fica encapsulado em IGoogleAuthService. Retorna o id_token do Google ou null.
+        var idToken = await GoogleAuth.SignInAsync();
+        if (idToken is null)
+        {
+            _error = "Não foi possível entrar com Google. Tente novamente.";
+            _googleLoading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var erro = await AuthService.LoginWithGoogleAsync(idToken);
+        if (erro is null)
+            Nav.NavigateTo("/");
+        else
+            _error = erro;
+
+        _googleLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleLogin()
+    {
+        _error = null;
+
+        if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
+        {
+            _error = "Preencha e-mail e senha.";
+            return;
+        }
+
+        _loading = true;
+
+        var erro = await AuthService.LoginAsync(_email, _password);
+
+        if (erro is null)
+        {
+            Nav.NavigateTo(string.IsNullOrEmpty(Destination) ? "/" : Destination);
+        }
+        else if (erro.StartsWith("EMAIL_NAO_CONFIRMADO:"))
+        {
+            _emailCadastrado = erro["EMAIL_NAO_CONFIRMADO:".Length..];
+            _showEmailEnviado = true;
+        }
+        else
+        {
+            _error = erro;
+        }
+
+        _loading = false;
+    }
+
+    private async Task HandleRegister()
+    {
+        if (string.IsNullOrWhiteSpace(_displayName) ||
+            string.IsNullOrWhiteSpace(_email) ||
+            string.IsNullOrWhiteSpace(_password))
+        {
+            _error = "Preencha todos os campos.";
+            return;
+        }
+
+        _loading = true;
+        _error = null;
+
+        var erro = await AuthService.RegisterAsync(_displayName, _email, _password);
+
+        if (erro is null)
+        {
+            _emailCadastrado = _email;
+            _showEmailEnviado = true;
+        }
+        else
+        {
+            _error = erro;
+        }
+
+        _loading = false;
+    }
+
+    private async Task HandleReenviar()
+    {
+        _reenviarErro = null;
+        _reenviarSucesso = false;
+        _reenviarLoading = true;
+
+        var erro = await AuthService.ReenviarConfirmacaoAsync(_emailCadastrado);
+        if (erro is null)
+            _reenviarSucesso = true;
+        else
+            _reenviarErro = erro;
+
+        _reenviarLoading = false;
+    }
+}
