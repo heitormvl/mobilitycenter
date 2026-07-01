@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excluir conta — Paraki</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="_content/Paraki.RazorLib/css/app.css" />
+    <script>
+        (function() {
+            var saved = localStorage.getItem('tema');
+            if (saved === 'dark' || saved === 'light') {
+                document.getElementById('html-root').setAttribute('data-theme', saved);
+            }
+        })();
+    </script>
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 32px 16px 64px;
+            background: var(--bg-page);
+            font-family: var(--font);
+            color: var(--text);
+        }
+
+        .card {
+            width: 100%;
+            max-width: 520px;
+            background: var(--bg);
+            border-radius: var(--r-xl);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 28px 28px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .header-text h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+
+        .header-text p {
+            font-size: 0.8rem;
+            color: var(--text-3);
+            margin-top: 2px;
+        }
+
+        .card-body {
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 10px;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .step-num {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--brand-soft);
+            color: var(--brand);
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .step-text {
+            font-size: 0.9rem;
+            color: var(--text-2);
+            line-height: 1.5;
+            padding-top: 3px;
+        }
+
+        .step-text strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .warning-box {
+            background: var(--gold-bg);
+            border: 1px solid var(--gold);
+            border-radius: var(--r);
+            padding: 14px 16px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .warning-box i {
+            color: var(--gold);
+            font-size: 14px;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .warning-box p {
+            font-size: 0.85rem;
+            color: var(--text-2);
+            line-height: 1.5;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+        }
+
+        .contact-block {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .contact-block p {
+            font-size: 0.85rem;
+            color: var(--text-3);
+        }
+
+        .email-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--brand);
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 11px 18px;
+            border-radius: var(--r-full);
+            transition: background 0.14s;
+            align-self: flex-start;
+        }
+
+        .email-btn:hover { background: var(--brand-dark); }
+        .email-btn i { font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-header">
+            <div class="logo">
+                <img src="icon-192.png" alt="Paraki">
+            </div>
+            <div class="header-text">
+                <h1>Excluir minha conta</h1>
+                <p>Paraki — infraestrutura para micromobilidade</p>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div>
+                <p class="section-title">Pelo app</p>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div class="step-text">Abra o app <strong>Paraki</strong></div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <div class="step-text">Acesse <strong>Perfil</strong> no menu inferior</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div class="step-text">Toque em <strong>Configurações</strong></div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">4</div>
+                        <div class="step-text">Selecione <strong>Excluir conta</strong> e confirme</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>A exclusão remove permanentemente sua conta, avaliações e dados pessoais. Esta ação não pode ser desfeita.</p>
+            </div>
+
+            <hr class="divider">
+
+            <div class="contact-block">
+                <p>Sem acesso ao app ou precisa de ajuda? Entre em contato por e-mail:</p>
+                <a class="email-btn" href="mailto:contas@mavericksoftware.com.br?subject=Solicitação de exclusão de conta Paraki">
+                    <i class="fa-solid fa-envelope"></i>
+                    contas@mavericksoftware.com.br
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
