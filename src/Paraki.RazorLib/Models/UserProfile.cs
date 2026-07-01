@@ -1,4 +1,4 @@
-﻿namespace Paraki.Frontend.Models;
+﻿namespace Paraki.RazorLib.Models;
 
 public class UserProfile
 {

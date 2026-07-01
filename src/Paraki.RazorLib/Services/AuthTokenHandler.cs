@@ -1,8 +1,10 @@
 ﻿using System.Net.Http.Headers;
 
-namespace Paraki.Frontend.Services;
+using Paraki.RazorLib.Interfaces;
 
-public class AuthTokenHandler(LocalStorageService localStorage) : DelegatingHandler
+namespace Paraki.RazorLib.Services;
+
+public class AuthTokenHandler(ILocalStorageService localStorage) : DelegatingHandler
 {
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)

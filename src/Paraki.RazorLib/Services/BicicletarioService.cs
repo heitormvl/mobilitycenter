@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.Net.Http.Json;
 
-namespace Paraki.Frontend.Services;
+namespace Paraki.RazorLib.Services;
 
 public class BicicletarioService(HttpClient http)
 {

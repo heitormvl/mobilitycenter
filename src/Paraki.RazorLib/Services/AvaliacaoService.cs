@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
 
-namespace Paraki.Frontend.Services;
+namespace Paraki.RazorLib.Services;
 
 public class AvaliacaoService(HttpClient http)
 {

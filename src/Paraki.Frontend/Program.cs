@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Paraki.Frontend;
 using Paraki.Frontend.Services;
+using Paraki.RazorLib;
+using Paraki.RazorLib.Interfaces;
+using Paraki.RazorLib.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true);
@@ -11,7 +13,10 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? builder.HostEnvironment.BaseAddress;
 
-builder.Services.AddScoped<LocalStorageService>();
+// Implementações específicas do WASM das abstrações compartilhadas (RazorLib)
+builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
+builder.Services.AddScoped<IGoogleAuthService, JsGoogleAuthService>();
+
 builder.Services.AddScoped<JwtAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<JwtAuthStateProvider>());

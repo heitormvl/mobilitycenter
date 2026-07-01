@@ -1,9 +1,8 @@
 ﻿@page "/login"
-@implements IDisposable
 @inject NavigationManager Nav
 @inject AuthService AuthService
 @inject IJSRuntime JS
-@inject IConfiguration Config
+@inject IGoogleAuthService GoogleAuth
 
 <div style="min-height:100vh; display:flex; flex-direction:column; background:linear-gradient(160deg, var(--brand) 0%, var(--brand-dark) 100%);">
 
@@ -256,12 +255,8 @@
     private bool _reenviarLoading;
     private string? _reenviarErro;
     private bool _reenviarSucesso;
-    private DotNetObjectReference<Login>? _dotNetRef;
 
     private string SlideTransform => _showEmailEnviado ? "translateX(-66.666%)" : _showRegister ? "translateX(-33.333%)" : "translateX(0)";
-
-    protected override void OnInitialized() =>
-        _dotNetRef = DotNetObjectReference.Create(this);
 
     private async Task StartPasswordLoginAnimation()
     {
@@ -338,15 +333,18 @@
         _error = null;
         StateHasChanged();
 
-        var clientId = Config["Google:ClientId"] ?? "";
-        await JS.InvokeVoidAsync("googleAuth.signIn", clientId, _dotNetRef);
-    }
+        // O fluxo específico de cada plataforma (GSI no WASM, OAuth nativo no MAUI)
+        // fica encapsulado em IGoogleAuthService. Retorna o id_token do Google ou null.
+        var idToken = await GoogleAuth.SignInAsync();
+        if (idToken is null)
+        {
+            _error = "Não foi possível entrar com Google. Tente novamente.";
+            _googleLoading = false;
+            StateHasChanged();
+            return;
+        }
 
-    [JSInvokable]
-    public async Task HandleGoogleCredential(string idToken)
-    {
         var erro = await AuthService.LoginWithGoogleAsync(idToken);
-
         if (erro is null)
             Nav.NavigateTo("/");
         else
@@ -355,23 +353,6 @@
         _googleLoading = false;
         StateHasChanged();
     }
-
-    [JSInvokable]
-    public void HandleGoogleError(string reason)
-    {
-        _error = reason switch
-        {
-            "opt_out_or_no_session" => "Nenhuma conta Google detectada neste navegador.",
-            "suppressed_by_user"    => "Login com Google foi cancelado.",
-            "browser_not_supported" => "Seu navegador não suporta login com Google.",
-            "invalid_client"        => "Configuração do Google inválida.",
-            _                       => "Não foi possível iniciar o login com Google. Tente novamente."
-        };
-        _googleLoading = false;
-        StateHasChanged();
-    }
-
-    public void Dispose() => _dotNetRef?.Dispose();
 
     private async Task HandleLogin()
     {

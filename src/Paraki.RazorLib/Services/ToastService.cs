@@ -1,4 +1,4 @@
-﻿namespace Paraki.Frontend.Services;
+﻿namespace Paraki.RazorLib.Services;
 
 public class ToastService
 {

@@ -1,12 +1,14 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using Paraki.Frontend.Models;
+using Paraki.RazorLib.Models;
 
-namespace Paraki.Frontend.Services;
+using Paraki.RazorLib.Interfaces;
+
+namespace Paraki.RazorLib.Services;
 
 public class AuthService(
     HttpClient http,
-    LocalStorageService localStorage,
+    ILocalStorageService localStorage,
     JwtAuthStateProvider authStateProvider)
 {
     public async Task<string?> LoginAsync(string email, string password)

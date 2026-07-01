@@ -2,12 +2,14 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
-using Paraki.Frontend.Models;
+using Paraki.RazorLib.Models;
 
-namespace Paraki.Frontend.Services;
+using Paraki.RazorLib.Interfaces;
+
+namespace Paraki.RazorLib.Services;
 
 public class JwtAuthStateProvider(
-    LocalStorageService localStorage,
+    ILocalStorageService localStorage,
     IHttpClientFactory httpFactory) : AuthenticationStateProvider
 {
     private static readonly AuthenticationState Anonymous =
